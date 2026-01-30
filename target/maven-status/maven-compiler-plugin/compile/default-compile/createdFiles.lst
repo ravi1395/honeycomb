@@ -2,5 +2,6 @@ com/example/honeycomb/service/DomainServerManager.class
 com/example/honeycomb/HoneycombApplication.class
 com/example/honeycomb/examples/SampleModel.class
 com/example/honeycomb/annotations/Domain.class
+com/example/honeycomb/web/HealthController.class
 com/example/honeycomb/service/DomainRegistry.class
 com/example/honeycomb/web/HoneycombController.class

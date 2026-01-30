@@ -29,6 +29,7 @@ public class DomainServerManager implements ApplicationContextAware {
     private final Environment env;
 
     private final Map<String, DisposableServer> servers = new ConcurrentHashMap<>();
+    private final Map<Integer, String> portToDomain = new ConcurrentHashMap<>();
 
     @Autowired
     public DomainServerManager(DomainRegistry domainRegistry, Environment env) {
@@ -47,8 +48,7 @@ public class DomainServerManager implements ApplicationContextAware {
         if (names.isEmpty()) return;
 
         // create a single HttpHandler from the existing application context and reuse it
-        var handler = WebHttpHandlerBuilder.applicationContext(applicationContext).build();
-        var adapter = new ReactorHttpHandlerAdapter(handler);
+        var baseHandler = WebHttpHandlerBuilder.applicationContext(applicationContext).build();
 
         for (String name : names) {
             try {
@@ -64,8 +64,20 @@ public class DomainServerManager implements ApplicationContextAware {
                         log.info("Server for domain '{}' already running on port {}", name, configuredPort);
                         continue;
                     }
+                    // wrap the base handler to restrict routes served by per-domain servers
+                    org.springframework.http.server.reactive.HttpHandler filtered = (req, resp) -> {
+                        String p = req.getURI().getPath();
+                        if (p != null && p.startsWith("/honeycomb")) {
+                            return baseHandler.handle(req, resp);
+                        }
+                        resp.setStatusCode(org.springframework.http.HttpStatus.NOT_FOUND);
+                        return resp.setComplete();
+                    };
+                    var adapter = new ReactorHttpHandlerAdapter(filtered);
                     DisposableServer server = HttpServer.create().port(configuredPort).handle(adapter).bindNow();
                     servers.put(name, server);
+                    // record reverse mapping port -> domain name
+                    portToDomain.put(configuredPort, name);
                     log.info("Started domain server '{}' on port {}", name, configuredPort);
                 }
             } catch (Exception e) {
@@ -85,5 +97,12 @@ public class DomainServerManager implements ApplicationContextAware {
             }
         }
         servers.clear();
+    }
+
+    /**
+     * Returns the domain name (if any) that is served on the given local port.
+     */
+    public String getDomainForPort(int port) {
+        return portToDomain.get(port);
     }
 }
