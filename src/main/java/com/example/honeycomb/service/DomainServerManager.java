@@ -76,6 +76,25 @@ public class DomainServerManager implements ApplicationContextAware {
                     var adapter = new ReactorHttpHandlerAdapter(filtered);
                     DisposableServer server = HttpServer.create().port(configuredPort).handle(adapter).bindNow();
                     servers.put(name, server);
+                    // also check if a separate management port is configured for this domain
+                    String mgmtKey = "domain.managementPort." + name;
+                    int mgmtPort = env.getProperty(mgmtKey, Integer.class, -1);
+                    if (mgmtPort > 0) {
+                        String mgmtBase = env.getProperty("management.endpoints.web.base-path", "/actuator");
+                        org.springframework.http.server.reactive.HttpHandler mgmtHandler = (req, resp) -> {
+                            String p = req.getURI().getPath();
+                            if (p != null && p.startsWith(mgmtBase)) {
+                                return baseHandler.handle(req, resp);
+                            }
+                            resp.setStatusCode(org.springframework.http.HttpStatus.NOT_FOUND);
+                            return resp.setComplete();
+                        };
+                        var mgmtAdapter = new ReactorHttpHandlerAdapter(mgmtHandler);
+                        DisposableServer mgmtServer = HttpServer.create().port(mgmtPort).handle(mgmtAdapter).bindNow();
+                        servers.put(name + "-mgmt", mgmtServer);
+                        portToDomain.put(mgmtPort, name);
+                        log.info("Started management server for domain '{}' on port {}", name, mgmtPort);
+                    }
                     // record reverse mapping port -> domain name
                     portToDomain.put(configuredPort, name);
                     log.info("Started domain server '{}' on port {}", name, configuredPort);
