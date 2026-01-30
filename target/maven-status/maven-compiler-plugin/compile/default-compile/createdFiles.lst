@@ -1,4 +1,5 @@
 com/example/honeycomb/service/DomainServerManager.class
+com/example/honeycomb/health/DomainReactiveHealthIndicator.class
 com/example/honeycomb/service/DomainDataStore.class
 com/example/honeycomb/HoneycombApplication.class
 com/example/honeycomb/examples/SampleModel.class
