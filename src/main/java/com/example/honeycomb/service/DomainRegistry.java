@@ -14,7 +14,7 @@ import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.core.type.classreading.CachingMetadataReaderFactory;
 import org.springframework.core.type.classreading.MetadataReader;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 import java.lang.reflect.Field;
 import java.util.*;
 import reactor.core.publisher.Flux;
@@ -81,17 +81,22 @@ public class DomainRegistry implements ApplicationContextAware {
     public Map<String, Object> describeDomain(String name) {
         Class<?> cls = domains.get(name);
         if (cls == null) return Collections.emptyMap();
-        Map<String,Object> m = new LinkedHashMap<>();
-        m.put("className", cls.getName());
+        Map<String,Object> mapping = new LinkedHashMap<>();
+        mapping.put("className", cls.getName());
         List<Map<String,String>> fields = new ArrayList<>();
-        for (Field f : cls.getDeclaredFields()) {
+        for (Field fieldMap : cls.getDeclaredFields()) {
             Map<String,String> fm = new HashMap<>();
-            fm.put("name", f.getName());
-            fm.put("type", f.getType().getName());
+            fm.put("name", fieldMap.getName());
+            fm.put("type", fieldMap.getType().getName());
             fields.add(fm);
         }
-        m.put("fields", fields);
-        return m;
+        mapping.put("fields", fields);
+            // include optional domain metadata such as configured port
+            Domain ann = cls.getAnnotation(Domain.class);
+            if (ann != null && ann.port() > 0) {
+                mapping.put("port", ann.port());
+            }
+        return mapping;
     }
 
     public Flux<String> getDomainNamesFlux() {

@@ -24,7 +24,7 @@ public class HoneycombController {
     }
 
     @GetMapping("/models/{name}")
-    public Mono<ResponseEntity<?>> describe(@PathVariable String name) {
+    public Mono<ResponseEntity<Map<String,Object>>> describe(@PathVariable String name) {
         return registry.describeDomainMono(name)
                 .map(ResponseEntity::ok)
                 .defaultIfEmpty(ResponseEntity.notFound().build());

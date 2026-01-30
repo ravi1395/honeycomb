@@ -10,4 +10,6 @@ import java.lang.annotation.Target;
 public @interface Domain {
     /** Optional name to expose under */
     String value() default "";
+    /** Optional port to run this domain on; -1 means not specified */
+    int port() default -1;
 }

@@ -5,7 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Domain
+@Domain(port = 8081)
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
