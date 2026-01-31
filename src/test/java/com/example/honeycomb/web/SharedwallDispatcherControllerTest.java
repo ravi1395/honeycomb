@@ -76,4 +76,46 @@ public class SharedwallDispatcherControllerTest {
                 .expectBody()
                 .jsonPath("$.ExampleSharedService.result").isEqualTo(6);
     }
+
+    @Test
+    void methodNotFoundReturns404() {
+        webClient.post().uri("/honeycomb/shared/doesNotExist")
+                .headers(h -> h.setBasicAuth("shared", "changeit"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue("{}")
+                .exchange()
+                .expectStatus().isNotFound()
+                .expectBody()
+                .jsonPath("$.error").value(v -> {
+                    assert v.toString().contains("no shared method");
+                });
+    }
+
+    @Test
+    void malformedJsonReturnsDeserializeError() {
+        webClient.post().uri("/honeycomb/shared/summarize")
+                .headers(h -> h.setBasicAuth("shared", "changeit"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue("{notjson")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.ExampleSharedService.error").value(v -> {
+                    assert v.toString().contains("json-deserialize-error");
+                });
+    }
+
+    @Test
+    void invocationExceptionProducesErrorEntry() {
+        webClient.post().uri("/honeycomb/shared/boom")
+                .headers(h -> h.setBasicAuth("shared", "changeit"))
+                .contentType(MediaType.TEXT_PLAIN)
+                .bodyValue("boom")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.ExampleSharedService.error").value(v -> {
+                    assert v.toString().contains("boom-exception");
+                });
+    }
 }

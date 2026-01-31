@@ -1,0 +1,25 @@
+# Build artifacts
+target/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Maven
+.mvn/wrapper/maven-wrapper.jar
+
+# Environment files
+.env
+.env.local
+
+# Test output
+surefire-reports/

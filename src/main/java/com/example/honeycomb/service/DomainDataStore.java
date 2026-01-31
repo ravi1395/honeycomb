@@ -29,17 +29,19 @@ public class DomainDataStore {
 
     public Mono<Map<String,Object>> create(String domain, Map<String,Object> payload) {
         String id = Optional.ofNullable((String) payload.get("id")).orElse(UUID.randomUUID().toString());
-        payload.put("id", id);
-        mapFor(domain).put(id, payload);
-        return Mono.just(payload);
+        var copy = new java.util.concurrent.ConcurrentHashMap<String, Object>(payload == null ? java.util.Map.of() : payload);
+        copy.put("id", id);
+        mapFor(domain).put(id, copy);
+        return Mono.just(copy);
     }
 
     public Mono<Map<String,Object>> update(String domain, String id, Map<String,Object> payload) {
         var map = mapFor(domain);
         if (!map.containsKey(id)) return Mono.empty();
-        payload.put("id", id);
-        map.put(id, payload);
-        return Mono.just(payload);
+        var copy = new java.util.concurrent.ConcurrentHashMap<String, Object>(payload == null ? java.util.Map.of() : payload);
+        copy.put("id", id);
+        map.put(id, copy);
+        return Mono.just(copy);
     }
 
     public Mono<Boolean> delete(String domain, String id) {

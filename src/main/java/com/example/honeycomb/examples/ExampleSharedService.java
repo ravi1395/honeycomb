@@ -33,4 +33,9 @@ public class ExampleSharedService {
         if (nums == null) return 0;
         return nums.stream().mapToInt(Integer::intValue).sum();
     }
+
+    @Sharedwall("boom")
+    public void boom(String in) {
+        if ("boom".equals(in)) throw new RuntimeException("boom-exception");
+    }
 }

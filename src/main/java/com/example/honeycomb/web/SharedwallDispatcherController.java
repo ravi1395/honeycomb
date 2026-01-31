@@ -2,7 +2,13 @@ package com.example.honeycomb.web;
 
 import com.example.honeycomb.annotations.Cell;
 import com.example.honeycomb.annotations.Sharedwall;
+import com.example.honeycomb.dto.ErrorCode;
 import com.example.honeycomb.service.DomainRegistry;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.context.ApplicationContext;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -12,6 +18,8 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.lang.reflect.Method;
@@ -23,7 +31,9 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/honeycomb/shared")
+@Tag(name = "Shared Method Dispatcher", description = "Invoke shared methods across cells using @Sharedwall annotations")
 public class SharedwallDispatcherController {
+    private static final Logger log = LoggerFactory.getLogger(SharedwallDispatcherController.class);
     private final ApplicationContext ctx;
     private final DomainRegistry registry;
     private final ObjectMapper objectMapper;
@@ -39,12 +49,25 @@ public class SharedwallDispatcherController {
      * It looks up beans annotated with `@Cell` and finds methods with matching name or alias.
      * Supported method signatures: () , (String) , (byte[]).
      */
+    @Operation(
+            summary = "Invoke a shared method",
+            description = "Dispatches a call to methods annotated with @Sharedwall in @Cell beans. " +
+                    "Supports zero, single, or multi-parameter methods with JSON body binding."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Method invoked successfully"),
+            @ApiResponse(responseCode = "403", description = "Access denied - caller not in allowedFrom list"),
+            @ApiResponse(responseCode = "404", description = "Method not found"),
+            @ApiResponse(responseCode = "500", description = "Invocation error")
+    })
     @PostMapping("/{methodName}")
     public Mono<ResponseEntity<Map<String,Object>>> dispatch(
+            @Parameter(description = "Name or alias of the shared method to invoke")
             @PathVariable String methodName,
             @RequestHeader MultiValueMap<String, String> headers,
             @RequestBody(required = false) Mono<byte[]> bodyMono
     ) {
+        log.debug("Dispatch shared method={}, headers={}, bodyMono={}", methodName, headers, bodyMono);
         // discover local candidates
         List<MethodCandidate> candidates = new ArrayList<>();
         for (String beanName : ctx.getBeanDefinitionNames()) {
@@ -66,6 +89,7 @@ public class SharedwallDispatcherController {
         }
 
         if (candidates.isEmpty()) {
+            log.info("No shared method '{}' found locally", methodName);
             return Mono.just(ResponseEntity.status(404).body(Map.of("error", "no shared method '" + methodName + "' found locally")));
         }
 
@@ -81,7 +105,12 @@ public class SharedwallDispatcherController {
 
             List<Mono<AbstractMap.SimpleEntry<String, Object>>> calls = candidates.stream().map(c ->
                     Mono.fromCallable(() -> {
+                        String cellName = null;
+                        String targetMethod = null;
                         try {
+                            cellName = c.bean.getClass().getSimpleName();
+                            targetMethod = c.method.getName();
+                            log.debug("Invoking candidate {}.{}", cellName, targetMethod);
                             Method m = c.method;
                             final String caller = headers.getFirst("X-From-Cell") != null ? headers.getFirst("X-From-Cell") : headers.getFirst("X-From-Domain");
                             // enforce allowed-from restrictions if declared on the method
@@ -96,7 +125,8 @@ public class SharedwallDispatcherController {
                                         }
                                     }
                                     if (!okTop) {
-                                        return new AbstractMap.SimpleEntry<String, Object>(c.bean.getClass().getSimpleName(), (Object) Map.of("error", "access-denied: caller='" + caller + "' not allowed"));
+                                        log.warn("Access denied invoking {}.{} from caller={}", cellName, targetMethod, caller);
+                                        return new AbstractMap.SimpleEntry<String, Object>(cellName, (Object) Map.of("error", "access-denied: caller='" + caller + "' not allowed"));
                                     }
                                 }
                             }
@@ -116,7 +146,8 @@ public class SharedwallDispatcherController {
                                         if (rootNode != null) arg = objectMapper.convertValue(rootNode, jt);
                                         else arg = objectMapper.readValue(body, jt);
                                     } catch (Exception ex) {
-                                        return new AbstractMap.SimpleEntry<String, Object>(c.bean.getClass().getSimpleName(), (Object) Map.of("error", "json-deserialize-error: " + ex.getMessage()));
+                                        log.warn("JSON deserialize error for {}.{}: {}", cellName, targetMethod, ex.getMessage());
+                                        return new AbstractMap.SimpleEntry<String, Object>(cellName, (Object) Map.of("error", "json-deserialize-error: " + ex.getMessage()));
                                     }
                                 }
                                 res = m.invoke(c.bean, arg);
@@ -147,9 +178,16 @@ public class SharedwallDispatcherController {
                                 }
                                 res = m.invoke(c.bean, args);
                             }
-                            return new AbstractMap.SimpleEntry<String, Object>(c.bean.getClass().getSimpleName(), (Object) Map.of("result", res));
+                            log.debug("Invocation {}.{} succeeded", cellName, m.getName());
+                            return new AbstractMap.SimpleEntry<String, Object>(cellName, (Object) Map.of("result", res));
                         } catch (Throwable e) {
-                            return new AbstractMap.SimpleEntry<String, Object>(c.bean.getClass().getSimpleName(), (Object) Map.of("error", e.getMessage()));
+                            String emsg = e == null ? "" : e.getMessage();
+                            if (emsg == null || emsg.isBlank()) {
+                                Throwable cause = e == null ? null : e.getCause();
+                                emsg = (cause == null || cause.getMessage() == null) ? "invocation-error" : cause.getMessage();
+                            }
+                            log.error("Invocation error on {}.{}: {}", cellName, targetMethod, emsg, e);
+                            return new AbstractMap.SimpleEntry<String, Object>(cellName, (Object) Map.of("error", emsg));
                         }
                     }).subscribeOn(Schedulers.boundedElastic())
             ).collect(Collectors.toList());

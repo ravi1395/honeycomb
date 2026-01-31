@@ -1,1 +1,8 @@
+/Users/ravichandrasekhar/Ravi/python scripts/honeycomb/src/test/java/com/example/honeycomb/config/HoneycombPropertiesTest.java
+/Users/ravichandrasekhar/Ravi/python scripts/honeycomb/src/test/java/com/example/honeycomb/service/DomainDataStoreTest.java
+/Users/ravichandrasekhar/Ravi/python scripts/honeycomb/src/test/java/com/example/honeycomb/DomainServerManagerTest.java
+/Users/ravichandrasekhar/Ravi/python scripts/honeycomb/src/test/java/com/example/honeycomb/web/CrudDisableIntegrationTest.java
+/Users/ravichandrasekhar/Ravi/python scripts/honeycomb/src/test/java/com/example/honeycomb/health/DomainReactiveHealthIndicatorTest.java
+/Users/ravichandrasekhar/Ravi/python scripts/honeycomb/src/test/java/com/example/honeycomb/registry/DomainRegistryIntegrationTest.java
 /Users/ravichandrasekhar/Ravi/python scripts/honeycomb/src/test/java/com/example/honeycomb/web/SharedwallDispatcherControllerTest.java
+/Users/ravichandrasekhar/Ravi/python scripts/honeycomb/src/test/java/com/example/honeycomb/service/DomainAddressServiceTest.java
