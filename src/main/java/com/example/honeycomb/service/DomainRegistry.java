@@ -16,7 +16,9 @@ import org.springframework.core.type.classreading.MetadataReader;
 
 import jakarta.annotation.PostConstruct;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.*;
+import com.example.honeycomb.annotations.Sharedwall;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -91,11 +93,21 @@ public class DomainRegistry implements ApplicationContextAware {
             fields.add(fm);
         }
         mapping.put("fields", fields);
-            // include optional cell metadata such as configured port
-            Cell ann = cls.getAnnotation(Cell.class);
-            if (ann != null && ann.port() > 0) {
-                mapping.put("port", ann.port());
+        // list shared methods annotated with @Sharedwall
+        List<String> shared = new ArrayList<>();
+        for (Method m : cls.getDeclaredMethods()) {
+            if (m.isAnnotationPresent(Sharedwall.class)) {
+                Sharedwall s = m.getAnnotation(Sharedwall.class);
+                String methodName = (s != null && s.value() != null && !s.value().isBlank()) ? s.value() : m.getName();
+                shared.add(methodName);
             }
+        }
+        if (!shared.isEmpty()) mapping.put("sharedMethods", shared);
+        // include optional cell metadata such as configured port
+        Cell ann = cls.getAnnotation(Cell.class);
+        if (ann != null && ann.port() > 0) {
+            mapping.put("port", ann.port());
+        }
         return mapping;
     }
 

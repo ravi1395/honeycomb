@@ -6,6 +6,7 @@ com/example/honeycomb/web/DomainAddressController.class
 com/example/honeycomb/annotations/Cell.class
 com/example/honeycomb/health/DomainLivenessIndicator.class
 com/example/honeycomb/web/DomainInteractionController.class
+com/example/honeycomb/annotations/Sharedwall.class
 com/example/honeycomb/health/DomainReactiveHealthIndicator.class
 com/example/honeycomb/HoneycombApplication.class
 com/example/honeycomb/health/DomainReadinessIndicator.class

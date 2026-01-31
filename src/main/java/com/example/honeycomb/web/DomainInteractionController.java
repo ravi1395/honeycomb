@@ -33,6 +33,58 @@ public class DomainInteractionController {
     }
 
     /**
+     * Invoke a named shared method on all instances of the target cell.
+     * This expects target cells to expose an HTTP endpoint at `/honeycomb/shared/{method}`
+     * which accepts POST bodies. Responses from each instance are aggregated.
+     */
+    @PostMapping(path = "/{from}/invoke/{to}/shared/{methodName}")
+    public Mono<ResponseEntity<Map<String,Object>>> invokeShared(
+            @PathVariable String from,
+            @PathVariable String to,
+            @PathVariable String methodName,
+            @RequestHeader MultiValueMap<String, String> headers,
+            @RequestBody(required = false) Mono<byte[]> bodyMono,
+            ServerWebExchange exchange
+    ) {
+        final String pathFinal = "/honeycomb/shared/" + methodName;
+
+        Flux<DomainAddress> targets = addressService.findByDomain(to);
+
+        return targets.flatMap(addr -> {
+            String base = "http://" + addr.getHost() + ":" + addr.getPort();
+            URI uri = URI.create(base + pathFinal);
+
+            WebClient.RequestBodySpec reqSpec = webClient.method(HttpMethod.POST).uri(uri)
+                    .headers(h -> {
+                        headers.forEach((k, v) -> {
+                            if (k.equalsIgnoreCase(HttpHeaders.HOST)) return;
+                            h.put(k, v);
+                        });
+                    });
+
+            Mono<ClientResponse> respMono;
+            Mono<byte[]> body = bodyMono != null ? bodyMono : Mono.just(new byte[0]);
+            respMono = body.flatMap(b -> reqSpec.contentType(exchange.getRequest().getHeaders().getContentType() == null ? MediaType.APPLICATION_JSON : exchange.getRequest().getHeaders().getContentType())
+                    .bodyValue(b)
+                    .exchangeToMono(Mono::just));
+
+            return respMono.timeout(Duration.ofSeconds(10))
+                    .flatMap(cr -> cr.bodyToMono(String.class).defaultIfEmpty("")
+                            .map(bodyStr -> {
+                                return new AbstractMap.SimpleEntry<>(addr.getHost() + ":" + addr.getPort(), Map.of(
+                                        "status", cr.statusCode().value(),
+                                        "contentType", cr.headers().contentType().map(MediaType::toString).orElse(""),
+                                        "body", bodyStr
+                                ));
+                            }))
+                    .onErrorResume(e -> Mono.just(new AbstractMap.SimpleEntry<>(addr.getHost() + ":" + addr.getPort(), Map.of("error", e.getMessage()))));
+        }).collectList().map(list -> {
+            Map<String,Object> aggregated = list.stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+            return ResponseEntity.ok(aggregated);
+        });
+    }
+
+    /**
      * Forward a request to all addresses for the target domain.
      * Supports specifying `method` and `path` as query parameters. If not provided,
      * defaults to POST and `/honeycomb/models/{to}/items`.
