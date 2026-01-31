@@ -6,12 +6,14 @@ com/example/honeycomb/web/DomainAddressController.class
 com/example/honeycomb/annotations/Cell.class
 com/example/honeycomb/health/DomainLivenessIndicator.class
 com/example/honeycomb/web/DomainInteractionController.class
+com/example/honeycomb/web/SharedwallDispatcherController.class
 com/example/honeycomb/annotations/Sharedwall.class
 com/example/honeycomb/health/DomainReactiveHealthIndicator.class
 com/example/honeycomb/HoneycombApplication.class
 com/example/honeycomb/health/DomainReadinessIndicator.class
 com/example/honeycomb/config/DatabaseInitializer.class
 com/example/honeycomb/examples/SampleModel.class
+com/example/honeycomb/web/SharedwallDispatcherController$MethodCandidate.class
 com/example/honeycomb/model/DomainAddress.class
 com/example/honeycomb/web/HealthController.class
 com/example/honeycomb/service/DomainRegistry.class
