@@ -1,30 +1,53 @@
-/Users/ravichandrasekhar/Ravi/python scripts/honeycomb/src/main/java/com/example/honeycomb/health/DomainReactiveHealthIndicator.java
-/Users/ravichandrasekhar/Ravi/python scripts/honeycomb/src/main/java/com/example/honeycomb/web/DomainAddressController.java
-/Users/ravichandrasekhar/Ravi/python scripts/honeycomb/src/main/java/com/example/honeycomb/config/WebClientConfig.java
-/Users/ravichandrasekhar/Ravi/python scripts/honeycomb/src/main/java/com/example/honeycomb/dto/DomainInfo.java
-/Users/ravichandrasekhar/Ravi/python scripts/honeycomb/src/main/java/com/example/honeycomb/dto/ErrorResponse.java
-/Users/ravichandrasekhar/Ravi/python scripts/honeycomb/src/main/java/com/example/honeycomb/annotations/Domain.java
-/Users/ravichandrasekhar/Ravi/python scripts/honeycomb/src/main/java/com/example/honeycomb/config/DatabaseInitializer.java
-/Users/ravichandrasekhar/Ravi/python scripts/honeycomb/src/main/java/com/example/honeycomb/repo/DomainAddressRepository.java
-/Users/ravichandrasekhar/Ravi/python scripts/honeycomb/src/main/java/com/example/honeycomb/config/ResilienceConfig.java
-/Users/ravichandrasekhar/Ravi/python scripts/honeycomb/src/main/java/com/example/honeycomb/service/DomainServerManager.java
-/Users/ravichandrasekhar/Ravi/python scripts/honeycomb/src/main/java/com/example/honeycomb/web/HoneycombController.java
-/Users/ravichandrasekhar/Ravi/python scripts/honeycomb/src/main/java/com/example/honeycomb/examples/ExampleSharedService.java
-/Users/ravichandrasekhar/Ravi/python scripts/honeycomb/src/main/java/com/example/honeycomb/config/OpenApiConfig.java
-/Users/ravichandrasekhar/Ravi/python scripts/honeycomb/src/main/java/com/example/honeycomb/dto/ErrorCode.java
-/Users/ravichandrasekhar/Ravi/python scripts/honeycomb/src/main/java/com/example/honeycomb/health/DomainReadinessIndicator.java
-/Users/ravichandrasekhar/Ravi/python scripts/honeycomb/src/main/java/com/example/honeycomb/annotations/Cell.java
-/Users/ravichandrasekhar/Ravi/python scripts/honeycomb/src/main/java/com/example/honeycomb/config/HoneycombProperties.java
-/Users/ravichandrasekhar/Ravi/python scripts/honeycomb/src/main/java/com/example/honeycomb/health/DomainLivenessIndicator.java
-/Users/ravichandrasekhar/Ravi/python scripts/honeycomb/src/main/java/com/example/honeycomb/security/SecurityConfig.java
-/Users/ravichandrasekhar/Ravi/python scripts/honeycomb/src/main/java/com/example/honeycomb/web/SharedwallDispatcherController.java
-/Users/ravichandrasekhar/Ravi/python scripts/honeycomb/src/main/java/com/example/honeycomb/annotations/Sharedwall.java
-/Users/ravichandrasekhar/Ravi/python scripts/honeycomb/src/main/java/com/example/honeycomb/examples/SampleModel.java
-/Users/ravichandrasekhar/Ravi/python scripts/honeycomb/src/main/java/com/example/honeycomb/HoneycombApplication.java
-/Users/ravichandrasekhar/Ravi/python scripts/honeycomb/src/main/java/com/example/honeycomb/service/DomainDataStore.java
-/Users/ravichandrasekhar/Ravi/python scripts/honeycomb/src/main/java/com/example/honeycomb/dto/SharedMethodInfo.java
-/Users/ravichandrasekhar/Ravi/python scripts/honeycomb/src/main/java/com/example/honeycomb/web/DomainInteractionController.java
-/Users/ravichandrasekhar/Ravi/python scripts/honeycomb/src/main/java/com/example/honeycomb/model/DomainAddress.java
-/Users/ravichandrasekhar/Ravi/python scripts/honeycomb/src/main/java/com/example/honeycomb/web/ErrorHandlerAdvice.java
-/Users/ravichandrasekhar/Ravi/python scripts/honeycomb/src/main/java/com/example/honeycomb/service/DomainAddressService.java
-/Users/ravichandrasekhar/Ravi/python scripts/honeycomb/src/main/java/com/example/honeycomb/service/DomainRegistry.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/web/AuditController.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/config/HoneycombAutoscaleProperties.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/health/CellReactiveHealthIndicator.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/config/DatabaseInitializer.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/service/AuditLogService.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/dto/SharedMethodInfo.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/HoneycombApplication.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/web/EventWebSocketHandler.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/model/CellAddress.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/dto/ErrorResponse.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/web/CellAdminController.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/service/AutoScaleService.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/dto/CellInfo.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/web/HoneycombController.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/web/ErrorHandlerAdvice.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/security/SecurityConfig.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/annotations/Sharedwall.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/config/HoneycombProperties.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/health/CellLivenessIndicator.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/web/SharedwallDispatcherController.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/health/CellReadinessIndicator.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/service/CellAddressService.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/config/HoneycombRoutingProperties.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/service/CellServerManager.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/web/MetricsController.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/security/ApiKeyAuthFilter.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/examples/ExampleSharedService.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/config/HoneycombRateLimiterProperties.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/config/WebSocketConfig.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/web/RequestIdFilter.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/service/CellRegistry.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/repo/CellAddressRepository.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/service/RequestMetricsService.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/config/WebClientConfig.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/web/RequestMetricsFilter.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/web/AdminUiController.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/config/ResilienceConfig.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/dto/CellRuntimeStatus.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/service/RoutingPolicyService.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/config/HoneycombSecurityProperties.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/config/HoneycombAuditProperties.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/web/RateLimitFilter.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/dto/AuditEvent.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/service/CellSwaggerService.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/web/CellAddressController.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/service/CellDataStore.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/examples/SampleModel.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/config/OpenApiConfig.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/annotations/Cell.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/dto/ErrorCode.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/web/CellSwaggerController.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/web/CellPathResolver.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/src/main/java/com/example/honeycomb/web/CellInteractionController.java

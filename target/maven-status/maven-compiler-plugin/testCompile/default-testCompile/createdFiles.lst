@@ -1,0 +1,10 @@
+com/example/honeycomb/registry/CellRegistryIntegrationTest$TestCellBean.class
+com/example/honeycomb/CellServerManagerTest.class
+com/example/honeycomb/service/CellAddressServiceTest.class
+com/example/honeycomb/service/CellDataStoreTest.class
+com/example/honeycomb/web/CrudDisableIntegrationTest.class
+com/example/honeycomb/web/SharedwallDispatcherControllerTest.class
+com/example/honeycomb/health/CellReactiveHealthIndicatorTest.class
+com/example/honeycomb/registry/CellRegistryIntegrationTest.class
+com/example/honeycomb/service/CellAddressServiceTest$SampleCell.class
+com/example/honeycomb/config/HoneycombPropertiesTest.class

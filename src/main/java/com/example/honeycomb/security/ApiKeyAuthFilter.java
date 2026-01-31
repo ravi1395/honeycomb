@@ -33,6 +33,9 @@ public class ApiKeyAuthFilter implements WebFilter {
             return chain.filter(exchange);
         }
         String path = exchange.getRequest().getPath().pathWithinApplication().value();
+        if (isOpenApiPath(path)) {
+            return chain.filter(exchange);
+        }
         if (!path.startsWith("/honeycomb")) {
             return chain.filter(exchange);
         }
@@ -57,6 +60,13 @@ public class ApiKeyAuthFilter implements WebFilter {
             return unauthorized(exchange, "cell-access-denied");
         }
         return chain.filter(exchange);
+    }
+
+    private boolean isOpenApiPath(String path) {
+        if (path == null) return false;
+        return path.startsWith("/honeycomb/swagger-ui")
+                || path.startsWith("/honeycomb/api-docs")
+                || path.startsWith("/honeycomb/swagger");
     }
 
     private Mono<Void> unauthorized(ServerWebExchange exchange, String message) {

@@ -19,7 +19,7 @@ import static org.mockito.Mockito.when;
 
 public class CellAddressServiceTest {
 
-    @Cell(port = 8081)
+    @Cell(port = 18081)
     static class SampleCell {}
 
     @Test
@@ -64,7 +64,7 @@ public class CellAddressServiceTest {
         StepVerifier.create(s.findByCell("SampleCell"))
                 .assertNext(addr -> {
                     org.assertj.core.api.Assertions.assertThat(addr.getHost()).isEqualTo("cell-host");
-                    org.assertj.core.api.Assertions.assertThat(addr.getPort()).isEqualTo(8081);
+                    org.assertj.core.api.Assertions.assertThat(addr.getPort()).isEqualTo(18081);
                 })
                 .verifyComplete();
     }

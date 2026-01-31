@@ -13,6 +13,7 @@ import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.bind.support.WebExchangeBindException;
+import org.springframework.web.reactive.resource.NoResourceFoundException;
 
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -69,6 +70,12 @@ public class ErrorHandlerAdvice {
         return ResponseEntity.status(HttpStatus.GATEWAY_TIMEOUT)
                 .body(ErrorCode.TIMEOUT.toResponse());
     }
+
+        @ExceptionHandler(NoResourceFoundException.class)
+        public ResponseEntity<Void> handleNoResource(@NonNull NoResourceFoundException ex) {
+                log.debug("Static resource not found: {}", ex.getMessage());
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneric(Exception ex) {

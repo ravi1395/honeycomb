@@ -4,16 +4,41 @@ spring:
   # Graceful shutdown: wait for in-flight requests to complete
   lifecycle:
     timeout-per-shutdown-phase: 30s
+  application:
+    name: honeycomb
+  cloud:
+    compatibility-verifier:
+      enabled: false
 
 server:
   shutdown: graceful
+
+service:
+  discovery:
+    base-url: "http://localhost"
+
+eureka:
+  client:
+    service-url:
+      defaultZone: "${EUREKA_SERVER:http://localhost:8761/eureka}"
+    fetch-registry: true
+    register-with-eureka: true
+  instance:
+    prefer-ip-address: true
+
+cell:
+  # Static discovery examples (comma-separated)
+  # addresses:
+  #   SampleModel: "sample-service:8081,other-service:8082"
+  # ports:
+  #   SampleModel: "8081,8082"
 
 # Example application properties for shared caller tests
 app:
   test-caller: "test-client"
 
 honeycomb:
-  # Example: per-domain disabled operations
+  # Example: per-cell disabled operations
   # Use '*' key for global defaults
   disabled-operations:
     "__all__":
@@ -24,6 +49,41 @@ honeycomb:
   webclient:
     connect-timeout-ms: 5000
     response-timeout-ms: 30000
+  audit:
+    max-entries: 500
+  security:
+    api-keys:
+      enabled: false
+      header: "X-API-Key"
+      keys:
+        admin: "admin-key"
+        cell: "cell-key"
+      per-cell:
+        "*": ["admin-key", "cell-key"]
+  rate-limiter:
+    enabled: true
+    defaults:
+      limit-for-period: 50
+      refresh-period: 1s
+      timeout: 0ms
+    per-cell:
+      SampleModel:
+        limit-for-period: 100
+        refresh-period: 1s
+  routing:
+    default-policy: "all"
+    per-cell-policy:
+      "*": "all"
+    weights:
+      SampleModel:
+        "localhost:8081": 1
+  autoscale:
+    enabled: false
+    evaluation-interval: 30s
+    scale-up-rps: 5.0
+    scale-down-rps: 0.5
+    per-cell-enabled:
+      "*": true
 
 # Shared invocation: caller header name to set by clients when invoking shared methods
 shared:
