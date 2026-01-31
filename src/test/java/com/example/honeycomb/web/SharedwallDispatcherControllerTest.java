@@ -17,13 +17,28 @@ public class SharedwallDispatcherControllerTest {
     @Test
     void echoSharedMethod() {
         webClient.post().uri("/honeycomb/shared/echo")
-                .headers(h -> h.setBasicAuth("shared", "changeit"))
+                .headers(h -> { h.setBasicAuth("shared", "changeit"); h.add("X-From-Cell", "test-client"); })
                 .contentType(MediaType.TEXT_PLAIN)
                 .bodyValue("hello")
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody()
                 .jsonPath("$.ExampleSharedService.result").isEqualTo("echo:hello");
+    }
+
+    @Test
+    void echoDeniedWhenCallerNotAllowed() {
+        webClient.post().uri("/honeycomb/shared/echo")
+                .headers(h -> { h.setBasicAuth("shared", "changeit"); h.add("X-From-Cell", "other-caller"); })
+                .contentType(MediaType.TEXT_PLAIN)
+                .bodyValue("hello")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.ExampleSharedService.error").value(v -> {
+                    // contains access-denied message
+                    assert v.toString().contains("access-denied");
+                });
     }
 
     @Test
@@ -36,5 +51,29 @@ public class SharedwallDispatcherControllerTest {
                 .expectStatus().isOk()
                 .expectBody()
                 .jsonPath("$.ExampleSharedService.result.receivedKeys").isEqualTo(2);
+    }
+
+    @Test
+    void concatMultiArg() {
+        webClient.post().uri("/honeycomb/shared/concat")
+                .headers(h -> h.setBasicAuth("shared", "changeit"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue("[\"foo\",\"bar\"]")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.ExampleSharedService.result").isEqualTo("foo:bar");
+    }
+
+    @Test
+    void sumListCollection() {
+        webClient.post().uri("/honeycomb/shared/sumList")
+                .headers(h -> h.setBasicAuth("shared", "changeit"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue("[1,2,3]")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.ExampleSharedService.result").isEqualTo(6);
     }
 }

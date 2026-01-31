@@ -1,0 +1,20 @@
+spring:
+  main:
+    allow-bean-definition-overriding: true
+
+# Example application properties for shared caller tests
+app:
+  test-caller: "test-client"
+
+honeycomb:
+  # Example: per-domain disabled operations
+  # Use '*' key for global defaults
+  disabled-operations:
+    "__all__":
+      - delete
+    SampleModel:
+      - create
+
+# Shared invocation: caller header name to set by clients when invoking shared methods
+shared:
+  caller-header: "X-From-Cell"

@@ -10,7 +10,7 @@ import java.util.Map;
 @Component
 public class ExampleSharedService {
 
-    @Sharedwall("echo")
+    @Sharedwall(value = "echo", allowedFrom = {"test-client"})
     public String echo(String input) {
         return "echo:" + input;
     }
@@ -21,5 +21,16 @@ public class ExampleSharedService {
                 "receivedKeys", payload == null ? 0 : payload.keySet().size(),
                 "original", payload
         );
+    }
+
+    @Sharedwall("concat")
+    public String concat(String a, String b) {
+        return a + ":" + b;
+    }
+
+    @Sharedwall("sumList")
+    public int sumList(java.util.List<Integer> nums) {
+        if (nums == null) return 0;
+        return nums.stream().mapToInt(Integer::intValue).sum();
     }
 }
