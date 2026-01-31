@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.lang.reflect.Method;
 import java.util.AbstractMap;
@@ -25,10 +26,12 @@ import java.util.stream.Collectors;
 public class SharedwallDispatcherController {
     private final ApplicationContext ctx;
     private final DomainRegistry registry;
+    private final ObjectMapper objectMapper;
 
-    public SharedwallDispatcherController(ApplicationContext ctx, DomainRegistry registry) {
+    public SharedwallDispatcherController(ApplicationContext ctx, DomainRegistry registry, ObjectMapper objectMapper) {
         this.ctx = ctx;
         this.registry = registry;
+        this.objectMapper = objectMapper;
     }
 
     /**
@@ -76,9 +79,18 @@ public class SharedwallDispatcherController {
                                 res = m.invoke(c.bean);
                             } else if (m.getParameterCount() == 1) {
                                 Class<?> p = m.getParameterTypes()[0];
-                                if (p.equals(String.class)) res = m.invoke(c.bean, new String(body));
-                                else if (p.equals(byte[].class)) res = m.invoke(c.bean, body);
-                                else res = m.invoke(c.bean, new String(body));
+                                Object arg;
+                                if (p.equals(String.class)) arg = new String(body);
+                                else if (p.equals(byte[].class)) arg = body;
+                                else {
+                                    // try to deserialize JSON body into the parameter type
+                                    try {
+                                        arg = objectMapper.readValue(body, p);
+                                    } catch (Exception ex) {
+                                        return new AbstractMap.SimpleEntry<String, Object>(c.bean.getClass().getSimpleName(), (Object) Map.of("error", "json-deserialize-error: " + ex.getMessage()));
+                                    }
+                                }
+                                res = m.invoke(c.bean, arg);
                             } else {
                                 res = Map.of("error", "unsupported-shared-method-signature");
                             }

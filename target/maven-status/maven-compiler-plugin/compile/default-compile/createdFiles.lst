@@ -1,6 +1,7 @@
 com/example/honeycomb/service/DomainServerManager.class
 com/example/honeycomb/repo/DomainAddressRepository.class
 com/example/honeycomb/service/DomainDataStore.class
+com/example/honeycomb/examples/ExampleSharedService.class
 com/example/honeycomb/annotations/Domain.class
 com/example/honeycomb/web/DomainAddressController.class
 com/example/honeycomb/annotations/Cell.class
