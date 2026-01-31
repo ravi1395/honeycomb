@@ -10,6 +10,6 @@ import java.lang.annotation.Target;
 public @interface Cell {
     /** Optional name to expose under */
     String value() default "";
-    /** Optional port to run this domain on; -1 means not specified */
+    /** Optional port to run this cell on; -1 means not specified */
     int port() default -1;
 }

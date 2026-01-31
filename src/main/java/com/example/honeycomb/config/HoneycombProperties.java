@@ -10,7 +10,7 @@ import java.util.Map;
 public class HoneycombProperties {
 
     /**
-     * Map of domain name -> list of disabled operations (create,read,update,delete).
+     * Map of cell name -> list of disabled operations (create,read,update,delete).
      * Use "*" as key for global defaults.
      */
     private Map<String, List<String>> disabledOperations = new HashMap<>();
@@ -23,10 +23,10 @@ public class HoneycombProperties {
         this.disabledOperations = disabledOperations;
     }
 
-    public boolean isOperationAllowed(String domain, String op) {
-        if (domain == null) domain = "";
-        String key = domain;
-        // check domain-specific
+    public boolean isOperationAllowed(String cell, String op) {
+        if (cell == null) cell = "";
+        String key = cell;
+        // check cell-specific
         List<String> dis = disabledOperations.get(key);
         if (dis != null && dis.stream().anyMatch(s -> s.equalsIgnoreCase(op))) return false;
         // check global (support several possible keys for compatibility)

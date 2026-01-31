@@ -5,20 +5,20 @@ import org.springframework.lang.NonNull;
 import java.util.List;
 
 /**
- * Immutable DTO describing a registered domain/cell.
+ * Immutable DTO describing a registered cell.
  *
- * @param name          exposed domain name
+ * @param name          exposed cell name
  * @param className     fully-qualified class name
  * @param fields        list of field descriptors
  * @param sharedMethods list of shared method descriptors
  */
-public record DomainInfo(
+public record CellInfo(
         @NonNull String name,
         @NonNull String className,
         @NonNull List<FieldInfo> fields,
         @NonNull List<SharedMethodInfo> sharedMethods
 ) {
-    public DomainInfo {
+    public CellInfo {
         if (name == null) name = "";
         if (className == null) className = "";
         if (fields == null) fields = List.of();

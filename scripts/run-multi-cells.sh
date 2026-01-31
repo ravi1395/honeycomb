@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Simple script to run multiple instances of the app with domain port overrides.
-# Usage: ./scripts/run-multi-domains.sh SampleModel=9090 AnotherDomain=9091
+# Simple script to run multiple instances of the app with cell port overrides.
+# Usage: ./scripts/run-multi-cells.sh SampleModel=9090 AnotherCell=9091
 
 set -eu
 
@@ -17,8 +17,8 @@ for pair in "$@"; do
     echo "Skipping invalid pair: $pair" >&2
     continue
   fi
-  echo "Starting domain $name on port $port"
-  java -jar "$JAR" --domain.ports.${name}=${port} &
+  echo "Starting cell $name on port $port"
+  java -jar "$JAR" --cell.ports.${name}=${port} &
   PIDS+=("$!")
 done
 

@@ -10,6 +10,6 @@ import java.lang.annotation.Target;
 public @interface Sharedwall {
     /** Optional alias or external name for the shared method */
     String value() default "";
-    /** Optional list of domain/cell names that are allowed to call this shared method. Empty means allow all. Use "*" to explicitly allow all. */
+    /** Optional list of cell names that are allowed to call this shared method. Empty means allow all. Use "*" to explicitly allow all. */
     String[] allowedFrom() default {};
 }

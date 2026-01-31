@@ -5,11 +5,11 @@ import reactor.test.StepVerifier;
 
 import java.util.Map;
 
-public class DomainDataStoreTest {
+public class CellDataStoreTest {
 
     @Test
     void createGetUpdateDeleteFlow() {
-        DomainDataStore ds = new DomainDataStore();
+        CellDataStore ds = new CellDataStore();
 
         // create
         StepVerifier.create(ds.create("X", Map.of("name", "v1")))
@@ -22,7 +22,7 @@ public class DomainDataStoreTest {
         StepVerifier.create(ds.list("X")).expectNextCount(1).verifyComplete();
 
         // get by id
-        var created = ds.create("X", Map.of("id", "i1", "name", "n1")).block();
+        ds.create("X", Map.of("id", "i1", "name", "n1")).block();
         StepVerifier.create(ds.get("X", "i1")).expectNextMatches(m -> m.get("name").equals("n1")).verifyComplete();
 
         // update

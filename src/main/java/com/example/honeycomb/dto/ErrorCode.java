@@ -3,7 +3,7 @@ package com.example.honeycomb.dto;
 import org.springframework.lang.NonNull;
 
 /**
- * Domain-specific error codes for structured API responses.
+ * Cell-specific error codes for structured API responses.
  */
 public enum ErrorCode {
     // General errors
@@ -11,13 +11,13 @@ public enum ErrorCode {
     BAD_REQUEST("bad-request", "Invalid request format or parameters"),
     VALIDATION_ERROR("validation-error", "Request validation failed"),
     
-    // Cell/Domain errors
-    CELL_NOT_FOUND("cell-not-found", "The requested cell/domain was not found"),
+    // Cell errors
+    CELL_NOT_FOUND("cell-not-found", "The requested cell was not found"),
     METHOD_NOT_FOUND("method-not-found", "The requested shared method was not found"),
     METHOD_ACCESS_DENIED("method-access-denied", "Caller is not authorized to invoke this method"),
     
     // CRUD operation errors
-    OPERATION_DISABLED("operation-disabled", "This operation is disabled for the domain"),
+    OPERATION_DISABLED("operation-disabled", "This operation is disabled for the cell"),
     ITEM_NOT_FOUND("item-not-found", "The requested item was not found"),
     ITEM_CREATE_FAILED("item-create-failed", "Failed to create the item"),
     

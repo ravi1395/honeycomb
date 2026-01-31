@@ -25,7 +25,7 @@ public class OpenApiConfig {
         return new OpenAPI()
                 .info(new Info()
                         .title("Honeycomb API")
-                        .description("Per-cell microservice runtime with shared method invocation, CRUD operations, and domain registry")
+                        .description("Per-cell microservice runtime with shared method invocation, CRUD operations, and cell registry")
                         .version("0.1.0")
                         .contact(new Contact()
                                 .name("Honeycomb Team")

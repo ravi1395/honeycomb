@@ -1,36 +1,35 @@
 package com.example.honeycomb.service;
 
 import com.example.honeycomb.annotations.Cell;
+import com.example.honeycomb.annotations.Sharedwall;
 import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
-import org.springframework.core.type.filter.AnnotationTypeFilter;
-import org.springframework.stereotype.Component;
-import org.springframework.util.ClassUtils;
 import org.springframework.core.type.ClassMetadata;
-import org.springframework.core.type.filter.TypeFilter;
-import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.core.type.classreading.CachingMetadataReaderFactory;
 import org.springframework.core.type.classreading.MetadataReader;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
+import org.springframework.lang.NonNull;
+import org.springframework.stereotype.Component;
+import org.springframework.util.ClassUtils;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import jakarta.annotation.PostConstruct;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.*;
-import com.example.honeycomb.annotations.Sharedwall;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Component
-public class DomainRegistry implements ApplicationContextAware {
+public class CellRegistry implements ApplicationContextAware {
     private ApplicationContext context;
 
     // map: exposedName -> Class
-    private final Map<String, Class<?>> domains = new HashMap<>();
+    private final Map<String, Class<?>> cells = new ConcurrentHashMap<>();
 
     @Override
-    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+    public void setApplicationContext(@NonNull ApplicationContext applicationContext) throws BeansException {
         this.context = applicationContext;
     }
 
@@ -41,11 +40,11 @@ public class DomainRegistry implements ApplicationContextAware {
         for (Object bean : beans.values()) {
             Class<?> cls = bean.getClass();
             Cell ann = cls.getAnnotation(Cell.class);
-            String name = domainName(cls, ann);
-            domains.put(name, cls);
+            String name = cellName(cls, ann);
+            cells.putIfAbsent(name, cls);
         }
 
-        // 2) classpath scan for classes annotated with @Domain under base package
+        // 2) classpath scan for classes annotated with @Cell under base package
         // default to application main package
         String base = ClassUtils.getPackageName(context.getApplicationName() == null ? "com.example" : context.getApplicationName());
         if (base == null || base.isBlank()) base = "com.example";
@@ -63,25 +62,25 @@ public class DomainRegistry implements ApplicationContextAware {
                 Class<?> cls = Class.forName(className);
                 Cell ann = cls.getAnnotation(Cell.class);
                 if (ann != null) {
-                    String name = domainName(cls, ann);
-                    domains.putIfAbsent(name, cls);
+                    String name = cellName(cls, ann);
+                    cells.putIfAbsent(name, cls);
                 }
             } catch (Throwable ignored) {
             }
         }
     }
 
-    private String domainName(Class<?> cls, Cell ann) {
+    private String cellName(Class<?> cls, Cell ann) {
         if (ann != null && ann.value() != null && !ann.value().isBlank()) return ann.value();
         return cls.getSimpleName();
     }
 
-    public Set<String> getDomainNames() { return Collections.unmodifiableSet(domains.keySet()); }
+    public Set<String> getCellNames() { return Set.copyOf(cells.keySet()); }
 
-    public Optional<Class<?>> getDomainClass(String name) { return Optional.ofNullable(domains.get(name)); }
+    public Optional<Class<?>> getCellClass(String name) { return Optional.ofNullable(cells.get(name)); }
 
-    public Map<String, Object> describeDomain(String name) {
-        Class<?> cls = domains.get(name);
+    public Map<String, Object> describeCell(String name) {
+        Class<?> cls = cells.get(name);
         if (cls == null) return Collections.emptyMap();
         Map<String,Object> mapping = new LinkedHashMap<>();
         mapping.put("className", cls.getName());
@@ -111,12 +110,12 @@ public class DomainRegistry implements ApplicationContextAware {
         return mapping;
     }
 
-    public Flux<String> getDomainNamesFlux() {
-        return Flux.fromIterable(getDomainNames());
+    public Flux<String> getCellNamesFlux() {
+        return Flux.fromIterable(getCellNames());
     }
 
-    public Mono<Map<String,Object>> describeDomainMono(String name) {
-        Map<String,Object> d = describeDomain(name);
+    public Mono<Map<String,Object>> describeCellMono(String name) {
+        Map<String,Object> d = describeCell(name);
         return d.isEmpty() ? Mono.empty() : Mono.just(d);
     }
 }

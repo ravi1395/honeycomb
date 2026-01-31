@@ -2,8 +2,9 @@ package com.example.honeycomb.web;
 
 import com.example.honeycomb.dto.ErrorCode;
 import com.example.honeycomb.dto.ErrorResponse;
-import com.example.honeycomb.service.DomainRegistry;
-import com.example.honeycomb.service.DomainDataStore;
+import com.example.honeycomb.service.AuditLogService;
+import com.example.honeycomb.service.CellRegistry;
+import com.example.honeycomb.service.CellDataStore;
 import com.example.honeycomb.config.HoneycombProperties;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -34,38 +35,44 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 
 @RestController
 @RequestMapping("/honeycomb")
-@Tag(name = "Domain Registry", description = "CRUD operations for domain models and instances")
+@Tag(name = "Cell Registry", description = "CRUD operations for cell models and instances")
 @Validated
 public class HoneycombController {
     private static final Logger log = LoggerFactory.getLogger(HoneycombController.class);
-    private final DomainRegistry registry;
-    private final DomainDataStore dataStore;
+    private final CellRegistry registry;
+    private final CellDataStore dataStore;
     private final HoneycombProperties props;
+    private final AuditLogService auditLogService;
 
-    public HoneycombController(DomainRegistry registry, DomainDataStore dataStore, HoneycombProperties props) { this.registry = registry; this.dataStore = dataStore; this.props = props; }
-
-    @Operation(summary = "List all registered domain models")
-    @ApiResponse(responseCode = "200", description = "List of domain names")
-    @GetMapping("/models")
-    public Flux<String> listModels() {
-        return registry.getDomainNamesFlux();
+    public HoneycombController(CellRegistry registry, CellDataStore dataStore, HoneycombProperties props, AuditLogService auditLogService) {
+        this.registry = registry;
+        this.dataStore = dataStore;
+        this.props = props;
+        this.auditLogService = auditLogService;
     }
 
-    @Operation(summary = "Describe a domain model", description = "Returns fields and shared methods for the domain")
+    @Operation(summary = "List all registered cell models")
+    @ApiResponse(responseCode = "200", description = "List of cell names")
+    @GetMapping("/models")
+    public Flux<String> listModels() {
+        return registry.getCellNamesFlux();
+    }
+
+    @Operation(summary = "Describe a cell model", description = "Returns fields and shared methods for the cell")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Domain description"),
-            @ApiResponse(responseCode = "404", description = "Domain not found")
+            @ApiResponse(responseCode = "200", description = "Cell description"),
+            @ApiResponse(responseCode = "404", description = "Cell not found")
     })
     @GetMapping("/models/{name}")
     public Mono<ResponseEntity<Map<String,Object>>> describe(
-            @Parameter(description = "Domain name") @PathVariable @NotBlank String name) {
-        return registry.describeDomainMono(name)
+            @Parameter(description = "Cell name") @PathVariable @NotBlank String name) {
+        return registry.describeCellMono(name)
                 .map(ResponseEntity::ok)
                 .defaultIfEmpty(ResponseEntity.notFound().build());
     }
 
-    // --- CRUD for domain instances -------------------------------------------------
-    @Operation(summary = "List all items in a domain")
+    // --- CRUD for cell instances -------------------------------------------------
+    @Operation(summary = "List all items in a cell")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "List of items"),
             @ApiResponse(responseCode = "405", description = "Read operation disabled",
@@ -73,7 +80,7 @@ public class HoneycombController {
     })
     @GetMapping("/models/{name}/items")
     public Flux<Map<String,Object>> listItems(
-            @Parameter(description = "Domain name") @PathVariable @NotBlank String name) {
+            @Parameter(description = "Cell name") @PathVariable @NotBlank String name) {
         if (!props.isOperationAllowed(name, "read")) {
             log.warn("Read operation disabled for {}", name);
             return Flux.error(new RuntimeException("operation-disabled"));
@@ -89,7 +96,7 @@ public class HoneycombController {
     })
     @GetMapping("/models/{name}/items/{id}")
     public Mono<ResponseEntity<Map<String,Object>>> getItem(
-            @Parameter(description = "Domain name") @PathVariable @NotBlank String name,
+            @Parameter(description = "Cell name") @PathVariable @NotBlank String name,
             @Parameter(description = "Item ID") @PathVariable @NotBlank String id) {
         if (!props.isOperationAllowed(name, "read")) {
             log.warn("Get operation disabled for {}/{}", name, id);
@@ -105,13 +112,17 @@ public class HoneycombController {
     })
     @PostMapping("/models/{name}/items")
     public Mono<ResponseEntity<Map<String,Object>>> createItem(
-            @Parameter(description = "Domain name") @PathVariable @NotBlank String name,
+            @Parameter(description = "Cell name") @PathVariable @NotBlank String name,
             @Valid @RequestBody Map<String,Object> body) {
         if (!props.isOperationAllowed(name, "create")) {
             log.warn("Create operation disabled for {}", name);
+            auditLogService.record("system", "item.create", name, "denied", Map.of("reason", "disabled"));
             return Mono.just(ResponseEntity.status(405).body(Map.of("error", ErrorCode.OPERATION_DISABLED.getCode())));
         }
-        return dataStore.create(name, body).map(b -> ResponseEntity.status(201).body(b));
+        return dataStore.create(name, body).map(b -> {
+            auditLogService.record("system", "item.create", name, "ok", Map.of("id", b.get("id")));
+            return ResponseEntity.status(201).body(b);
+        });
     }
 
     @Operation(summary = "Update an existing item")
@@ -122,14 +133,20 @@ public class HoneycombController {
     })
     @PutMapping("/models/{name}/items/{id}")
     public Mono<ResponseEntity<Map<String,Object>>> updateItem(
-            @Parameter(description = "Domain name") @PathVariable @NotBlank String name,
+            @Parameter(description = "Cell name") @PathVariable @NotBlank String name,
             @Parameter(description = "Item ID") @PathVariable @NotBlank String id,
             @Valid @RequestBody Map<String,Object> body) {
         if (!props.isOperationAllowed(name, "update")) {
             log.warn("Update operation disabled for {}/{}", name, id);
+            auditLogService.record("system", "item.update", name, "denied", Map.of("id", id));
             return Mono.just(ResponseEntity.status(405).body(Map.of("error", ErrorCode.OPERATION_DISABLED.getCode())));
         }
-        return dataStore.update(name, id, body).map(ResponseEntity::ok).defaultIfEmpty(ResponseEntity.notFound().build());
+        return dataStore.update(name, id, body)
+                .map(updated -> {
+                    auditLogService.record("system", "item.update", name, "ok", Map.of("id", id));
+                    return ResponseEntity.ok(updated);
+                })
+                .defaultIfEmpty(ResponseEntity.notFound().build());
     }
 
     @Operation(summary = "Delete an item")
@@ -140,13 +157,22 @@ public class HoneycombController {
     })
     @DeleteMapping("/models/{name}/items/{id}")
     public Mono<ResponseEntity<Void>> deleteItem(
-            @Parameter(description = "Domain name") @PathVariable @NotBlank String name,
+            @Parameter(description = "Cell name") @PathVariable @NotBlank String name,
             @Parameter(description = "Item ID") @PathVariable @NotBlank String id) {
         if (!props.isOperationAllowed(name, "delete")) {
             log.warn("Delete operation disabled for {}/{}", name, id);
+            auditLogService.record("system", "item.delete", name, "denied", Map.of("id", id));
             return Mono.just(ResponseEntity.status(405).build());
         }
-        return dataStore.delete(name, id).map(ok -> ok ? ResponseEntity.noContent().<Void>build() : ResponseEntity.notFound().build());
+        return dataStore.delete(name, id)
+                .map(ok -> {
+                    if (ok) {
+                        auditLogService.record("system", "item.delete", name, "ok", Map.of("id", id));
+                    } else {
+                        auditLogService.record("system", "item.delete", name, "not-found", Map.of("id", id));
+                    }
+                    return ok ? ResponseEntity.noContent().<Void>build() : ResponseEntity.notFound().build();
+                });
     }
 
 }

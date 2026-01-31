@@ -1,6 +1,6 @@
 package com.example.honeycomb.health;
 
-import com.example.honeycomb.service.DomainRegistry;
+import com.example.honeycomb.service.CellRegistry;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.ReactiveHealthIndicator;
 import org.springframework.stereotype.Component;
@@ -9,11 +9,11 @@ import reactor.core.publisher.Mono;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-@Component("domainLiveness")
-public class DomainLivenessIndicator implements ReactiveHealthIndicator {
-    private final DomainRegistry registry;
+@Component("cellLiveness")
+public class CellLivenessIndicator implements ReactiveHealthIndicator {
+    private final CellRegistry registry;
 
-    public DomainLivenessIndicator(DomainRegistry registry) {
+    public CellLivenessIndicator(CellRegistry registry) {
         this.registry = registry;
     }
 
@@ -21,8 +21,8 @@ public class DomainLivenessIndicator implements ReactiveHealthIndicator {
     public Mono<Health> health() {
         return Mono.fromSupplier(() -> {
             Map<String,Object> details = new LinkedHashMap<>();
-            for (String n : registry.getDomainNames()) {
-                // basic liveness check: domain loaded
+            for (String n : registry.getCellNames()) {
+                // basic liveness check: cell loaded
                 details.put(n, "UP");
             }
             return Health.up().withDetails(details).build();
