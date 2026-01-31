@@ -1,6 +1,6 @@
 package com.example.honeycomb.service;
 
-import com.example.honeycomb.annotations.Domain;
+import com.example.honeycomb.annotations.Cell;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -34,11 +34,11 @@ public class DomainRegistry implements ApplicationContextAware {
 
     @PostConstruct
     public void init() throws Exception {
-        // 1) discover beans annotated with @Domain
-        Map<String, Object> beans = context.getBeansWithAnnotation(Domain.class);
+        // 1) discover beans annotated with @Cell
+        Map<String, Object> beans = context.getBeansWithAnnotation(Cell.class);
         for (Object bean : beans.values()) {
             Class<?> cls = bean.getClass();
-            Domain ann = cls.getAnnotation(Domain.class);
+            Cell ann = cls.getAnnotation(Cell.class);
             String name = domainName(cls, ann);
             domains.put(name, cls);
         }
@@ -59,7 +59,7 @@ public class DomainRegistry implements ApplicationContextAware {
             String className = cm.getClassName();
             try {
                 Class<?> cls = Class.forName(className);
-                Domain ann = cls.getAnnotation(Domain.class);
+                Cell ann = cls.getAnnotation(Cell.class);
                 if (ann != null) {
                     String name = domainName(cls, ann);
                     domains.putIfAbsent(name, cls);
@@ -69,7 +69,7 @@ public class DomainRegistry implements ApplicationContextAware {
         }
     }
 
-    private String domainName(Class<?> cls, Domain ann) {
+    private String domainName(Class<?> cls, Cell ann) {
         if (ann != null && ann.value() != null && !ann.value().isBlank()) return ann.value();
         return cls.getSimpleName();
     }
@@ -91,8 +91,8 @@ public class DomainRegistry implements ApplicationContextAware {
             fields.add(fm);
         }
         mapping.put("fields", fields);
-            // include optional domain metadata such as configured port
-            Domain ann = cls.getAnnotation(Domain.class);
+            // include optional cell metadata such as configured port
+            Cell ann = cls.getAnnotation(Cell.class);
             if (ann != null && ann.port() > 0) {
                 mapping.put("port", ann.port());
             }

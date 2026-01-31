@@ -1,6 +1,7 @@
 /Users/ravichandrasekhar/Ravi/python scripts/honeycomb/src/main/java/com/example/honeycomb/health/DomainReactiveHealthIndicator.java
 /Users/ravichandrasekhar/Ravi/python scripts/honeycomb/src/main/java/com/example/honeycomb/web/DomainAddressController.java
 /Users/ravichandrasekhar/Ravi/python scripts/honeycomb/src/main/java/com/example/honeycomb/health/DomainReadinessIndicator.java
+/Users/ravichandrasekhar/Ravi/python scripts/honeycomb/src/main/java/com/example/honeycomb/annotations/Cell.java
 /Users/ravichandrasekhar/Ravi/python scripts/honeycomb/src/main/java/com/example/honeycomb/health/DomainLivenessIndicator.java
 /Users/ravichandrasekhar/Ravi/python scripts/honeycomb/src/main/java/com/example/honeycomb/annotations/Domain.java
 /Users/ravichandrasekhar/Ravi/python scripts/honeycomb/src/main/java/com/example/honeycomb/security/SecurityConfig.java

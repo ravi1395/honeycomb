@@ -3,6 +3,7 @@ com/example/honeycomb/repo/DomainAddressRepository.class
 com/example/honeycomb/service/DomainDataStore.class
 com/example/honeycomb/annotations/Domain.class
 com/example/honeycomb/web/DomainAddressController.class
+com/example/honeycomb/annotations/Cell.class
 com/example/honeycomb/health/DomainLivenessIndicator.class
 com/example/honeycomb/web/DomainInteractionController.class
 com/example/honeycomb/health/DomainReactiveHealthIndicator.class

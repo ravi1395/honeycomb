@@ -1,6 +1,6 @@
 package com.example.honeycomb.service;
 
-import com.example.honeycomb.annotations.Domain;
+import com.example.honeycomb.annotations.Cell;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,7 +55,7 @@ public class DomainServerManager implements ApplicationContextAware {
                 var opt = domainRegistry.getDomainClass(name);
                 if (opt.isEmpty()) continue;
                 Class<?> cls = opt.get();
-                Domain ann = cls.getAnnotation(Domain.class);
+                Cell ann = cls.getAnnotation(Cell.class);
                 int annotatedPort = ann != null ? ann.port() : -1;
                 String propKey = "domain.ports." + name;
                 int configuredPort = env.getProperty(propKey, Integer.class, annotatedPort);
