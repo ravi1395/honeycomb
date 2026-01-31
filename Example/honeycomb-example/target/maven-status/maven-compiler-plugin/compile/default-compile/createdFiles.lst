@@ -1,0 +1,7 @@
+com/example/honeycomb/example/cells/InventoryCell.class
+com/example/honeycomb/example/cells/CatalogCell.class
+com/example/honeycomb/example/shared/PricingCell.class
+com/example/honeycomb/example/config/DiscoveryConfig.class
+com/example/honeycomb/example/config/DiscoveryConfig$1.class
+com/example/honeycomb/example/HoneycombExampleApplication.class
+com/example/honeycomb/example/DemoRunner.class

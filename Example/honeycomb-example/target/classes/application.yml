@@ -1,0 +1,104 @@
+spring:
+  application:
+    name: com.example.honeycomb.example
+  main:
+    allow-bean-definition-overriding: true
+  cloud:
+    compatibility-verifier:
+      enabled: false
+
+server:
+  port: 8080
+
+service:
+  discovery:
+    base-url: "http://localhost"
+
+eureka:
+  client:
+    enabled: false
+
+cell:
+  ports:
+    InventoryCell: "9091"
+    CatalogCell: "9092"
+    PricingCell: "9093"
+  managementPort:
+    InventoryCell: 9191
+    CatalogCell: 9192
+    PricingCell: 9193
+
+honeycomb:
+  disabled-operations:
+    "__all__":
+      - delete
+    CatalogCell:
+      - update
+  webclient:
+    connect-timeout-ms: 5000
+    response-timeout-ms: 20000
+  audit:
+    max-entries: 500
+  security:
+    api-keys:
+      enabled: true
+      header: "X-API-Key"
+      keys:
+        admin: "admin-key"
+        cell: "cell-key"
+      per-cell:
+        "*": ["admin-key", "cell-key"]
+        PricingCell: ["admin-key"]
+  rate-limiter:
+    enabled: true
+    defaults:
+      limit-for-period: 10
+      refresh-period: 1s
+      timeout: 0ms
+    per-cell:
+      PricingCell:
+        limit-for-period: 5
+        refresh-period: 1s
+  routing:
+    default-policy: "round-robin"
+    per-cell-policy:
+      "*": "round-robin"
+  autoscale:
+    enabled: false
+    evaluation-interval: 15s
+    scale-up-rps: 2.0
+    scale-down-rps: 0.0
+    per-cell-enabled:
+      "*": true
+
+shared:
+  caller-header: "X-From-Cell"
+  user: "shared"
+  password: "changeit"
+
+actuator:
+  user: "admin"
+  password: "changeit"
+
+management:
+  endpoints:
+    web:
+      base-path: /honeycomb/actuator
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: when_authorized
+      probes:
+        enabled: true
+  metrics:
+    tags:
+      application: honeycomb-example
+
+springdoc:
+  api-docs:
+    path: /honeycomb/api-docs
+  swagger-ui:
+    path: /honeycomb/swagger-ui.html
+    operationsSorter: method
+  show-actuator: false
