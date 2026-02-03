@@ -1,119 +1,413 @@
 # Honeycomb
 
-`honeycomb` is a Spring Boot WebFlux project that discovers cell model classes annotated with `@Cell` and exposes them via REST as generic "data point" descriptions. It also demonstrates per-cell runtimes, inter-cell shared-method invocation, and configurable CRUD controls, plus routing, security, metrics, audit logs, and autoscaling.
+Honeycomb is a Spring Boot WebFlux framework for “cells”: lightweight model components that are discovered at runtime, exposed through a uniform CRUD + metadata API, and optionally hosted on dedicated per‑cell servers. It includes shared method routing, API‑key security, rate limiting, request metrics, audit logging, and autoscaling based on per‑cell request rates.
 
-How it works
-- Annotate any class with `@com.example.honeycomb.annotations.Cell`.
-- Mark methods you want to expose cross-cell with `@com.example.honeycomb.annotations.Sharedwall`.
-- On startup the `CellRegistry` scans the classpath and application context for `@Cell` types and records their metadata.
-- The controller exposes endpoints:
-  - `GET /honeycomb/models` — list discovered model names
-  - `GET /honeycomb/models/{name}` — describe fields and class name for the given model
-  - `GET /honeycomb/cells` — list cells with runtime status
-  - `POST /honeycomb/cells/{name}/start|stop|restart` — manage cell servers
-  - `POST /honeycomb/shared/{name}` — invoke shared methods
-  - `GET /honeycomb/metrics/cells` — per-cell request counts
-  - `GET /honeycomb/audit` — recent audit events
-  - `GET /honeycomb/admin` — admin UI (HTML)
-  - `GET /honeycomb/actuator/**` — actuator endpoints
+This README explains each feature with concrete examples. For a runnable demo, see the example app at Example/honeycomb-example/README.md.
 
-Example
+## Quick start
 
-1. Build:
+Build and run from the repo root:
+
 ```sh
-cd "honeycomb"
+cd honeycomb
 mvn package
-```
-
-2. Run:
-```sh
 mvn spring-boot:run
 ```
 
-3. Try:
+Try it:
+
 ```sh
 curl http://localhost:8080/honeycomb/models
 curl http://localhost:8080/honeycomb/models/SampleModel
 ```
 
-Additional features
-- Per-cell servers: the application can start extra HTTP servers bound to cell-specific ports. These servers are restricted to the `/honeycomb/**` routes and are useful to run cell-specific endpoints on their own port.
-- Shared methods: annotate methods with `@Sharedwall` to expose them to other cells at `/honeycomb/shared/{name}`. Use the `allowedFrom` attribute to restrict which caller cell names may invoke the method.
-- Configurable CRUD: disable create/read/update/delete per-cell or globally via `honeycomb.disabled-operations` in `application.yml`.
-- Reactive WebFlux stack with non-blocking WebClient forwarding for inter-cell interactions.
-- Service discovery (Eureka client) and static discovery fallbacks for cell addresses.
-- API key protection for `/honeycomb/**` endpoints, with per-cell allow lists.
-- Rate limiting per cell with Resilience4j.
-- Audit logging with WebSocket event stream at `/honeycomb/ws/events`.
-- Request metrics (per-cell counts) and Prometheus endpoint.
-- Routing policies for inter-cell calls: all/one/random/round-robin/weighted.
-- Autoscaling decisions based on per-cell request rates (configurable thresholds).
-- Admin UI for live cells, metrics, and audit events.
+## Production profile
 
-Health endpoint
-- Each cell server exposes a health endpoint at `/honeycomb/health` which reports `status`, `port`, and `cell` (and cell metadata).
+For hardened defaults (security, retries, autoscale, metrics), use the `prod` profile:
 
-Configuration examples
-- `src/main/resources/application.yml` contains example settings:
+```sh
+SPRING_PROFILES_ACTIVE=prod mvn spring-boot:run
+```
 
+## Core concepts
+
+### 1) Cell discovery
+Annotate any class with `@com.example.honeycomb.annotations.Cell`. Honeycomb scans the application context and classpath, then registers each cell with the `CellRegistry`.
+
+```java
+@Cell(port = 8081)
+public class SampleModel {
+  private String id;
+  private String name;
+  private int value;
+}
+```
+
+**Endpoints**
+- `GET /honeycomb/models` — list cell names
+- `GET /honeycomb/models/{name}` — fields + class metadata
+
+Example:
+```sh
+curl http://localhost:8080/honeycomb/models
+curl http://localhost:8080/honeycomb/models/SampleModel
+```
+
+### 2) Generic CRUD for cells
+Honeycomb provides generic CRUD per cell. These are dynamic and operate on `Map<String,Object>`.
+
+**Endpoints**
+- `POST /honeycomb/models/{cell}/items`
+- `GET /honeycomb/models/{cell}/items`
+- `GET /honeycomb/models/{cell}/items/{id}`
+- `PUT /honeycomb/models/{cell}/items/{id}`
+- `DELETE /honeycomb/models/{cell}/items/{id}`
+
+Example:
+```sh
+curl -H 'Content-Type: application/json' \
+  -d '{"id":"s-1","name":"Sample","value":10}' \
+  http://localhost:8080/honeycomb/models/SampleModel/items
+
+curl http://localhost:8080/honeycomb/models/SampleModel/items
+```
+
+### 3) Per‑cell servers
+Each cell can run on a dedicated port. These servers only serve `/honeycomb/**` routes.
+
+**Config**
+```yaml
+cell:
+  ports:
+    SampleModel: "8081"
+```
+
+**Runtime control**
+- `POST /honeycomb/cells/{name}/start`
+- `POST /honeycomb/cells/{name}/stop`
+- `POST /honeycomb/cells/{name}/restart`
+- `GET /honeycomb/cells` — list runtime status
+
+Example:
+```sh
+curl -X POST http://localhost:8080/honeycomb/cells/SampleModel/start
+curl http://localhost:8081/honeycomb/models/SampleModel
+```
+
+### 4) Shared methods (cross‑cell invocation)
+Methods annotated with `@Sharedwall` are exposed at `/honeycomb/shared/{name}`.
+
+```java
+@Sharedwall(value = "discount", allowedFrom = {"pricing-client"})
+public DiscountResult applyDiscount(DiscountRequest req) { ... }
+```
+
+**Endpoint**
+- `POST /honeycomb/shared/{name}`
+
+Example:
+```sh
+curl -H 'X-From-Cell: pricing-client' \
+  -H 'Content-Type: application/json' \
+  -d '{"listPrice":49.99,"discountPct":0.15}' \
+  http://localhost:8080/honeycomb/shared/discount
+```
+
+**Invoke in code (OAuth2 client, recommended)**
+```java
+WebClient oauthClient = HoneycombUtil.createOAuth2WebClient(builder, clientManager, "sharedwall-client");
+HoneycombUtil.invokeSharedwallOAuth2(
+  oauthClient,
+  "http://localhost:8080",
+  "discount",
+  Map.of("listPrice", 49.99, "discountPct", 0.15),
+  "pricing-client",
+  MediaType.APPLICATION_JSON,
+  "sharedwall-client"
+).subscribe();
+```
+
+**Invoke in code (Bearer token)**
+```java
+WebClient webClient = WebClient.builder().build();
+HoneycombUtil.invokeSharedwall(
+  webClient,
+  "http://localhost:8080",
+  "discount",
+  Map.of("listPrice", 49.99, "discountPct", 0.15),
+  "<access-token>",
+  "pricing-client",
+  MediaType.APPLICATION_JSON
+).subscribe();
+```
+
+### 5) Routing policies for inter‑cell calls
+For shared methods invoked via routing (e.g., from a proxy or another cell), Honeycomb supports:
+
+- `all` — call all instances
+- `one` — pick one instance
+- `random` — random instance
+- `round-robin` — cycle through instances
+- `weighted` — weights per instance
+
+**Config**
 ```yaml
 honeycomb:
-  disabled-operations:
-    "*":
-      - delete
-    SampleModel:
-      - create
+  routing:
+    default-policy: "round-robin"
+    per-cell-policy:
+      "*": "round-robin"
+    weights:
+      SampleModel:
+        "localhost:8081": 2
+        "localhost:8082": 1
+```
+
+### 6) Static discovery or service registry
+Honeycomb can use service discovery (Eureka) or static addresses.
+
+**Static addresses**
+```yaml
+cell:
+  addresses:
+    SampleModel: "host-a:8081,host-b:8081"
+```
+
+### 7) Security (API keys + OAuth2/Bearer for shared)
+API keys protect `/honeycomb/**` endpoints; shared methods support OAuth2/Bearer (recommended) and basic auth.
+
+**Config**
+```yaml
+honeycomb:
   security:
     api-keys:
-      enabled: false
+      enabled: true
       header: "X-API-Key"
       keys:
         admin: "admin-key"
+        cell: "cell-key"
       per-cell:
-        "*": ["admin-key"]
+        "*": ["admin-key", "cell-key"]
+        SampleModel: ["admin-key"]
+```
+
+Example:
+```sh
+curl -H 'X-API-Key: admin-key' http://localhost:8080/honeycomb/models
+```
+
+**JWT (optional)**
+```yaml
+honeycomb:
+  security:
+    require-auth: true
+    jwt:
+      enabled: true
+      issuer-uri: "https://issuer.example.com/"
+      jwk-set-uri: "https://issuer.example.com/.well-known/jwks.json"
+      audience: "honeycomb-api"
+      roles-claim: "roles"
+      role-prefix: "ROLE_"
+      scopes-claim: "scp"
+      scope-prefix: "SCOPE_"
+      shared-roles-claim: "shared_roles"
+      shared-role-prefix: "ROLE_"
+      default-roles: ["ROLE_USER"]
+      per-cell-roles:
+        "*": ["ROLE_USER"]
+        SampleModel: ["ROLE_ADMIN"]
+      per-cell-operation-roles:
+        "*":
+          read: ["ROLE_USER"]
+          create: ["ROLE_ADMIN"]
+        SampleModel:
+          delete: ["ROLE_ADMIN"]
+      shared-method-roles:
+        "*": ["ROLE_USER"]
+        discount: ["ROLE_PRICING"]
+```
+
+**Programmatic OAuth2 wiring (utility)**
+```java
+@Bean
+public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http,
+                                                    HoneycombSecurityProperties securityProperties) {
+    // ... your other rules
+    HoneycombUtil.configureOAuth2(http, securityProperties);
+    return http.build();
+}
+```
+
+**mTLS (optional)**
+```yaml
+honeycomb:
+  security:
+    mtls:
+      enabled: true
+      require-client-cert: true
+      allowed-subjects:
+        - "CN=honeycomb-client,O=Example Corp,L=NYC,ST=NY,C=US"
+
+server:
+  ssl:
+    enabled: true
+    key-store: "classpath:certs/server.p12"
+    key-store-password: "changeit"
+    key-store-type: "PKCS12"
+    trust-store: "classpath:certs/truststore.p12"
+    trust-store-password: "changeit"
+    trust-store-type: "PKCS12"
+    client-auth: need
+```
+
+### 8) Rate limiting (Resilience4j)
+Per‑cell limits can be configured with global defaults and cell overrides.
+
+```yaml
+honeycomb:
   rate-limiter:
     enabled: true
     defaults:
       limit-for-period: 50
       refresh-period: 1s
-  routing:
-    default-policy: "all"
-    per-cell-policy:
-      "*": "all"
-  autoscale:
-    enabled: false
-    evaluation-interval: 30s
-    scale-up-rps: 5.0
-    scale-down-rps: 0.5
-
-shared:
-  caller-header: "X-From-Cell"
+      timeout: 0ms
+    per-cell:
+      SampleModel:
+        limit-for-period: 10
+        refresh-period: 1s
 ```
 
-Clients invoking shared methods should set the caller header (default `X-From-Cell`) to identify themselves. Shared methods can also declare `allowedFrom` to limit callers.
+### 9) Metrics and audit
+Honeycomb emits request counters and latency timers. It also keeps an in‑memory audit log and streams events via WebSocket.
 
-Running multiple cell instances
-- A simple helper script is provided at `scripts/run-multi-cells.sh` to launch multiple JVM instances with per-cell overrides:
+**Endpoints**
+- `GET /honeycomb/metrics/cells`
+- `GET /honeycomb/audit`
+- `GET /honeycomb/actuator/prometheus`
+- `ws://localhost:8080/honeycomb/ws/events`
+
+Example:
+```sh
+curl http://localhost:8080/honeycomb/metrics/cells
+```
+
+### 10) Autoscaling
+Autoscaling decisions use per‑cell request rates with global and per‑cell thresholds.
+
+```yaml
+honeycomb:
+  autoscale:
+    enabled: true
+    evaluation-interval: 20s
+    scale-up-rps: 2.0
+    scale-down-rps: 0.1
+    per-cell-enabled:
+      "*": true
+    per-cell-scale-up-rps:
+      SampleModel: 1.0
+    per-cell-scale-down-rps:
+      SampleModel: 0.05
+```
+
+### 11) Externalized state (Redis / Hibernate Reactive) + per‑cell routing
+The data store is pluggable. Default is in‑memory. You can use Redis or Hibernate Reactive globally, or route per cell.
+
+**Global storage**
+```yaml
+honeycomb:
+  storage:
+    type: redis   # memory | redis | hibernate
+```
+
+**Hibernate Reactive (annotation‑free JSON storage)**
+```yaml
+honeycomb:
+  storage:
+    type: hibernate
+    hibernate:
+      url: postgresql://localhost:5432/honeycomb
+      username: honeycomb
+      password: honeycomb
+      annotation-free: true
+```
+
+### 12) Schema validation (optional)
+Enable JSON schema validation for create/update payloads. Schemas are loaded from classpath.
+
+```yaml
+honeycomb:
+  validation:
+    enabled: true
+    schema-dir: "schemas"
+    fail-on-missing-schema: false
+    per-cell:
+      SampleModel: "SampleModel.schema.json"
+```
+
+### 13) Idempotency (optional)
+Enable idempotent create/update requests by providing an `Idempotency-Key` header.
+
+```yaml
+honeycomb:
+  idempotency:
+    enabled: true
+    store: "memory"   # memory | redis
+    header: "Idempotency-Key"
+    key-prefix: "honeycomb:idempotency"
+    ttl-seconds: 300
+```
+**Per‑cell routing**
+```yaml
+honeycomb:
+  storage:
+    type: memory
+    routing:
+      enabled: true
+      per-cell:
+        SampleModel: redis
+        InventoryCell: hibernate
+    hibernate:
+      enabled: true
+      url: postgresql://localhost:5432/honeycomb
+      username: honeycomb
+      password: honeycomb
+      annotation-free: true
+```
+
+## Admin UI
+Honeycomb exposes a simple admin UI:
+
+```
+http://localhost:8080/honeycomb/admin
+```
+
+## Example configuration
+
+See [src/main/resources/application.yml](src/main/resources/application.yml) for full configuration examples. The example app also provides a docker profile at Example/honeycomb-example/src/main/resources/application-docker.yml for multi‑instance setups.
+
+## Running multiple instances (Docker Compose)
+
+The example app includes a two‑instance setup behind Nginx plus Redis and Prometheus.
 
 ```sh
-./scripts/run-multi-cells.sh SampleModel=9090
+cd Example/honeycomb-example
+docker compose up --build
 ```
 
-This will run the packaged JAR with `--cell.ports.SampleModel=9090`.
+Then access:
 
-Notes
-- The discovery defaults to scanning under `com.example` — adjust `CellRegistry` if you want to scan particular packages.
-- The registry currently returns field names and types; you can extend it to instantiate example objects or map arbitrary models to a common "data point" structure.
+```
+http://localhost:8080/honeycomb/swagger-ui.html
+http://localhost:9090
+```
 
-Running tests
-- Build and run the test suite with:
+## Tests
 
 ```sh
 mvn test
 ```
 
-Release
-- To tag a release locally then push it:
+## Release
 
 ```sh
 git add -A && git commit -m "chore: prepare release"

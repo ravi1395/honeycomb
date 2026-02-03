@@ -1,0 +1,19 @@
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          sharedwall-client:
+            provider: sharedwall-provider
+            client-id: "${example.oauth2.client-id}"
+            client-secret: "${example.oauth2.client-secret}"
+            authorization-grant-type: client_credentials
+            scope:
+              - "honeycomb.shared"
+        provider:
+          sharedwall-provider:
+            token-uri: "${example.oauth2.token-uri}"
+
+example:
+  oauth2:
+    registration-id: "sharedwall-client"

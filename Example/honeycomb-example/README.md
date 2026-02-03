@@ -20,6 +20,39 @@ cd Example/honeycomb-example
 mvn spring-boot:run
 ```
 
+For production-like defaults (security, retries, autoscale), use:
+
+```
+SPRING_PROFILES_ACTIVE=prod mvn spring-boot:run
+```
+
+To enable OAuth2 client wiring, add the oauth2 profile:
+
+```
+SPRING_PROFILES_ACTIVE=oauth2 mvn spring-boot:run
+```
+
+Or combine with prod:
+
+```
+SPRING_PROFILES_ACTIVE=prod,oauth2 mvn spring-boot:run
+```
+
+To enable per‑cell storage routing (Redis + Hibernate Reactive) locally, use:
+
+```
+SPRING_PROFILES_ACTIVE=routing mvn spring-boot:run
+```
+
+The routing profile also enables JSON schema validation and idempotency for create/update requests.
+
+If you don’t already have Postgres running locally, start the included compose file:
+
+```sh
+cd Example/honeycomb-example
+docker compose -f docker-compose.local-db.yml up -d
+```
+
 The app starts on port 8080 and automatically starts per‑cell servers on ports 9091–9093.
 
 ## What the example includes
@@ -33,6 +66,7 @@ The app starts on port 8080 and automatically starts per‑cell servers on ports
 - Autoscaling enabled (based on request rate).
 - Audit log and WebSocket event stream.
 - Swagger UI and actuator endpoints.
+- Storage is pluggable; per‑cell routing can be enabled via config.
 
 ## Quick demo (manual requests)
 
@@ -42,11 +76,7 @@ All `/honeycomb/**` endpoints require an API key header:
 X-API-Key: admin-key
 ```
 
-Shared methods require basic auth:
-
-```
-shared / changeit
-```
+Shared methods should use OAuth2/Bearer when configured. Basic auth remains available for local testing.
 
 ### Models + CRUD
 
@@ -64,6 +94,18 @@ curl -H 'X-API-Key: admin-key' http://localhost:8080/honeycomb/models/InventoryC
 
 ### Shared methods (direct)
 
+OAuth2 (recommended):
+
+```
+curl -H 'Authorization: Bearer <access-token>' \
+  -H 'X-From-Cell: demo-client' \
+  -H 'Content-Type: application/json' \
+  -d '{"listPrice":49.99,"discountPct":0.15}' \
+  http://localhost:8080/honeycomb/shared/discount
+```
+
+Basic auth (local/dev):
+
 ```
 curl -u shared:changeit \
   -H 'X-From-Cell: demo-client' \
@@ -73,6 +115,18 @@ curl -u shared:changeit \
 ```
 
 ### Shared methods (via routing)
+
+OAuth2 (recommended):
+
+```
+curl -H 'Authorization: Bearer <access-token>' \
+  -H 'X-From-Cell: demo-client' \
+  -H 'Content-Type: application/json' \
+  -d '{"listPrice":49.99,"discountPct":0.10}' \
+  http://localhost:8080/cells/demo-client/invoke/PricingCell/shared/discount?policy=round-robin
+```
+
+Basic auth (local/dev):
 
 ```
 curl -u shared:changeit \
@@ -105,3 +159,56 @@ ws://localhost:8080/honeycomb/ws/events
 - Autoscaling uses request rate. With no traffic, it may stop a cell server. Use `/honeycomb/cells/{name}/start` to start it again.
 - Per‑cell management ports are exposed for actuator endpoints (example: `http://localhost:9191/honeycomb/actuator/health`).
 - Rate limiting is enabled. If you send too many requests quickly, you will receive HTTP 429 responses.
+- JWT and mTLS can be enabled via the `honeycomb.security` section in the app config.
+- OAuth2 client settings are in `spring.security.oauth2.client` and `example.oauth2.*` (including `registration-id`).
+
+Environment placeholders for OAuth2 client:
+
+```
+EXAMPLE_OAUTH2_CLIENT_ID
+EXAMPLE_OAUTH2_CLIENT_SECRET
+EXAMPLE_OAUTH2_TOKEN_URI
+```
+
+## Per‑cell storage routing (optional)
+You can route storage per cell without changing cell code:
+
+```yaml
+honeycomb:
+  storage:
+    type: memory
+    routing:
+      enabled: true
+      per-cell:
+        InventoryCell: redis
+        CatalogCell: hibernate
+    hibernate:
+      enabled: true
+      url: postgresql://localhost:5432/honeycomb
+      username: honeycomb
+      password: honeycomb
+      annotation-free: true
+```
+
+## Scaling (multi‑instance + load balancer)
+
+This repo includes a Docker Compose setup that runs two Honeycomb instances behind Nginx, uses static cell addresses, enables autoscaling with per‑cell overrides, stores state in Redis, and includes PostgreSQL for Hibernate Reactive storage:
+
+```
+cd Example/honeycomb-example
+docker compose up --build
+```
+
+Access the app through the load balancer:
+
+```
+http://localhost:8080/honeycomb/swagger-ui.html
+```
+
+Prometheus is available at:
+
+```
+http://localhost:9090
+```
+
+Configuration is in `application-docker.yml`.

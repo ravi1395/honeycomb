@@ -1,0 +1,27 @@
+spring:
+  cloud:
+    compatibility-verifier:
+      enabled: false
+    discovery:
+      enabled: true
+      client:
+        simple:
+          enabled: true
+          instances:
+            SampleModel:
+              - uri: "http://localhost:8081"
+            SampleCell:
+              - uri: "http://localhost:18081"
+
+eureka:
+  client:
+    enabled: false
+    register-with-eureka: false
+    fetch-registry: false
+
+honeycomb:
+  disabled-operations:
+    "__all__":
+      - delete
+    SampleModel:
+      - create
