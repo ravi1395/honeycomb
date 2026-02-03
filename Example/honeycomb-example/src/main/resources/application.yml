@@ -29,6 +29,26 @@ cell:
     PricingCell: 9193
 
 honeycomb:
+  # storage:
+  #   type: memory
+  #   routing:
+  #     enabled: true
+  #     per-cell:
+  #       InventoryCell: redis
+  #       CatalogCell: hibernate
+  #   hibernate:
+  #     enabled: true
+  #     url: postgresql://localhost:5432/honeycomb
+  #     username: honeycomb
+  #     password: honeycomb
+  #     annotation-free: true
+  # validation:
+  #   enabled: true
+  #   schema-dir: "schemas"
+  # idempotency:
+  #   enabled: true
+  #   header: "Idempotency-Key"
+  #   ttl-seconds: 300
   disabled-operations:
     "__all__":
       - delete
@@ -49,6 +69,34 @@ honeycomb:
       per-cell:
         "*": ["admin-key", "cell-key"]
         PricingCell: ["admin-key"]
+    # require-auth: true
+    # jwt:
+    #   enabled: true
+    #   issuer-uri: "https://issuer.example.com/"
+    #   jwk-set-uri: "https://issuer.example.com/.well-known/jwks.json"
+    #   audience: "honeycomb-api"
+    #   roles-claim: "roles"
+    #   role-prefix: "ROLE_"
+    #   scopes-claim: "scp"
+    #   scope-prefix: "SCOPE_"
+    #   shared-roles-claim: "shared_roles"
+    #   shared-role-prefix: "ROLE_"
+    #   default-roles: ["ROLE_USER"]
+    #   per-cell-roles:
+    #     "*": ["ROLE_USER"]
+    #     PricingCell: ["ROLE_ADMIN"]
+    #   per-cell-operation-roles:
+    #     "*":
+    #       read: ["ROLE_USER"]
+    #       create: ["ROLE_ADMIN"]
+    #   shared-method-roles:
+    #     "*": ["ROLE_USER"]
+    #     discount: ["ROLE_PRICING"]
+    # mtls:
+    #   enabled: true
+    #   require-client-cert: true
+    #   allowed-subjects:
+    #     - "CN=honeycomb-client,O=Example Corp,L=NYC,ST=NY,C=US"
   rate-limiter:
     enabled: true
     defaults:
@@ -75,6 +123,10 @@ shared:
   caller-header: "X-From-Cell"
   user: "shared"
   password: "changeit"
+
+example:
+  oauth2:
+    registration-id: ""
 
 actuator:
   user: "admin"
