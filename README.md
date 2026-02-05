@@ -21,6 +21,20 @@ curl http://localhost:8080/honeycomb/models
 curl http://localhost:8080/honeycomb/models/SampleModel
 ```
 
+Additional features
+- Per-cell servers: the application can start extra HTTP servers bound to cell-specific ports. These servers are restricted to the `/honeycomb/**` routes and are useful to run cell-specific endpoints on their own port.
+- Shared methods: annotate methods with `@Sharedwall` to expose them to other cells at `/honeycomb/shared/{name}`. Use the `allowedFrom` attribute to restrict which caller cell names may invoke the method.
+- Configurable CRUD: disable create/read/update/delete per-cell or globally via `honeycomb.disabled-operations` in `application.yml`.
+- Reactive WebFlux stack with non-blocking WebClient forwarding for inter-cell interactions.
+- Service discovery (Eureka client) and static discovery fallbacks for cell addresses.
+- API key protection for `/honeycomb/**` endpoints, with per-cell allow lists.
+- Rate limiting per cell with Resilience4j.
+- Audit logging with WebSocket event stream at `/honeycomb/ws/events`.
+- Request metrics (per-cell counts) and Prometheus endpoint.
+- Routing policies for inter-cell calls: all/one/random/round-robin/weighted/least-latency/circuit-aware.
+- Autoscaling decisions based on per-cell request rates (configurable thresholds).
+- Admin UI for live cells, metrics, and audit events.
+
 ## Production profile
 
 For hardened defaults (security, retries, autoscale, metrics), use the `prod` profile:
@@ -299,11 +313,32 @@ honeycomb:
     defaults:
       limit-for-period: 50
       refresh-period: 1s
+<<<<<<< HEAD
       timeout: 0ms
     per-cell:
       SampleModel:
         limit-for-period: 10
         refresh-period: 1s
+=======
+  routing:
+    default-policy: "round-robin"
+    per-cell-policy:
+      "*": "round-robin"
+  autoscale:
+    enabled: false
+    evaluation-interval: 30s
+    scale-up-rps: 5.0
+    scale-down-rps: 0.5
+
+  shared:
+    cache:
+      enabled: true
+      warmup-enabled: true
+      cache-refresh-ms: 60000
+
+shared:
+  caller-header: "X-From-Cell"
+>>>>>>> 33348e6 (updating read me)
 ```
 
 ### 9) Metrics and audit
