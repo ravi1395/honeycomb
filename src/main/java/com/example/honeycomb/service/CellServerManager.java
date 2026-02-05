@@ -2,6 +2,7 @@ package com.example.honeycomb.service;
 
 import com.example.honeycomb.annotations.Cell;
 import com.example.honeycomb.dto.CellRuntimeStatus;
+import com.example.honeycomb.util.HoneycombConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -67,14 +68,14 @@ public class CellServerManager implements ApplicationContextAware {
             Class<?> cls = opt.get();
             Cell ann = cls.getAnnotation(Cell.class);
             int annotatedPort = ann != null ? ann.port() : -1;
-            int configuredPort = resolvePort("cell.ports." + name, annotatedPort);
+            int configuredPort = resolvePort(HoneycombConstants.ConfigKeys.CELL_PORTS_PREFIX + name, annotatedPort);
             if (configuredPort <= 0) {
-                log.warn("No configured port for cell '{}'", name);
+                log.warn(HoneycombConstants.Messages.SERVER_NO_PORT, name);
                 return Mono.just(false);
             }
             synchronized (this) {
                 if (servers.containsKey(name)) {
-                    log.info("Server for cell '{}' already running on port {}", name, configuredPort);
+                    log.info(HoneycombConstants.Messages.SERVER_ALREADY_RUNNING, name, configuredPort);
                     return Mono.just(true);
                 }
             }
@@ -82,7 +83,7 @@ public class CellServerManager implements ApplicationContextAware {
             var baseHandler = WebHttpHandlerBuilder.applicationContext(Objects.requireNonNull(applicationContext)).build();
             org.springframework.http.server.reactive.HttpHandler filtered = (req, resp) -> {
                 String p = req.getURI().getPath();
-                if (p != null && p.startsWith("/honeycomb")) {
+                if (p != null && p.startsWith(HoneycombConstants.Paths.HONEYCOMB_BASE)) {
                     return baseHandler.handle(req, resp);
                 }
                 resp.setStatusCode(org.springframework.http.HttpStatus.NOT_FOUND);
@@ -96,14 +97,17 @@ public class CellServerManager implements ApplicationContextAware {
                             servers.put(name, server);
                             portToCell.put(configuredPort, name);
                         }
-                        log.info("Started cell server '{}' on port {}", name, configuredPort);
+                        log.info(HoneycombConstants.Messages.SERVER_STARTED, name, configuredPort);
 
-                        String mgmtKey = "cell.managementPort." + name;
+                        String mgmtKey = HoneycombConstants.ConfigKeys.CELL_MGMT_PORT_PREFIX + name;
                         int mgmtPort = env.getProperty(mgmtKey, Integer.class, -1);
                         if (mgmtPort <= 0) {
                             return Mono.just(true);
                         }
-                        String mgmtBase = env.getProperty("management.endpoints.web.base-path", "/actuator");
+                        String mgmtBase = env.getProperty(
+                                HoneycombConstants.ConfigKeys.MGMT_BASE_PATH,
+                                HoneycombConstants.Paths.ACTUATOR_BASE
+                        );
                         org.springframework.http.server.reactive.HttpHandler mgmtHandler = (req, resp) -> {
                             String p = req.getURI().getPath();
                             if (p != null && p.startsWith(mgmtBase)) {
@@ -116,19 +120,19 @@ public class CellServerManager implements ApplicationContextAware {
                         return HttpServer.create().port(mgmtPort).handle(mgmtAdapter).bind()
                                 .doOnNext(mgmtServer -> {
                                     synchronized (this) {
-                                        servers.put(name + "-mgmt", mgmtServer);
+                                        servers.put(name + HoneycombConstants.Names.MGMT_SUFFIX, mgmtServer);
                                         portToCell.put(mgmtPort, name);
                                     }
-                                    log.info("Started management server for cell '{}' on port {}", name, mgmtPort);
+                                    log.info(HoneycombConstants.Messages.SERVER_MGMT_STARTED, name, mgmtPort);
                                 })
                                 .thenReturn(true)
                                 .onErrorResume(ex -> {
-                                    log.warn("Failed to start management server for cell {}: {}", name, ex.getMessage());
+                                    log.warn(HoneycombConstants.Messages.SERVER_MGMT_FAILED, name, ex.getMessage());
                                     return Mono.just(false);
                                 });
                     })
                     .onErrorResume(e -> {
-                        log.warn("Failed to start server for cell {}: {}", name, e.getMessage());
+                        log.warn(HoneycombConstants.Messages.SERVER_START_FAILED, name, e.getMessage());
                         return Mono.just(false);
                     });
         });
@@ -143,16 +147,16 @@ public class CellServerManager implements ApplicationContextAware {
                     server.dispose();
                     stopped = true;
                 } catch (Exception ex) {
-                    log.warn("Error shutting down server {}: {}", name, ex.getMessage());
+                    log.warn(HoneycombConstants.Messages.SERVER_SHUTDOWN_ERROR, name, ex.getMessage());
                 }
             }
-            DisposableServer mgmtServer = servers.remove(name + "-mgmt");
+            DisposableServer mgmtServer = servers.remove(name + HoneycombConstants.Names.MGMT_SUFFIX);
             if (mgmtServer != null) {
                 try {
                     mgmtServer.dispose();
                     stopped = true;
                 } catch (Exception ex) {
-                    log.warn("Error shutting down mgmt server {}: {}", name, ex.getMessage());
+                    log.warn(HoneycombConstants.Messages.SERVER_MGMT_SHUTDOWN_ERROR, name, ex.getMessage());
                 }
             }
             if (stopped) {
@@ -172,10 +176,14 @@ public class CellServerManager implements ApplicationContextAware {
         return cellRegistry.getCellClass(name).map(cls -> {
             Cell ann = cls.getAnnotation(Cell.class);
             int annotatedPort = ann != null ? ann.port() : -1;
-            int configuredPort = resolvePort("cell.ports." + name, annotatedPort);
-            int mgmtPort = env.getProperty("cell.managementPort." + name, Integer.class, -1);
+            int configuredPort = resolvePort(HoneycombConstants.ConfigKeys.CELL_PORTS_PREFIX + name, annotatedPort);
+                int mgmtPort = env.getProperty(
+                    HoneycombConstants.ConfigKeys.CELL_MGMT_PORT_PREFIX + name,
+                    Integer.class,
+                    -1
+                );
             DisposableServer server = servers.get(name);
-            DisposableServer mgmtServer = servers.get(name + "-mgmt");
+            DisposableServer mgmtServer = servers.get(name + HoneycombConstants.Names.MGMT_SUFFIX);
             Integer runningPort = server != null ? server.port() : null;
             Integer runningMgmtPort = mgmtServer != null ? mgmtServer.port() : null;
             return new CellRuntimeStatus(
@@ -205,20 +213,20 @@ public class CellServerManager implements ApplicationContextAware {
             Class<?> cls = opt.get();
             Cell ann = cls.getAnnotation(Cell.class);
             int annotatedPort = ann != null ? ann.port() : -1;
-            int configuredPort = resolvePort("cell.ports." + name, annotatedPort);
+            int configuredPort = resolvePort(HoneycombConstants.ConfigKeys.CELL_PORTS_PREFIX + name, annotatedPort);
             if (configuredPort <= 0) {
-                log.warn("No configured port for cell '{}'", name);
+                log.warn(HoneycombConstants.Messages.SERVER_NO_PORT, name);
                 return false;
             }
             if (servers.containsKey(name)) {
-                log.info("Server for cell '{}' already running on port {}", name, configuredPort);
+                log.info(HoneycombConstants.Messages.SERVER_ALREADY_RUNNING, name, configuredPort);
                 return true;
             }
 
             var baseHandler = WebHttpHandlerBuilder.applicationContext(Objects.requireNonNull(applicationContext)).build();
             org.springframework.http.server.reactive.HttpHandler filtered = (req, resp) -> {
                 String p = req.getURI().getPath();
-                if (p != null && p.startsWith("/honeycomb")) {
+                if (p != null && p.startsWith(HoneycombConstants.Paths.HONEYCOMB_BASE)) {
                     return baseHandler.handle(req, resp);
                 }
                 resp.setStatusCode(org.springframework.http.HttpStatus.NOT_FOUND);
@@ -228,10 +236,13 @@ public class CellServerManager implements ApplicationContextAware {
             DisposableServer server = HttpServer.create().port(configuredPort).handle(adapter).bindNow();
             servers.put(name, server);
 
-            String mgmtKey = "cell.managementPort." + name;
+            String mgmtKey = HoneycombConstants.ConfigKeys.CELL_MGMT_PORT_PREFIX + name;
             int mgmtPort = env.getProperty(mgmtKey, Integer.class, -1);
             if (mgmtPort > 0) {
-                String mgmtBase = env.getProperty("management.endpoints.web.base-path", "/actuator");
+                String mgmtBase = env.getProperty(
+                        HoneycombConstants.ConfigKeys.MGMT_BASE_PATH,
+                        HoneycombConstants.Paths.ACTUATOR_BASE
+                );
                 org.springframework.http.server.reactive.HttpHandler mgmtHandler = (req, resp) -> {
                     String p = req.getURI().getPath();
                     if (p != null && p.startsWith(mgmtBase)) {
@@ -242,16 +253,16 @@ public class CellServerManager implements ApplicationContextAware {
                 };
                 var mgmtAdapter = new ReactorHttpHandlerAdapter(mgmtHandler);
                 DisposableServer mgmtServer = HttpServer.create().port(mgmtPort).handle(mgmtAdapter).bindNow();
-                servers.put(name + "-mgmt", mgmtServer);
+                servers.put(name + HoneycombConstants.Names.MGMT_SUFFIX, mgmtServer);
                 portToCell.put(mgmtPort, name);
-                log.info("Started management server for cell '{}' on port {}", name, mgmtPort);
+                log.info(HoneycombConstants.Messages.SERVER_MGMT_STARTED, name, mgmtPort);
             }
 
             portToCell.put(configuredPort, name);
-            log.info("Started cell server '{}' on port {}", name, configuredPort);
+            log.info(HoneycombConstants.Messages.SERVER_STARTED, name, configuredPort);
             return true;
         } catch (Exception e) {
-            log.warn("Failed to start server for cell {}: {}", name, e.getMessage());
+            log.warn(HoneycombConstants.Messages.SERVER_START_FAILED, name, e.getMessage());
             return false;
         }
     }
@@ -264,16 +275,16 @@ public class CellServerManager implements ApplicationContextAware {
                 server.disposeNow();
                 stopped = true;
             } catch (Exception ex) {
-                log.warn("Error shutting down server {}: {}", name, ex.getMessage());
+                log.warn(HoneycombConstants.Messages.SERVER_SHUTDOWN_ERROR, name, ex.getMessage());
             }
         }
-        DisposableServer mgmtServer = servers.remove(name + "-mgmt");
+            DisposableServer mgmtServer = servers.remove(name + HoneycombConstants.Names.MGMT_SUFFIX);
         if (mgmtServer != null) {
             try {
                 mgmtServer.disposeNow();
                 stopped = true;
             } catch (Exception ex) {
-                log.warn("Error shutting down mgmt server {}: {}", name, ex.getMessage());
+                log.warn(HoneycombConstants.Messages.SERVER_MGMT_SHUTDOWN_ERROR, name, ex.getMessage());
             }
         }
         if (stopped) {
@@ -292,10 +303,10 @@ public class CellServerManager implements ApplicationContextAware {
     public void shutdown() {
         for (Map.Entry<String, DisposableServer> e : servers.entrySet()) {
             try {
-                log.info("Shutting down cell server '{}'", e.getKey());
+                log.info(HoneycombConstants.Messages.SERVER_SHUTDOWN, e.getKey());
                 e.getValue().disposeNow();
             } catch (Exception ex) {
-                log.warn("Error shutting down server {}: {}", e.getKey(), ex.getMessage());
+                log.warn(HoneycombConstants.Messages.SERVER_SHUTDOWN_ERROR, e.getKey(), ex.getMessage());
             }
         }
         servers.clear();
@@ -311,7 +322,7 @@ public class CellServerManager implements ApplicationContextAware {
     private int resolvePort(String propKey, int fallback) {
         String raw = Objects.requireNonNullElse(env.getProperty(propKey), "");
         if (raw == null || raw.isBlank()) return fallback;
-        String first = raw.split(",")[0].trim();
+        String first = raw.split(HoneycombConstants.Names.SEPARATOR_COMMA)[0].trim();
         try {
             int v = Integer.parseInt(first);
             return v > 0 ? v : fallback;

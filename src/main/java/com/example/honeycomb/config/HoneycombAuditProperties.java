@@ -1,8 +1,9 @@
 package com.example.honeycomb.config;
 
+import com.example.honeycomb.util.HoneycombConstants;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-@ConfigurationProperties(prefix = "honeycomb.audit")
+@ConfigurationProperties(prefix = HoneycombConstants.ConfigKeys.AUDIT_PREFIX)
 public class HoneycombAuditProperties {
     private int maxEntries = 500;
 

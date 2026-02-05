@@ -38,6 +38,35 @@ app:
   test-caller: "test-client"
 
 honeycomb:
+  # Storage backend for cell items: memory | redis | hibernate
+  # storage:
+  #   type: hibernate
+  #   routing:
+  #     enabled: true
+  #     per-cell:
+  #       SampleModel: redis
+  #   hibernate:
+  #     enabled: true
+  #     url: "postgresql://localhost:5432/honeycomb"
+  #     username: "honeycomb"
+  #     password: "honeycomb"
+  #     dialect: "org.hibernate.dialect.PostgreSQLDialect"
+  #     hbm2ddl-auto: "update"
+  #     show-sql: false
+  #     pool-size: 10
+  #     annotation-free: true
+  # validation:
+  #   enabled: true
+  #   schema-dir: "schemas"
+  #   fail-on-missing-schema: false
+  #   per-cell:
+  #     SampleModel: "SampleModel.schema.json"
+  # idempotency:
+  #   enabled: true
+  #   store: "memory"   # memory | redis
+  #   header: "Idempotency-Key"
+  #   key-prefix: "honeycomb:idempotency"
+  #   ttl-seconds: 300
   # Example: per-cell disabled operations
   # Use '*' key for global defaults
   disabled-operations:
@@ -52,6 +81,7 @@ honeycomb:
   audit:
     max-entries: 500
   security:
+    # require-auth: true
     api-keys:
       enabled: false
       header: "X-API-Key"
@@ -60,6 +90,35 @@ honeycomb:
         cell: "cell-key"
       per-cell:
         "*": ["admin-key", "cell-key"]
+    # jwt:
+    #   enabled: true
+    #   issuer-uri: "https://issuer.example.com/"
+    #   jwk-set-uri: "https://issuer.example.com/.well-known/jwks.json"
+    #   audience: "honeycomb-api"
+    #   roles-claim: "roles"
+    #   role-prefix: "ROLE_"
+    #   scopes-claim: "scp"
+    #   scope-prefix: "SCOPE_"
+    #   shared-roles-claim: "shared_roles"
+    #   shared-role-prefix: "ROLE_"
+    #   default-roles: ["ROLE_USER"]
+    #   per-cell-roles:
+    #     "*": ["ROLE_USER"]
+    #     SampleModel: ["ROLE_ADMIN"]
+    #   per-cell-operation-roles:
+    #     "*":
+    #       read: ["ROLE_USER"]
+    #       create: ["ROLE_ADMIN"]
+    #     SampleModel:
+    #       delete: ["ROLE_ADMIN"]
+    #   shared-method-roles:
+    #     "*": ["ROLE_USER"]
+    #     discount: ["ROLE_PRICING"]
+    # mtls:
+    #   enabled: true
+    #   require-client-cert: true
+    #   allowed-subjects:
+    #     - "CN=honeycomb-client,O=Example Corp,L=NYC,ST=NY,C=US"
   rate-limiter:
     enabled: true
     defaults:

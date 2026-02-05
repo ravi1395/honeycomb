@@ -1,8 +1,10 @@
 package com.example.honeycomb.example;
 
+import com.example.honeycomb.util.HoneycombConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
@@ -18,27 +20,20 @@ public class DemoRunner implements ApplicationRunner {
     private static final Logger log = LoggerFactory.getLogger(DemoRunner.class);
 
     private final WebClient webClient;
+    private final ObjectProvider<SharedwallClientExample> sharedwallClientExample;
 
-    @Value("${server.port:8080}")
+    @Value(ExampleConstants.PropertyValues.SERVER_PORT)
     private int serverPort;
 
-    @Value("${honeycomb.security.api-keys.header:X-API-Key}")
+    @Value(ExampleConstants.PropertyValues.API_KEY_HEADER)
     private String apiKeyHeader;
 
-    @Value("${honeycomb.security.api-keys.keys.admin:admin-key}")
+    @Value(ExampleConstants.PropertyValues.ADMIN_KEY)
     private String adminKey;
 
-    @Value("${shared.user:shared}")
-    private String sharedUser;
-
-    @Value("${shared.password:changeit}")
-    private String sharedPassword;
-
-    @Value("${shared.caller-header:X-From-Cell}")
-    private String callerHeader;
-
-    public DemoRunner(WebClient.Builder builder) {
+    public DemoRunner(WebClient.Builder builder, ObjectProvider<SharedwallClientExample> sharedwallClientExample) {
         this.webClient = builder.build();
+        this.sharedwallClientExample = sharedwallClientExample;
     }
 
     @Override
@@ -50,124 +45,104 @@ public class DemoRunner implements ApplicationRunner {
             } catch (InterruptedException ex) {
                 Thread.currentThread().interrupt();
             } catch (Exception ex) {
-                log.warn("demo runner failed", ex);
+                log.warn(ExampleConstants.Messages.DEMO_RUNNER_FAILED, ex);
             }
         });
     }
 
     private Mono<Void> runDemo() {
-        String base = "http://localhost:" + serverPort;
+        String base = HoneycombConstants.Schemes.HTTP + ExampleConstants.Hosts.LOCALHOST + ":" + serverPort;
         return listModels(base)
-                .then(describeModel(base, "InventoryCell"))
+            .then(describeModel(base, ExampleConstants.Cells.INVENTORY))
                 .then(createInventoryItem(base))
                 .then(listInventory(base))
-                .then(callSharedDirect(base))
-                .then(callSharedViaCells(base))
+                .then(Mono.defer(() -> {
+                    SharedwallClientExample client = sharedwallClientExample.getIfAvailable();
+                    if (client == null) return Mono.empty();
+                    return client.callDiscount(base).then(client.callDiscountViaCells(base));
+                }))
                 .then(fetchMetrics(base))
                 .then(fetchAudit(base))
                 .then();
     }
 
     private Mono<Void> listModels(String base) {
-        return webClient.get().uri(base + "/honeycomb/models")
+        return webClient.get().uri(base + HoneycombConstants.Paths.HONEYCOMB_MODELS)
                 .header(apiKeyHeader, adminKey)
                 .retrieve()
                 .bodyToMono(String.class)
                 .timeout(Duration.ofSeconds(5))
-                .doOnNext(body -> log.info("models: {}", body))
+                .doOnNext(body -> log.info(ExampleConstants.Messages.LOG_MODELS, body))
                 .then();
     }
 
     private Mono<Void> describeModel(String base, String name) {
-        return webClient.get().uri(base + "/honeycomb/models/" + name)
+        return webClient.get().uri(base + HoneycombConstants.Paths.HONEYCOMB_MODELS + "/" + name)
                 .header(apiKeyHeader, adminKey)
                 .retrieve()
                 .bodyToMono(String.class)
                 .timeout(Duration.ofSeconds(5))
-                .doOnNext(body -> log.info("describe {}: {}", name, body))
+                .doOnNext(body -> log.info(ExampleConstants.Messages.LOG_DESCRIBE, name, body))
                 .then();
     }
 
     private Mono<Void> createInventoryItem(String base) {
         Map<String, Object> body = Map.of(
-                "id", "inv-100",
-                "sku", "SKU-RED-1",
-                "quantity", 12,
-                "warehouse", "west-1"
+            ExampleConstants.JsonKeys.ID, ExampleConstants.Values.SAMPLE_INVENTORY_ID,
+            ExampleConstants.JsonKeys.SKU, ExampleConstants.Values.SAMPLE_SKU,
+            ExampleConstants.JsonKeys.QUANTITY, 12,
+            ExampleConstants.JsonKeys.WAREHOUSE, ExampleConstants.Values.SAMPLE_WAREHOUSE
         );
-        return webClient.post().uri(base + "/honeycomb/models/InventoryCell/items")
+        return webClient.post().uri(base
+                + HoneycombConstants.Paths.HONEYCOMB_MODELS
+                + "/"
+                        + ExampleConstants.Cells.INVENTORY
+                + "/"
+                        + ExampleConstants.Values.ROUTE_ITEMS)
                 .header(apiKeyHeader, adminKey)
                 .bodyValue(body)
                 .retrieve()
                 .bodyToMono(String.class)
                 .timeout(Duration.ofSeconds(5))
-                .doOnNext(resp -> log.info("create inventory: {}", resp))
+                .doOnNext(resp -> log.info(ExampleConstants.Messages.LOG_CREATE_INVENTORY, resp))
                 .then();
     }
 
     private Mono<Void> listInventory(String base) {
-        return webClient.get().uri(base + "/honeycomb/models/InventoryCell/items")
+        return webClient.get().uri(base
+                + HoneycombConstants.Paths.HONEYCOMB_MODELS
+                + "/"
+                        + ExampleConstants.Cells.INVENTORY
+                + "/"
+                        + ExampleConstants.Values.ROUTE_ITEMS)
                 .header(apiKeyHeader, adminKey)
                 .retrieve()
                 .bodyToMono(String.class)
                 .timeout(Duration.ofSeconds(5))
-                .doOnNext(resp -> log.info("inventory items: {}", resp))
-                .then();
-    }
-
-    private Mono<Void> callSharedDirect(String base) {
-        Map<String, Object> body = Map.of(
-                "listPrice", 49.99,
-                "discountPct", 0.15
-        );
-        return webClient.post().uri(base + "/honeycomb/shared/discount")
-                .headers(h -> {
-                    h.setBasicAuth(sharedUser, sharedPassword);
-                    h.add(callerHeader, "demo-client");
-                })
-                .bodyValue(body)
-                .retrieve()
-                .bodyToMono(String.class)
-                .timeout(Duration.ofSeconds(5))
-                .doOnNext(resp -> log.info("shared discount: {}", resp))
-                .then();
-    }
-
-    private Mono<Void> callSharedViaCells(String base) {
-        Map<String, Object> body = Map.of(
-                "listPrice", 49.99,
-                "discountPct", 0.10
-        );
-        return webClient.post().uri(base + "/cells/demo-client/invoke/PricingCell/shared/discount?policy=round-robin")
-                .headers(h -> {
-                    h.setBasicAuth(sharedUser, sharedPassword);
-                    h.add(callerHeader, "demo-client");
-                })
-                .bodyValue(body)
-                .retrieve()
-                .bodyToMono(String.class)
-                .timeout(Duration.ofSeconds(5))
-                .doOnNext(resp -> log.info("cells invoke discount: {}", resp))
+                .doOnNext(resp -> log.info(ExampleConstants.Messages.LOG_INVENTORY_ITEMS, resp))
                 .then();
     }
 
     private Mono<Void> fetchMetrics(String base) {
-        return webClient.get().uri(base + "/honeycomb/metrics/cells")
+        return webClient.get().uri(base
+                + HoneycombConstants.Paths.HONEYCOMB_METRICS
+                + "/"
+                + HoneycombConstants.Paths.CELLS)
                 .header(apiKeyHeader, adminKey)
                 .retrieve()
                 .bodyToMono(String.class)
                 .timeout(Duration.ofSeconds(5))
-                .doOnNext(resp -> log.info("metrics: {}", resp))
+                .doOnNext(resp -> log.info(ExampleConstants.Messages.LOG_METRICS, resp))
                 .then();
     }
 
     private Mono<Void> fetchAudit(String base) {
-        return webClient.get().uri(base + "/honeycomb/audit")
+        return webClient.get().uri(base + HoneycombConstants.Paths.HONEYCOMB_AUDIT)
                 .header(apiKeyHeader, adminKey)
                 .retrieve()
                 .bodyToMono(String.class)
                 .timeout(Duration.ofSeconds(5))
-                .doOnNext(resp -> log.info("audit: {}", resp))
+                .doOnNext(resp -> log.info(ExampleConstants.Messages.LOG_AUDIT, resp))
                 .then();
     }
 }

@@ -10,6 +10,8 @@ import com.example.honeycomb.config.HoneycombRateLimiterProperties;
 import com.example.honeycomb.config.HoneycombRoutingProperties;
 import com.example.honeycomb.config.HoneycombAutoscaleProperties;
 import com.example.honeycomb.config.HoneycombAuditProperties;
+import com.example.honeycomb.config.HoneycombIdempotencyProperties;
+import com.example.honeycomb.config.HoneycombValidationProperties;
 
 @SpringBootApplication
 @EnableScheduling
@@ -19,7 +21,9 @@ import com.example.honeycomb.config.HoneycombAuditProperties;
     HoneycombRateLimiterProperties.class,
     HoneycombRoutingProperties.class,
     HoneycombAutoscaleProperties.class,
-    HoneycombAuditProperties.class
+    HoneycombAuditProperties.class,
+    HoneycombValidationProperties.class,
+    HoneycombIdempotencyProperties.class
 })
 public class HoneycombApplication {
     public static void main(String[] args) {

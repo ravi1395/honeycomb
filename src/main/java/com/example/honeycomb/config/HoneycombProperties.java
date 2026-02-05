@@ -5,8 +5,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import com.example.honeycomb.util.HoneycombConstants;
 
-@ConfigurationProperties(prefix = "honeycomb")
+@ConfigurationProperties(prefix = HoneycombConstants.ConfigKeys.HONEYCOMB_PREFIX)
 public class HoneycombProperties {
 
     /**
@@ -24,16 +25,16 @@ public class HoneycombProperties {
     }
 
     public boolean isOperationAllowed(String cell, String op) {
-        if (cell == null) cell = "";
+        if (cell == null) cell = HoneycombConstants.Messages.EMPTY;
         String key = cell;
         // check cell-specific
         List<String> dis = disabledOperations.get(key);
         if (dis != null && dis.stream().anyMatch(s -> s.equalsIgnoreCase(op))) return false;
         // check global (support several possible keys for compatibility)
-        List<String> global = disabledOperations.get("*");
-        if (global == null) global = disabledOperations.get("__all__");
-        if (global == null) global = disabledOperations.get("ALL");
-        if (global == null) global = disabledOperations.get("0");
+        List<String> global = disabledOperations.get(HoneycombConstants.ConfigKeys.GLOBAL_WILDCARD);
+        if (global == null) global = disabledOperations.get(HoneycombConstants.ConfigKeys.GLOBAL_ALL);
+        if (global == null) global = disabledOperations.get(HoneycombConstants.ConfigKeys.GLOBAL_ALL_UPPER);
+        if (global == null) global = disabledOperations.get(HoneycombConstants.ConfigKeys.GLOBAL_ZERO);
         if (global != null && global.stream().anyMatch(s -> s.equalsIgnoreCase(op))) return false;
         return true;
     }

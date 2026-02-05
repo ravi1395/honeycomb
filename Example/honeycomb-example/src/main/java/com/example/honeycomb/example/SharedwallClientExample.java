@@ -1,6 +1,7 @@
 package com.example.honeycomb.example;
 
 import com.example.honeycomb.util.HoneycombConstants;
+import com.example.honeycomb.client.SharedwallClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,7 +20,7 @@ import java.util.Map;
 public class SharedwallClientExample {
     private static final Logger log = LoggerFactory.getLogger(SharedwallClientExample.class);
 
-    private final WebClient webClient;
+        private final WebClient webClient;
 
     @Value(ExampleConstants.PropertyValues.OAUTH2_REGISTRATION_ID)
     private String registrationId;
@@ -36,20 +37,11 @@ public class SharedwallClientExample {
                 ExampleConstants.JsonKeys.LIST_PRICE, 49.99,
                 ExampleConstants.JsonKeys.DISCOUNT_PCT, 0.12
         );
-        String url = baseUrl
-                + HoneycombConstants.Paths.HONEYCOMB_SHARED
-                + HoneycombConstants.Names.SEPARATOR_SLASH
-                + ExampleConstants.Values.ROUTE_DISCOUNT;
-
-        return webClient.post().uri(url)
-                .attributes(ServerOAuth2AuthorizedClientExchangeFilterFunction.clientRegistrationId(registrationId))
-                .headers(h -> {
-                    h.setContentType(MediaType.APPLICATION_JSON);
-                    h.add(HoneycombConstants.Headers.FROM_CELL, ExampleConstants.Shared.DEMO_CALLER);
-                })
-                .bodyValue(body)
-                .retrieve()
-                .bodyToMono(String.class)
+        return SharedwallClient.builder(webClient, baseUrl)
+                .fromCell(ExampleConstants.Shared.DEMO_CALLER)
+                .registrationId(registrationId)
+                .build()
+                .invoke(ExampleConstants.Values.ROUTE_DISCOUNT, body, MediaType.APPLICATION_JSON)
                 .doOnNext(resp -> log.info(ExampleConstants.Messages.LOG_SHARED_DISCOUNT_UTIL, resp))
                 .then();
     }

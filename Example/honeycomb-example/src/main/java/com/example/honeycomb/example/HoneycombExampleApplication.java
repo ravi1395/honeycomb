@@ -17,10 +17,10 @@ import org.springframework.core.env.Environment;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication(
-    scanBasePackages = {"com.example.honeycomb", "com.example.honeycomb.example"},
+    scanBasePackages = {ExampleConstants.Packages.HONEYCOMB, ExampleConstants.Packages.HONEYCOMB_EXAMPLE},
     excludeName = {
-        "org.springframework.cloud.client.discovery.simple.reactive.SimpleReactiveDiscoveryClientAutoConfiguration",
-        "org.springframework.cloud.client.discovery.composite.reactive.ReactiveCompositeDiscoveryClientAutoConfiguration"
+        ExampleConstants.AutoConfig.SIMPLE_REACTIVE_DISCOVERY,
+        ExampleConstants.AutoConfig.COMPOSITE_REACTIVE_DISCOVERY
     }
 )
 @EnableScheduling
@@ -42,7 +42,10 @@ public class HoneycombExampleApplication {
     @EventListener(ApplicationReadyEvent.class)
     public void logServerPort(ApplicationReadyEvent event) {
         Environment env = event.getApplicationContext().getEnvironment();
-        String port = env.getProperty("local.server.port", env.getProperty("server.port", "8080"));
-        log.info("Spring Boot started on port {}", port);
+        String port = env.getProperty(
+            ExampleConstants.PropertyKeys.LOCAL_SERVER_PORT,
+            env.getProperty(ExampleConstants.PropertyKeys.SERVER_PORT, ExampleConstants.Values.DEFAULT_PORT)
+        );
+        log.info(ExampleConstants.Messages.BOOT_STARTED, port);
     }
 }

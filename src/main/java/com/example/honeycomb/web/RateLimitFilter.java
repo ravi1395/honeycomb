@@ -1,6 +1,7 @@
 package com.example.honeycomb.web;
 
 import com.example.honeycomb.config.HoneycombRateLimiterProperties;
+import com.example.honeycomb.util.HoneycombConstants;
 import io.github.resilience4j.ratelimiter.RateLimiter;
 import io.github.resilience4j.ratelimiter.RateLimiterConfig;
 import io.github.resilience4j.reactor.ratelimiter.operator.RateLimiterOperator;
@@ -36,7 +37,8 @@ public class RateLimitFilter implements WebFilter {
             return chain.filter(exchange);
         }
         String path = exchange.getRequest().getPath().pathWithinApplication().value();
-        if (!(path.startsWith("/honeycomb") || path.startsWith("/cells"))) {
+        if (!(path.startsWith(HoneycombConstants.Paths.HONEYCOMB_BASE)
+            || path.startsWith(HoneycombConstants.Paths.CELLS_BASE))) {
             return chain.filter(exchange);
         }
         String cell = CellPathResolver.resolveCell(path);
@@ -60,6 +62,8 @@ public class RateLimitFilter implements WebFilter {
                 .limitRefreshPeriod(cfg.getRefreshPeriod() == null ? Duration.ofSeconds(1) : cfg.getRefreshPeriod())
                 .timeoutDuration(cfg.getTimeout() == null ? Duration.ZERO : cfg.getTimeout())
                 .build();
-        return RateLimiter.of("cell-" + (cell == null ? "global" : cell), config);
+        String name = HoneycombConstants.Names.LIMITER_CELL_PREFIX
+            + (cell == null ? HoneycombConstants.Names.LIMITER_GLOBAL : cell);
+        return RateLimiter.of(name, config);
     }
 }

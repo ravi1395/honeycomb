@@ -1,6 +1,7 @@
 package com.example.honeycomb.health;
 
 import com.example.honeycomb.service.CellRegistry;
+import com.example.honeycomb.util.HoneycombConstants;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.ReactiveHealthIndicator;
 import org.springframework.stereotype.Component;
@@ -25,7 +26,10 @@ public class CellReactiveHealthIndicator implements ReactiveHealthIndicator {
             for (String n : names) {
                 cells.put(n, registry.describeCell(n));
             }
-            return Health.up().withDetail("cellCount", names.size()).withDetail("cells", cells).build();
+            return Health.up()
+                    .withDetail(HoneycombConstants.Health.DETAIL_CELL_COUNT, names.size())
+                    .withDetail(HoneycombConstants.Health.DETAIL_CELLS, cells)
+                    .build();
         });
     }
 }

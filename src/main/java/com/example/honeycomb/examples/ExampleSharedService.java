@@ -2,6 +2,7 @@ package com.example.honeycomb.examples;
 
 import com.example.honeycomb.annotations.Cell;
 import com.example.honeycomb.annotations.Sharedwall;
+import com.example.honeycomb.util.HoneycombConstants;
 import org.springframework.stereotype.Component;
 
 import reactor.core.publisher.Mono;
@@ -12,33 +13,36 @@ import java.util.Map;
 @Component
 public class ExampleSharedService {
 
-    @Sharedwall(value = "echo", allowedFrom = {"test-client"})
+    @Sharedwall(value = HoneycombConstants.Examples.SHARED_ECHO,
+            allowedFrom = {HoneycombConstants.Examples.SHARED_TEST_CLIENT})
     public Mono<String> echo(String input) {
-        return Mono.just("echo:" + input);
+        return Mono.just(HoneycombConstants.Examples.ECHO_PREFIX + input);
     }
 
     @Sharedwall
     public Mono<Map<String,Object>> summarize(Map<String,Object> payload) {
         return Mono.just(Map.of(
-                "receivedKeys", payload == null ? 0 : payload.keySet().size(),
-                "original", payload
+                HoneycombConstants.Examples.RECEIVED_KEYS, payload == null ? 0 : payload.keySet().size(),
+                HoneycombConstants.Examples.ORIGINAL, payload
         ));
     }
 
-    @Sharedwall("concat")
+    @Sharedwall(HoneycombConstants.Examples.SHARED_CONCAT)
     public Mono<String> concat(String a, String b) {
-        return Mono.just(a + ":" + b);
+        return Mono.just(a + HoneycombConstants.Names.SEPARATOR_COLON + b);
     }
 
-    @Sharedwall("sumList")
+    @Sharedwall(HoneycombConstants.Examples.SHARED_SUM_LIST)
     public Mono<Integer> sumList(java.util.List<Integer> nums) {
         if (nums == null) return Mono.just(0);
         return Mono.just(nums.stream().mapToInt(Integer::intValue).sum());
     }
 
-    @Sharedwall("boom")
+    @Sharedwall(HoneycombConstants.Examples.SHARED_BOOM)
     public Mono<Void> boom(String in) {
-        if ("boom".equals(in)) return Mono.error(new RuntimeException("boom-exception"));
+        if (HoneycombConstants.Examples.BOOM.equals(in)) {
+            return Mono.error(new RuntimeException(HoneycombConstants.Examples.BOOM_EXCEPTION));
+        }
         return Mono.empty();
     }
 }

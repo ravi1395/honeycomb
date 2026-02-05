@@ -1,0 +1,382 @@
+{
+  "info": {
+    "name": "Honeycomb Example",
+    "_postman_id": "",
+    "description": "Postman collection for the Honeycomb example app (local testing). Use {{baseUrl}} to change host. Service endpoints use @Cell with @MethodType (including interface-declared annotations).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Get Honeycomb Cells",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "X-API-Key", "value": "{{apiKey}}" } ],
+        "url": { "raw": "{{baseUrl}}/honeycomb/cells", "host": ["{{baseUrl}}"], "path": ["honeycomb", "cells"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Honeycomb Cell By Name",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "X-API-Key", "value": "{{apiKey}}" } ],
+        "url": { "raw": "{{baseUrl}}/honeycomb/cells/:name", "host": ["{{baseUrl}}"], "path": ["honeycomb", "cells", ":name"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Get All Addresses",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "X-API-Key", "value": "{{apiKey}}" } ],
+        "url": { "raw": "{{baseUrl}}/cells/addresses", "host": ["{{baseUrl}}"], "path": ["cells", "addresses"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Addresses For Cell",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "X-API-Key", "value": "{{apiKey}}" } ],
+        "url": { "raw": "{{baseUrl}}/cells/:name/addresses", "host": ["{{baseUrl}}"], "path": ["cells", ":name", "addresses"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Create Address",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "X-API-Key", "value": "{{apiKey}}" }, { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"host\": \"127.0.0.1\",\n  \"port\": 8080,\n  \"protocol\": \"http\"\n}" },
+        "url": { "raw": "{{baseUrl}}/cells/addresses", "host": ["{{baseUrl}}"], "path": ["cells", "addresses"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Address By ID",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "X-API-Key", "value": "{{apiKey}}" } ],
+        "url": { "raw": "{{baseUrl}}/cells/addresses/:id", "host": ["{{baseUrl}}"], "path": ["cells", "addresses", ":id"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Update Address",
+      "request": {
+        "method": "PUT",
+        "header": [ { "key": "X-API-Key", "value": "{{apiKey}}" }, { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"host\": \"127.0.0.1\",\n  \"port\": 8081\n}" },
+        "url": { "raw": "{{baseUrl}}/cells/addresses/:id", "host": ["{{baseUrl}}"], "path": ["cells", "addresses", ":id"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Delete Address",
+      "request": {
+        "method": "DELETE",
+        "header": [ { "key": "X-API-Key", "value": "{{apiKey}}" } ],
+        "url": { "raw": "{{baseUrl}}/cells/addresses/:id", "host": ["{{baseUrl}}"], "path": ["cells", "addresses", ":id"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Forward Message Between Cells",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "X-API-Key", "value": "{{apiKey}}" }, { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"payload\": {\"message\": \"hello\"}\n}" },
+        "url": { "raw": "{{baseUrl}}/cells/:from/forward/:to", "host": ["{{baseUrl}}"], "path": ["cells", ":from", "forward", ":to"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Admin UI (HTML)",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "X-API-Key", "value": "{{apiKey}}" } ],
+        "url": { "raw": "{{baseUrl}}/honeycomb/admin", "host": ["{{baseUrl}}"], "path": ["honeycomb", "admin"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Audit",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "X-API-Key", "value": "{{apiKey}}" } ],
+        "url": { "raw": "{{baseUrl}}/honeycomb/audit", "host": ["{{baseUrl}}"], "path": ["honeycomb", "audit"] }
+      },
+      "response": []
+    }
+    ,
+    {
+      "name": "List Models",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "X-API-Key", "value": "{{apiKey}}" } ],
+        "url": { "raw": "{{baseUrl}}/honeycomb/models", "host": ["{{baseUrl}}"], "path": ["honeycomb", "models"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Describe Model",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "X-API-Key", "value": "{{apiKey}}" } ],
+        "url": { "raw": "{{baseUrl}}/honeycomb/models/:name", "host": ["{{baseUrl}}"], "path": ["honeycomb", "models", ":name"] }
+      },
+      "response": []
+    },
+    {
+      "name": "List Items (model)",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "X-API-Key", "value": "{{apiKey}}" } ],
+        "url": { "raw": "{{baseUrl}}/honeycomb/models/:name/items", "host": ["{{baseUrl}}"], "path": ["honeycomb", "models", ":name", "items"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Item",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "X-API-Key", "value": "{{apiKey}}" } ],
+        "url": { "raw": "{{baseUrl}}/honeycomb/models/:name/items/:id", "host": ["{{baseUrl}}"], "path": ["honeycomb", "models", ":name", "items", ":id"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Create Item",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "X-API-Key", "value": "{{apiKey}}" }, { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"id\": \"item-1\",\n  \"name\": \"Example\",\n  \"value\": 1\n}" },
+        "url": { "raw": "{{baseUrl}}/honeycomb/models/:name/items", "host": ["{{baseUrl}}"], "path": ["honeycomb", "models", ":name", "items"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Update Item",
+      "request": {
+        "method": "PUT",
+        "header": [ { "key": "X-API-Key", "value": "{{apiKey}}" }, { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"name\": \"Updated\",\n  \"value\": 2\n}" },
+        "url": { "raw": "{{baseUrl}}/honeycomb/models/:name/items/:id", "host": ["{{baseUrl}}"], "path": ["honeycomb", "models", ":name", "items", ":id"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Delete Item",
+      "request": {
+        "method": "DELETE",
+        "header": [ { "key": "X-API-Key", "value": "{{apiKey}}" } ],
+        "url": { "raw": "{{baseUrl}}/honeycomb/models/:name/items/:id", "host": ["{{baseUrl}}"], "path": ["honeycomb", "models", ":name", "items", ":id"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Cell Status",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "X-API-Key", "value": "{{apiKey}}" } ],
+        "url": { "raw": "{{baseUrl}}/honeycomb/cells/:name", "host": ["{{baseUrl}}"], "path": ["honeycomb", "cells", ":name"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Start Cell",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "X-API-Key", "value": "{{apiKey}}" } ],
+        "url": { "raw": "{{baseUrl}}/honeycomb/cells/:name/start", "host": ["{{baseUrl}}"], "path": ["honeycomb", "cells", ":name", "start"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Stop Cell",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "X-API-Key", "value": "{{apiKey}}" } ],
+        "url": { "raw": "{{baseUrl}}/honeycomb/cells/:name/stop", "host": ["{{baseUrl}}"], "path": ["honeycomb", "cells", ":name", "stop"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Restart Cell",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "X-API-Key", "value": "{{apiKey}}" } ],
+        "url": { "raw": "{{baseUrl}}/honeycomb/cells/:name/restart", "host": ["{{baseUrl}}"], "path": ["honeycomb", "cells", ":name", "restart"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Shared Dispatch",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "X-API-Key", "value": "{{apiKey}}" }, { "key": "Content-Type", "value": "application/json" }, { "key": "X-From-Cell", "value": "example-client" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"example\": \"value\"\n}" },
+        "url": { "raw": "{{baseUrl}}/honeycomb/shared/:methodName", "host": ["{{baseUrl}}"], "path": ["honeycomb", "shared", ":methodName"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Shared Dispatch (price)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "X-API-Key", "value": "{{apiKey}}" }, { "key": "Content-Type", "value": "application/json" }, { "key": "X-From-Cell", "value": "demo-client" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"listPrice\": 49.99,\n  \"taxRate\": 0.07\n}" },
+        "url": { "raw": "{{baseUrl}}/honeycomb/shared/price", "host": ["{{baseUrl}}"], "path": ["honeycomb", "shared", "price"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Invoke Shared (forward to cell instances)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "X-API-Key", "value": "{{apiKey}}" }, { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"payload\": {\"x\":1}\n}" },
+        "url": { "raw": "{{baseUrl}}/cells/:from/invoke/:to/shared/:methodName", "host": ["{{baseUrl}}"], "path": ["cells", ":from", "invoke", ":to", "shared", ":methodName"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Forward Request to Cell",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "X-API-Key", "value": "{{apiKey}}" }, { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"payload\": {\"message\": \"hello\"}\n}" },
+        "url": { "raw": "{{baseUrl}}/cells/:from/forward/:to", "host": ["{{baseUrl}}"], "path": ["cells", ":from", "forward", ":to"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Metrics - Cell Counts",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "X-API-Key", "value": "{{apiKey}}" } ],
+        "url": { "raw": "{{baseUrl}}/honeycomb/metrics/cells", "host": ["{{baseUrl}}"], "path": ["honeycomb", "metrics", "cells"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Swagger for All Cells",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "X-API-Key", "value": "{{apiKey}}" } ],
+        "url": { "raw": "{{baseUrl}}/honeycomb/swagger", "host": ["{{baseUrl}}"], "path": ["honeycomb", "swagger"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Swagger for Cell",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "X-API-Key", "value": "{{apiKey}}" } ],
+        "url": { "raw": "{{baseUrl}}/honeycomb/swagger/cells/:name", "host": ["{{baseUrl}}"], "path": ["honeycomb", "swagger", "cells", ":name"] }
+      },
+      "response": []
+    }
+    ,
+    {
+      "name": "ServiceCell - List Items",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "X-API-Key", "value": "{{apiKey}}" } ],
+        "url": { "raw": "{{baseUrl}}/honeycomb/service/CatalogService/listItems", "host": ["{{baseUrl}}"], "path": ["honeycomb", "service", "CatalogService", "listItems"] }
+      },
+      "response": []
+    },
+    {
+      "name": "ServiceCell - Get Item",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "X-API-Key", "value": "{{apiKey}}" } ],
+        "url": {
+          "raw": "{{baseUrl}}/honeycomb/service/CatalogService/getItem?payload=item-1",
+          "host": ["{{baseUrl}}"],
+          "path": ["honeycomb", "service", "CatalogService", "getItem"],
+          "query": [ { "key": "payload", "value": "item-1" } ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "ServiceCell - Get Item (path id)",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "X-API-Key", "value": "{{apiKey}}" } ],
+        "url": { "raw": "{{baseUrl}}/honeycomb/service/CatalogService/getItem/item-1", "host": ["{{baseUrl}}"], "path": ["honeycomb", "service", "CatalogService", "getItem", "item-1"] }
+      },
+      "response": []
+    },
+    {
+      "name": "ServiceCell - Create Item",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "X-API-Key", "value": "{{apiKey}}" }, { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"id\": \"item-1\",\n  \"title\": \"Example\",\n  \"category\": \"books\",\n  \"listPrice\": 9.99\n}" },
+        "url": { "raw": "{{baseUrl}}/honeycomb/service/CatalogService/createItem", "host": ["{{baseUrl}}"], "path": ["honeycomb", "service", "CatalogService", "createItem"] }
+      },
+      "response": []
+    },
+    {
+      "name": "ServiceCell - Create Item (path id)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "X-API-Key", "value": "{{apiKey}}" }, { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"title\": \"Example\",\n  \"category\": \"books\",\n  \"listPrice\": 9.99\n}" },
+        "url": { "raw": "{{baseUrl}}/honeycomb/service/CatalogService/createItem/item-1", "host": ["{{baseUrl}}"], "path": ["honeycomb", "service", "CatalogService", "createItem", "item-1"] }
+      },
+      "response": []
+    },
+    {
+      "name": "ServiceCell - Update Item",
+      "request": {
+        "method": "PUT",
+        "header": [ { "key": "X-API-Key", "value": "{{apiKey}}" }, { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"id\": \"item-1\",\n  \"title\": \"Updated\",\n  \"listPrice\": 12.5\n}" },
+        "url": { "raw": "{{baseUrl}}/honeycomb/service/CatalogService/updateItem", "host": ["{{baseUrl}}"], "path": ["honeycomb", "service", "CatalogService", "updateItem"] }
+      },
+      "response": []
+    },
+    {
+      "name": "ServiceCell - Update Item (path id)",
+      "request": {
+        "method": "PUT",
+        "header": [ { "key": "X-API-Key", "value": "{{apiKey}}" }, { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"title\": \"Updated\",\n  \"listPrice\": 12.5\n}" },
+        "url": { "raw": "{{baseUrl}}/honeycomb/service/CatalogService/updateItem/item-1", "host": ["{{baseUrl}}"], "path": ["honeycomb", "service", "CatalogService", "updateItem", "item-1"] }
+      },
+      "response": []
+    },
+    {
+      "name": "ServiceCell - Delete Item",
+      "request": {
+        "method": "DELETE",
+        "header": [ { "key": "X-API-Key", "value": "{{apiKey}}" } ],
+        "url": {
+          "raw": "{{baseUrl}}/honeycomb/service/CatalogService/deleteItem?payload=item-1",
+          "host": ["{{baseUrl}}"],
+          "path": ["honeycomb", "service", "CatalogService", "deleteItem"],
+          "query": [ { "key": "payload", "value": "item-1" } ]
+        }
+      },
+      "response": []
+    }
+    ,
+    {
+      "name": "ServiceCell - Delete Item (path id)",
+      "request": {
+        "method": "DELETE",
+        "header": [ { "key": "X-API-Key", "value": "{{apiKey}}" } ],
+        "url": { "raw": "{{baseUrl}}/honeycomb/service/CatalogService/deleteItem/item-1", "host": ["{{baseUrl}}"], "path": ["honeycomb", "service", "CatalogService", "deleteItem", "item-1"] }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "apiKey", "value": "admin-key" }
+  ]
+}

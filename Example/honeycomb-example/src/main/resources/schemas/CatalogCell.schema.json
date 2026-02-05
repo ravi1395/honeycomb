@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["title", "category", "listPrice"],
+  "properties": {
+    "id": {"type": "string"},
+    "title": {"type": "string"},
+    "category": {"type": "string"},
+    "listPrice": {"type": "number", "minimum": 0}
+  },
+  "additionalProperties": true
+}

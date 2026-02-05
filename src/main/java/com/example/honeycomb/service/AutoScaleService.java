@@ -1,6 +1,7 @@
 package com.example.honeycomb.service;
 
 import com.example.honeycomb.config.HoneycombAutoscaleProperties;
+import com.example.honeycomb.util.HoneycombConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -25,7 +26,7 @@ public class AutoScaleService {
         this.serverManager = serverManager;
     }
 
-    @Scheduled(fixedDelayString = "${honeycomb.autoscale.evaluation-interval:30s}")
+    @Scheduled(fixedDelayString = HoneycombConstants.ConfigKeys.AUTOSCALE_EVAL_INTERVAL)
     public void evaluate() {
         if (!props.isEnabled()) return;
         Duration window = props.getEvaluationInterval();
@@ -34,15 +35,17 @@ public class AutoScaleService {
             String cell = e.getKey();
             if (!props.isCellEnabled(cell)) continue;
             double rate = e.getValue();
+            double scaleUpRps = props.resolveScaleUpRps(cell);
+            double scaleDownRps = props.resolveScaleDownRps(cell);
             boolean running = serverManager.getCellStatus(cell)
                     .map(status -> status.running())
                     .orElse(false);
-            if (!running && rate >= props.getScaleUpRps()) {
+            if (!running && rate >= scaleUpRps) {
                 boolean started = serverManager.startCellServer(cell);
-                log.info("autoscale start cell={} rate={} started={}", cell, rate, started);
-            } else if (running && rate <= props.getScaleDownRps()) {
+                log.info(HoneycombConstants.Messages.AUTO_SCALE_START, cell, rate, started);
+            } else if (running && rate <= scaleDownRps) {
                 boolean stopped = serverManager.stopCellServer(cell);
-                log.info("autoscale stop cell={} rate={} stopped={}", cell, rate, stopped);
+                log.info(HoneycombConstants.Messages.AUTO_SCALE_STOP, cell, rate, stopped);
             }
         }
     }

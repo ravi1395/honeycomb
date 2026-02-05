@@ -1,34 +1,35 @@
 package com.example.honeycomb.dto;
 
 import org.springframework.lang.NonNull;
+import com.example.honeycomb.util.HoneycombConstants;
 
 /**
  * Cell-specific error codes for structured API responses.
  */
 public enum ErrorCode {
     // General errors
-    INTERNAL_ERROR("internal-error", "An unexpected error occurred"),
-    BAD_REQUEST("bad-request", "Invalid request format or parameters"),
-    VALIDATION_ERROR("validation-error", "Request validation failed"),
+    INTERNAL_ERROR(HoneycombConstants.ErrorCodes.INTERNAL_ERROR, HoneycombConstants.ErrorMessages.INTERNAL_ERROR),
+    BAD_REQUEST(HoneycombConstants.ErrorCodes.BAD_REQUEST, HoneycombConstants.ErrorMessages.BAD_REQUEST),
+    VALIDATION_ERROR(HoneycombConstants.ErrorCodes.VALIDATION_ERROR, HoneycombConstants.ErrorMessages.VALIDATION_ERROR),
     
     // Cell errors
-    CELL_NOT_FOUND("cell-not-found", "The requested cell was not found"),
-    METHOD_NOT_FOUND("method-not-found", "The requested shared method was not found"),
-    METHOD_ACCESS_DENIED("method-access-denied", "Caller is not authorized to invoke this method"),
+    CELL_NOT_FOUND(HoneycombConstants.ErrorCodes.CELL_NOT_FOUND, HoneycombConstants.ErrorMessages.CELL_NOT_FOUND),
+    METHOD_NOT_FOUND(HoneycombConstants.ErrorCodes.METHOD_NOT_FOUND, HoneycombConstants.ErrorMessages.METHOD_NOT_FOUND),
+    METHOD_ACCESS_DENIED(HoneycombConstants.ErrorCodes.METHOD_ACCESS_DENIED, HoneycombConstants.ErrorMessages.METHOD_ACCESS_DENIED),
     
     // CRUD operation errors
-    OPERATION_DISABLED("operation-disabled", "This operation is disabled for the cell"),
-    ITEM_NOT_FOUND("item-not-found", "The requested item was not found"),
-    ITEM_CREATE_FAILED("item-create-failed", "Failed to create the item"),
+    OPERATION_DISABLED(HoneycombConstants.ErrorCodes.OPERATION_DISABLED, HoneycombConstants.ErrorMessages.OPERATION_DISABLED),
+    ITEM_NOT_FOUND(HoneycombConstants.ErrorCodes.ITEM_NOT_FOUND, HoneycombConstants.ErrorMessages.ITEM_NOT_FOUND),
+    ITEM_CREATE_FAILED(HoneycombConstants.ErrorCodes.ITEM_CREATE_FAILED, HoneycombConstants.ErrorMessages.ITEM_CREATE_FAILED),
     
     // Resilience errors
-    CIRCUIT_OPEN("circuit-open", "Service temporarily unavailable due to circuit breaker"),
-    RATE_LIMITED("rate-limited", "Too many requests - rate limit exceeded"),
-    TIMEOUT("timeout", "Request timed out"),
+    CIRCUIT_OPEN(HoneycombConstants.ErrorCodes.CIRCUIT_OPEN, HoneycombConstants.ErrorMessages.CIRCUIT_OPEN),
+    RATE_LIMITED(HoneycombConstants.ErrorCodes.RATE_LIMITED, HoneycombConstants.ErrorMessages.RATE_LIMITED),
+    TIMEOUT(HoneycombConstants.ErrorCodes.TIMEOUT, HoneycombConstants.ErrorMessages.TIMEOUT),
     
     // Forwarding errors
-    FORWARD_FAILED("forward-failed", "Failed to forward request to remote cell"),
-    JSON_PARSE_ERROR("json-parse-error", "Failed to parse JSON payload");
+    FORWARD_FAILED(HoneycombConstants.ErrorCodes.FORWARD_FAILED, HoneycombConstants.ErrorMessages.FORWARD_FAILED),
+    JSON_PARSE_ERROR(HoneycombConstants.ErrorCodes.JSON_PARSE_ERROR, HoneycombConstants.ErrorMessages.JSON_PARSE_ERROR);
 
     private final String code;
     private final String defaultMessage;

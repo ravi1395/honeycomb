@@ -6,10 +6,21 @@ import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWeb
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.reactive.server.WebTestClient;
+import com.example.honeycomb.util.HoneycombConstants;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureWebTestClient
 public class SharedwallDispatcherControllerTest {
+    private static final String SHARED_USER = "shared";
+    private static final String SHARED_PASSWORD = "changeit";
+    private static final String OTHER_CALLER = "other-caller";
+    private static final String HELLO = "hello";
+    private static final String JSON_MAP = "{\"a\":1,\"b\":\"x\"}";
+    private static final String JSON_ARRAY = "[\"foo\",\"bar\"]";
+    private static final String JSON_NUMBERS = "[1,2,3]";
+    private static final String JSON_EMPTY = "{}";
+    private static final String JSON_MALFORMED = "{notjson";
+    private static final String VALUE_BOOM = "boom";
 
     @Autowired
     private WebTestClient webClient;
@@ -19,11 +30,11 @@ public class SharedwallDispatcherControllerTest {
         webClient.post().uri("/honeycomb/shared/echo")
                 .headers(h -> { h.setBasicAuth("shared", "changeit"); h.add("X-From-Cell", "test-client"); })
                 .contentType(MediaType.TEXT_PLAIN)
-                .bodyValue("hello")
+                .bodyValue(HELLO)
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody()
-                .jsonPath("$.ExampleSharedService.result").isEqualTo("echo:hello");
+                .jsonPath("$.ExampleSharedService.result").isEqualTo(HoneycombConstants.Examples.ECHO_PREFIX + HELLO);
     }
 
     @Test
@@ -31,13 +42,13 @@ public class SharedwallDispatcherControllerTest {
         webClient.post().uri("/honeycomb/shared/echo")
                 .headers(h -> { h.setBasicAuth("shared", "changeit"); h.add("X-From-Cell", "other-caller"); })
                 .contentType(MediaType.TEXT_PLAIN)
-                .bodyValue("hello")
+                .bodyValue(HELLO)
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody()
                 .jsonPath("$.ExampleSharedService.error").value(v -> {
                     // contains access-denied message
-                    assert v.toString().contains("access-denied");
+                    assert v.toString().contains(HoneycombConstants.ErrorKeys.ACCESS_DENIED);
                 });
     }
 
@@ -46,11 +57,11 @@ public class SharedwallDispatcherControllerTest {
         webClient.post().uri("/honeycomb/shared/summarize")
                 .headers(h -> h.setBasicAuth("shared", "changeit"))
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue("{\"a\":1,\"b\":\"x\"}")
+                .bodyValue(JSON_MAP)
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody()
-                .jsonPath("$.ExampleSharedService.result.receivedKeys").isEqualTo(2);
+                .jsonPath("$.ExampleSharedService.result." + HoneycombConstants.Examples.RECEIVED_KEYS).isEqualTo(2);
     }
 
     @Test
@@ -58,11 +69,13 @@ public class SharedwallDispatcherControllerTest {
         webClient.post().uri("/honeycomb/shared/concat")
                 .headers(h -> h.setBasicAuth("shared", "changeit"))
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue("[\"foo\",\"bar\"]")
+                .bodyValue(JSON_ARRAY)
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody()
-                .jsonPath("$.ExampleSharedService.result").isEqualTo("foo:bar");
+                .jsonPath("$.ExampleSharedService.result").isEqualTo("foo"
+                        + HoneycombConstants.Names.SEPARATOR_COLON
+                        + "bar");
     }
 
     @Test
@@ -70,7 +83,7 @@ public class SharedwallDispatcherControllerTest {
         webClient.post().uri("/honeycomb/shared/sumList")
                 .headers(h -> h.setBasicAuth("shared", "changeit"))
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue("[1,2,3]")
+                .bodyValue(JSON_NUMBERS)
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody()
@@ -82,12 +95,12 @@ public class SharedwallDispatcherControllerTest {
         webClient.post().uri("/honeycomb/shared/doesNotExist")
                 .headers(h -> h.setBasicAuth("shared", "changeit"))
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue("{}")
+                .bodyValue(JSON_EMPTY)
                 .exchange()
                 .expectStatus().isNotFound()
                 .expectBody()
                 .jsonPath("$.error").value(v -> {
-                    assert v.toString().contains("no shared method");
+                    assert v.toString().contains(HoneycombConstants.ErrorKeys.NO_SHARED_METHOD);
                 });
     }
 
@@ -96,12 +109,12 @@ public class SharedwallDispatcherControllerTest {
         webClient.post().uri("/honeycomb/shared/summarize")
                 .headers(h -> h.setBasicAuth("shared", "changeit"))
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue("{notjson")
+                .bodyValue(JSON_MALFORMED)
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody()
                 .jsonPath("$.ExampleSharedService.error").value(v -> {
-                    assert v.toString().contains("json-deserialize-error");
+                    assert v.toString().contains(HoneycombConstants.ErrorKeys.JSON_DESERIALIZE_ERROR);
                 });
     }
 
@@ -110,12 +123,12 @@ public class SharedwallDispatcherControllerTest {
         webClient.post().uri("/honeycomb/shared/boom")
                 .headers(h -> h.setBasicAuth("shared", "changeit"))
                 .contentType(MediaType.TEXT_PLAIN)
-                .bodyValue("boom")
+                .bodyValue(VALUE_BOOM)
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody()
                 .jsonPath("$.ExampleSharedService.error").value(v -> {
-                    assert v.toString().contains("boom-exception");
+                    assert v.toString().contains(HoneycombConstants.Examples.BOOM_EXCEPTION);
                 });
     }
 }

@@ -3,6 +3,7 @@ package com.example.honeycomb.service;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import org.springframework.stereotype.Service;
+import com.example.honeycomb.util.HoneycombConstants;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -21,11 +22,11 @@ public class RequestMetricsService {
     }
 
     public void record(String cell, String route, int status, Duration duration) {
-        String cellTag = cell == null ? "unknown" : cell;
-        registry.counter("honeycomb.requests", "cell", cellTag, "route", route, "status", String.valueOf(status)).increment();
-        Timer.builder("honeycomb.latency")
-                .tag("cell", cellTag)
-                .tag("route", route)
+        String cellTag = cell == null ? HoneycombConstants.Messages.UNKNOWN : cell;
+        registry.counter(HoneycombConstants.Metrics.REQUESTS, HoneycombConstants.Metrics.TAG_CELL, cellTag, HoneycombConstants.Metrics.TAG_ROUTE, route, HoneycombConstants.Metrics.TAG_STATUS, String.valueOf(status)).increment();
+        Timer.builder(HoneycombConstants.Metrics.LATENCY)
+            .tag(HoneycombConstants.Metrics.TAG_CELL, cellTag)
+            .tag(HoneycombConstants.Metrics.TAG_ROUTE, route)
                 .register(registry)
                 .record(duration);
         cellCounts.computeIfAbsent(cellTag, k -> new LongAdder()).increment();

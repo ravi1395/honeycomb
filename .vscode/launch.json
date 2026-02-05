@@ -1,0 +1,75 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "Launch Honeycomb (local)",
+      "request": "launch",
+      "mainClass": "com.example.honeycomb.HoneycombApplication",
+      "projectName": "honeycomb",
+      "preLaunchTask": "Maven: clean install (root)",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal"
+    },
+    {
+      "type": "java",
+      "name": "Launch Honeycomb Example (local)",
+      "request": "launch",
+      "mainClass": "com.example.honeycomb.example.HoneycombExampleApplication",
+      "projectName": "honeycomb-example",
+      "preLaunchTask": "Maven: package (Example/honeycomb-example)",
+      "cwd": "${workspaceFolder}/Example/honeycomb-example",
+      "console": "integratedTerminal"
+    }
+    ,
+    {
+      "type": "java",
+      "name": "Launch Honeycomb Example (no projectName)",
+      "request": "launch",
+      "mainClass": "com.example.honeycomb.example.HoneycombExampleApplication",
+      "preLaunchTask": "Maven: package (Example/honeycomb-example)",
+      "cwd": "${workspaceFolder}/Example/honeycomb-example",
+      "console": "integratedTerminal"
+    },
+    {
+      "type": "java",
+      "name": "Launch Honeycomb Example (alt projectName)",
+      "request": "launch",
+      "mainClass": "com.example.honeycomb.example.HoneycombExampleApplication",
+      "projectName": "Example/honeycomb-example",
+      "preLaunchTask": "Maven: package (Example/honeycomb-example)",
+      "cwd": "${workspaceFolder}/Example/honeycomb-example",
+      "console": "integratedTerminal"
+    },
+    {
+      "type": "java",
+      "name": "Launch Honeycomb (no projectName)",
+      "request": "launch",
+      "mainClass": "com.example.honeycomb.HoneycombApplication",
+      "preLaunchTask": "Maven: clean install (root)",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal"
+    }
+    ,
+    {
+      "type": "java",
+      "name": "Launch Honeycomb Example (dot projectName)",
+      "request": "launch",
+      "mainClass": "com.example.honeycomb.example.HoneycombExampleApplication",
+      "projectName": "Example.honeycomb-example",
+      "preLaunchTask": "Maven: package (Example/honeycomb-example)",
+      "cwd": "${workspaceFolder}/Example/honeycomb-example",
+      "console": "integratedTerminal"
+    },
+    {
+      "type": "java",
+      "name": "Launch Honeycomb Example (colon projectName)",
+      "request": "launch",
+      "mainClass": "com.example.honeycomb.example.HoneycombExampleApplication",
+      "projectName": "Example:honeycomb-example",
+      "preLaunchTask": "Maven: package (Example/honeycomb-example)",
+      "cwd": "${workspaceFolder}/Example/honeycomb-example",
+      "console": "integratedTerminal"
+    }
+  ]
+}

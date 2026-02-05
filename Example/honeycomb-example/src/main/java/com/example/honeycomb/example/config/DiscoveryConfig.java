@@ -1,5 +1,6 @@
 package com.example.honeycomb.example.config;
 
+import com.example.honeycomb.example.ExampleConstants;
 import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.discovery.ReactiveDiscoveryClient;
 import org.springframework.context.annotation.Bean;
@@ -16,7 +17,7 @@ public class DiscoveryConfig {
         return new ReactiveDiscoveryClient() {
             @Override
             public String description() {
-                return "noop-reactive-discovery-client";
+                return ExampleConstants.Discovery.NOOP_DESCRIPTION;
             }
 
             @Override

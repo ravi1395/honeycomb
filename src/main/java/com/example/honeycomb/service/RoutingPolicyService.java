@@ -2,6 +2,7 @@ package com.example.honeycomb.service;
 
 import com.example.honeycomb.config.HoneycombRoutingProperties;
 import com.example.honeycomb.model.CellAddress;
+import com.example.honeycomb.util.HoneycombConstants;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -26,16 +27,20 @@ public class RoutingPolicyService {
         String policy = policyOverride == null || policyOverride.isBlank() ? props.resolvePolicy(cell) : policyOverride;
         String normalized = policy.toLowerCase();
         return switch (normalized) {
-            case "one", "random" -> List.of(addresses.get(random.nextInt(addresses.size())));
-            case "round-robin" -> List.of(roundRobin(cell, addresses));
-            case "weighted" -> List.of(weighted(cell, addresses));
-            case "all" -> addresses;
+            case HoneycombConstants.RoutingPolicies.ONE, HoneycombConstants.RoutingPolicies.RANDOM
+                    -> List.of(addresses.get(random.nextInt(addresses.size())));
+            case HoneycombConstants.RoutingPolicies.ROUND_ROBIN -> List.of(roundRobin(cell, addresses));
+            case HoneycombConstants.RoutingPolicies.WEIGHTED -> List.of(weighted(cell, addresses));
+            case HoneycombConstants.RoutingPolicies.ALL -> addresses;
             default -> addresses;
         };
     }
 
     private CellAddress roundRobin(String cell, List<CellAddress> addresses) {
-        AtomicInteger counter = counters.computeIfAbsent(cell == null ? "__all__" : cell, k -> new AtomicInteger());
+        AtomicInteger counter = counters.computeIfAbsent(
+            cell == null ? HoneycombConstants.ConfigKeys.GLOBAL_ALL : cell,
+            k -> new AtomicInteger()
+        );
         int idx = Math.floorMod(counter.getAndIncrement(), addresses.size());
         return addresses.get(idx);
     }
@@ -44,7 +49,7 @@ public class RoutingPolicyService {
         Map<String, Integer> weights = props.resolveWeights(cell);
         List<CellAddress> expanded = new ArrayList<>();
         for (CellAddress addr : addresses) {
-            String key = addr.getHost() + ":" + addr.getPort();
+            String key = addr.getHost() + HoneycombConstants.Names.SEPARATOR_COLON + addr.getPort();
             int weight = Math.max(1, weights.getOrDefault(key, 1));
             for (int i = 0; i < weight; i++) {
                 expanded.add(addr);

@@ -2,6 +2,7 @@ package com.example.honeycomb.web;
 
 import com.example.honeycomb.dto.ErrorCode;
 import com.example.honeycomb.dto.ErrorResponse;
+import com.example.honeycomb.util.HoneycombConstants;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.ratelimiter.RequestNotPermitted;
 import jakarta.validation.ConstraintViolationException;
@@ -24,8 +25,8 @@ public class ErrorHandlerAdvice {
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleBadRequest(@NonNull IllegalArgumentException ex) {
-        String msg = ex.getMessage() != null ? ex.getMessage() : "";
-        log.warn("Bad request: {}", msg, ex);
+        String msg = ex.getMessage() != null ? ex.getMessage() : HoneycombConstants.Messages.EMPTY;
+        log.warn(HoneycombConstants.Messages.LOG_BAD_REQUEST, msg, ex);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(ErrorCode.BAD_REQUEST.toResponse(msg));
     }
@@ -33,9 +34,12 @@ public class ErrorHandlerAdvice {
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ErrorResponse> handleValidation(@NonNull ConstraintViolationException ex) {
         String violations = ex.getConstraintViolations().stream()
-                .map(v -> v.getPropertyPath() + ": " + v.getMessage())
-                .collect(Collectors.joining("; "));
-        log.warn("Validation error: {}", violations);
+                .map(v -> v.getPropertyPath()
+                        + HoneycombConstants.Names.SEPARATOR_COLON
+                        + HoneycombConstants.Messages.SPACE
+                        + v.getMessage())
+                .collect(Collectors.joining(HoneycombConstants.Names.LIST_SEPARATOR));
+        log.warn(HoneycombConstants.Messages.LOG_VALIDATION_ERROR, violations);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(ErrorCode.VALIDATION_ERROR.toResponse(violations));
     }
@@ -43,44 +47,49 @@ public class ErrorHandlerAdvice {
     @ExceptionHandler(WebExchangeBindException.class)
     public ResponseEntity<ErrorResponse> handleBindException(@NonNull WebExchangeBindException ex) {
         String errors = ex.getFieldErrors().stream()
-                .map(e -> e.getField() + ": " + e.getDefaultMessage())
-                .collect(Collectors.joining("; "));
-        log.warn("Binding error: {}", errors);
+                .map(e -> e.getField()
+                        + HoneycombConstants.Names.SEPARATOR_COLON
+                        + HoneycombConstants.Messages.SPACE
+                        + e.getDefaultMessage())
+                .collect(Collectors.joining(HoneycombConstants.Names.LIST_SEPARATOR));
+        log.warn(HoneycombConstants.Messages.LOG_BINDING_ERROR, errors);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(ErrorCode.VALIDATION_ERROR.toResponse(errors));
     }
 
     @ExceptionHandler(CallNotPermittedException.class)
     public ResponseEntity<ErrorResponse> handleCircuitOpen(@NonNull CallNotPermittedException ex) {
-        log.warn("Circuit breaker open: {}", ex.getMessage());
+        log.warn(HoneycombConstants.Messages.LOG_CIRCUIT_OPEN, ex.getMessage());
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .body(ErrorCode.CIRCUIT_OPEN.toResponse());
     }
 
     @ExceptionHandler(RequestNotPermitted.class)
     public ResponseEntity<ErrorResponse> handleRateLimited(@NonNull RequestNotPermitted ex) {
-        log.warn("Rate limit exceeded: {}", ex.getMessage());
+        log.warn(HoneycombConstants.Messages.LOG_RATE_LIMIT, ex.getMessage());
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                 .body(ErrorCode.RATE_LIMITED.toResponse());
     }
 
     @ExceptionHandler(TimeoutException.class)
     public ResponseEntity<ErrorResponse> handleTimeout(@NonNull TimeoutException ex) {
-        log.warn("Request timeout: {}", ex.getMessage());
+        log.warn(HoneycombConstants.Messages.LOG_TIMEOUT, ex.getMessage());
         return ResponseEntity.status(HttpStatus.GATEWAY_TIMEOUT)
                 .body(ErrorCode.TIMEOUT.toResponse());
     }
 
         @ExceptionHandler(NoResourceFoundException.class)
         public ResponseEntity<Void> handleNoResource(@NonNull NoResourceFoundException ex) {
-                log.debug("Static resource not found: {}", ex.getMessage());
+                log.debug(HoneycombConstants.Messages.LOG_RESOURCE_NOT_FOUND, ex.getMessage());
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneric(Exception ex) {
-        String msg = (ex != null && ex.getMessage() != null) ? ex.getMessage() : "";
-        log.error("Unhandled error: {}", msg, ex);
+        String msg = (ex != null && ex.getMessage() != null)
+                ? ex.getMessage()
+                : HoneycombConstants.Messages.EMPTY;
+        log.error(HoneycombConstants.Messages.LOG_UNHANDLED, msg, ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ErrorCode.INTERNAL_ERROR.toResponse(msg));
     }

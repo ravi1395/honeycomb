@@ -15,10 +15,14 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.Map;
+import com.example.honeycomb.util.HoneycombConstants;
 
 @RestController
-@RequestMapping("/honeycomb/cells")
-@Tag(name = "Cell Administration", description = "List and manage cell servers")
+@RequestMapping(HoneycombConstants.Paths.HONEYCOMB_BASE
+    + HoneycombConstants.Names.SEPARATOR_SLASH
+    + HoneycombConstants.Paths.CELLS)
+@Tag(name = HoneycombConstants.Docs.TAG_CELL_ADMIN,
+    description = HoneycombConstants.Docs.TAG_CELL_ADMIN_DESC)
 @Validated
 public class CellAdminController {
     private final CellRegistry registry;
@@ -31,19 +35,22 @@ public class CellAdminController {
         this.auditLogService = auditLogService;
     }
 
-    @Operation(summary = "List all cells with runtime status")
-    @ApiResponse(responseCode = "200", description = "List of cells")
+        @Operation(summary = HoneycombConstants.Docs.CELL_ADMIN_LIST)
+        @ApiResponse(responseCode = HoneycombConstants.Swagger.RESP_200,
+            description = HoneycombConstants.Docs.CELL_ADMIN_LIST_DESC)
     @GetMapping
     public Flux<CellRuntimeStatus> listCells() {
         return Flux.fromIterable(serverManager.listCellStatuses());
     }
 
-    @Operation(summary = "Get runtime status for a cell")
+        @Operation(summary = HoneycombConstants.Docs.CELL_ADMIN_GET)
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Cell status"),
-            @ApiResponse(responseCode = "404", description = "Cell not found")
+            @ApiResponse(responseCode = HoneycombConstants.Swagger.RESP_200,
+                description = HoneycombConstants.Docs.CELL_ADMIN_STATUS_DESC),
+            @ApiResponse(responseCode = HoneycombConstants.Swagger.RESP_404,
+                description = HoneycombConstants.Docs.CELL_ADMIN_NOT_FOUND_DESC)
     })
-    @GetMapping("/{name}")
+        @GetMapping(HoneycombConstants.Paths.NAME_PATH)
     public Mono<ResponseEntity<CellRuntimeStatus>> getCell(@PathVariable String name) {
         if (registry.getCellClass(name).isEmpty()) {
             return Mono.just(ResponseEntity.notFound().build());
@@ -53,13 +60,16 @@ public class CellAdminController {
                 .orElseGet(() -> ResponseEntity.notFound().build()));
     }
 
-    @Operation(summary = "Start a cell server")
+        @Operation(summary = HoneycombConstants.Docs.CELL_ADMIN_START)
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Cell started"),
-            @ApiResponse(responseCode = "400", description = "Cell has no configured port"),
-            @ApiResponse(responseCode = "404", description = "Cell not found")
+            @ApiResponse(responseCode = HoneycombConstants.Swagger.RESP_200,
+                description = HoneycombConstants.Docs.CELL_ADMIN_STARTED_DESC),
+            @ApiResponse(responseCode = HoneycombConstants.Swagger.RESP_400,
+                description = HoneycombConstants.Docs.CELL_ADMIN_NO_PORT_DESC),
+            @ApiResponse(responseCode = HoneycombConstants.Swagger.RESP_404,
+                description = HoneycombConstants.Docs.CELL_ADMIN_NOT_FOUND_DESC)
     })
-    @PostMapping("/{name}/start")
+        @PostMapping(HoneycombConstants.Paths.NAME_START)
     public Mono<ResponseEntity<Map<String, Object>>> startCell(@PathVariable String name) {
         if (registry.getCellClass(name).isEmpty()) {
             return Mono.just(ResponseEntity.notFound().build());
@@ -67,38 +77,43 @@ public class CellAdminController {
         return serverManager.startCellServerReactive(name)
                 .map(started -> {
                     if (!started) {
-                        auditLogService.record("system", "cell.start", name, "error", Map.of("reason", "no-configured-port"));
-                        return ResponseEntity.badRequest().body(Map.of("error", "no-configured-port"));
+                        auditLogService.record(HoneycombConstants.Audit.ACTOR_SYSTEM, HoneycombConstants.Audit.ACTION_CELL_START, name, HoneycombConstants.Status.ERROR, Map.of(HoneycombConstants.JsonKeys.REASON, HoneycombConstants.ErrorKeys.NO_CONFIGURED_PORT));
+                        return ResponseEntity.badRequest().body(Map.of(HoneycombConstants.JsonKeys.ERROR, HoneycombConstants.ErrorKeys.NO_CONFIGURED_PORT));
                     }
-                    auditLogService.record("system", "cell.start", name, "ok", Map.of());
-                    return ResponseEntity.ok(Map.of("status", "started"));
+                    auditLogService.record(HoneycombConstants.Audit.ACTOR_SYSTEM, HoneycombConstants.Audit.ACTION_CELL_START, name, HoneycombConstants.Status.OK, Map.of());
+                    return ResponseEntity.ok(Map.of(HoneycombConstants.JsonKeys.STATUS, HoneycombConstants.Messages.STARTED));
                 });
     }
 
-    @Operation(summary = "Stop a cell server")
+        @Operation(summary = HoneycombConstants.Docs.CELL_ADMIN_STOP)
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Cell stopped"),
-            @ApiResponse(responseCode = "404", description = "Cell not found")
+            @ApiResponse(responseCode = HoneycombConstants.Swagger.RESP_200,
+                description = HoneycombConstants.Docs.CELL_ADMIN_STOPPED_DESC),
+            @ApiResponse(responseCode = HoneycombConstants.Swagger.RESP_404,
+                description = HoneycombConstants.Docs.CELL_ADMIN_NOT_FOUND_DESC)
     })
-    @PostMapping("/{name}/stop")
+        @PostMapping(HoneycombConstants.Paths.NAME_STOP)
     public Mono<ResponseEntity<Map<String, Object>>> stopCell(@PathVariable String name) {
         if (registry.getCellClass(name).isEmpty()) {
             return Mono.just(ResponseEntity.notFound().build());
         }
         return serverManager.stopCellServerReactive(name)
                 .map(stopped -> {
-                    auditLogService.record("system", "cell.stop", name, stopped ? "ok" : "noop", Map.of());
-                    return ResponseEntity.ok(Map.of("status", stopped ? "stopped" : "already-stopped"));
+                    auditLogService.record(HoneycombConstants.Audit.ACTOR_SYSTEM, HoneycombConstants.Audit.ACTION_CELL_STOP, name, stopped ? HoneycombConstants.Status.OK : HoneycombConstants.Status.NOOP, Map.of());
+                    return ResponseEntity.ok(Map.of(HoneycombConstants.JsonKeys.STATUS, stopped ? HoneycombConstants.Messages.STOPPED : HoneycombConstants.Messages.ALREADY_STOPPED));
                 });
     }
 
-    @Operation(summary = "Restart a cell server")
+        @Operation(summary = HoneycombConstants.Docs.CELL_ADMIN_RESTART)
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Cell restarted"),
-            @ApiResponse(responseCode = "400", description = "Cell has no configured port"),
-            @ApiResponse(responseCode = "404", description = "Cell not found")
+            @ApiResponse(responseCode = HoneycombConstants.Swagger.RESP_200,
+                description = HoneycombConstants.Docs.CELL_ADMIN_RESTARTED_DESC),
+            @ApiResponse(responseCode = HoneycombConstants.Swagger.RESP_400,
+                description = HoneycombConstants.Docs.CELL_ADMIN_NO_PORT_DESC),
+            @ApiResponse(responseCode = HoneycombConstants.Swagger.RESP_404,
+                description = HoneycombConstants.Docs.CELL_ADMIN_NOT_FOUND_DESC)
     })
-    @PostMapping("/{name}/restart")
+        @PostMapping(HoneycombConstants.Paths.NAME_RESTART)
     public Mono<ResponseEntity<Map<String, Object>>> restartCell(@PathVariable String name) {
         if (registry.getCellClass(name).isEmpty()) {
             return Mono.just(ResponseEntity.notFound().build());
@@ -106,11 +121,11 @@ public class CellAdminController {
         return serverManager.restartCellServerReactive(name)
                 .map(restarted -> {
                     if (!restarted) {
-                        auditLogService.record("system", "cell.restart", name, "error", Map.of("reason", "no-configured-port"));
-                        return ResponseEntity.badRequest().body(Map.of("error", "no-configured-port"));
+                        auditLogService.record(HoneycombConstants.Audit.ACTOR_SYSTEM, HoneycombConstants.Audit.ACTION_CELL_RESTART, name, HoneycombConstants.Status.ERROR, Map.of(HoneycombConstants.JsonKeys.REASON, HoneycombConstants.ErrorKeys.NO_CONFIGURED_PORT));
+                        return ResponseEntity.badRequest().body(Map.of(HoneycombConstants.JsonKeys.ERROR, HoneycombConstants.ErrorKeys.NO_CONFIGURED_PORT));
                     }
-                    auditLogService.record("system", "cell.restart", name, "ok", Map.of());
-                    return ResponseEntity.ok(Map.of("status", "restarted"));
+                    auditLogService.record(HoneycombConstants.Audit.ACTOR_SYSTEM, HoneycombConstants.Audit.ACTION_CELL_RESTART, name, HoneycombConstants.Status.OK, Map.of());
+                    return ResponseEntity.ok(Map.of(HoneycombConstants.JsonKeys.STATUS, HoneycombConstants.Messages.RESTARTED));
                 });
     }
 }
