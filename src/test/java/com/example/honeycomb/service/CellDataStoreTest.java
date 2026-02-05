@@ -9,7 +9,7 @@ public class CellDataStoreTest {
 
     @Test
     void createGetUpdateDeleteFlow() {
-        CellDataStore ds = new CellDataStore();
+        CellDataStore ds = new InMemoryCellDataStore();
 
         // create
         StepVerifier.create(ds.create("X", Map.of("name", "v1")))

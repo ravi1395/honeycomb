@@ -1,16 +1,15 @@
 package com.example.honeycomb.web;
 
+import com.example.honeycomb.util.HoneycombConstants;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/honeycomb/admin")
+@RequestMapping(HoneycombConstants.Paths.HONEYCOMB_ADMIN)
 public class AdminUiController {
-    @GetMapping(produces = MediaType.TEXT_HTML_VALUE)
-    public String index() {
-        return """
+    private static final String ADMIN_HTML = String.format("""
                 <!doctype html>
                 <html lang=\"en\">
                 <head>
@@ -25,7 +24,7 @@ public class AdminUiController {
                     .card { background:#111827; border:1px solid #1f2937; border-radius:12px; padding:16px; }
                     .card h2 { margin:0 0 8px; font-size:16px; }
                     button { background:#2563eb; color:white; border:0; border-radius:8px; padding:6px 10px; cursor:pointer; }
-                    table { width:100%; border-collapse: collapse; font-size:13px; }
+                    table { width:100%%; border-collapse: collapse; font-size:13px; }
                     td, th { border-bottom:1px solid #1f2937; padding:6px; text-align:left; }
                     .muted { color:#9ca3af; }
                     .events { max-height:240px; overflow:auto; font-size:12px; }
@@ -53,20 +52,20 @@ public class AdminUiController {
                   </div>
                   <script>
                     async function loadCells(){
-                      const res = await fetch('/honeycomb/cells');
+                      const res = await fetch('%s');
                       const data = await res.json();
                       const rows = data.map(c => `<tr><td>${c.name}</td><td>${c.running ? 'UP':'DOWN'}</td><td>${c.runningPort ?? ''}</td></tr>`).join('');
                       document.getElementById('cells').innerHTML = `<table><tr><th>Name</th><th>Status</th><th>Port</th></tr>${rows}</table>`;
                     }
                     async function loadMetrics(){
-                      const res = await fetch('/honeycomb/metrics/cells');
+                      const res = await fetch('%s');
                       const data = await res.json();
                       const rows = Object.entries(data).map(([k,v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('');
                       document.getElementById('metrics').innerHTML = `<table><tr><th>Cell</th><th>Requests</th></tr>${rows}</table>`;
                     }
                     function connectEvents(){
                       const box = document.getElementById('events');
-                      const ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/honeycomb/ws/events');
+                      const ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '%s');
                       ws.onmessage = (e) => {
                         const item = document.createElement('div');
                         try {
@@ -88,6 +87,13 @@ public class AdminUiController {
                   </script>
                 </body>
                 </html>
-                """;
+                """,
+            HoneycombConstants.Paths.HONEYCOMB_CELLS,
+            HoneycombConstants.Paths.HONEYCOMB_METRICS + "/" + HoneycombConstants.Paths.CELLS,
+            HoneycombConstants.Paths.HONEYCOMB_WS_EVENTS
+    );
+    @GetMapping(produces = MediaType.TEXT_HTML_VALUE)
+    public String index() {
+        return ADMIN_HTML;
     }
 }

@@ -78,6 +78,20 @@ X-API-Key: admin-key
 
 Shared methods should use OAuth2/Bearer when configured. Basic auth remains available for local testing.
 
+For in-code usage, prefer the `SharedwallClient` helper in the Honeycomb library.
+
+Example:
+
+```java
+SharedwallClient client = SharedwallClient.builder(webClient, "http://localhost:8080")
+  .fromCell("demo-client")
+  .registrationId("sharedwall-client")
+  .build();
+
+client.invoke("discount", Map.of("listPrice", 49.99, "discountPct", 0.15))
+    .subscribe();
+```
+
 ### Models + CRUD
 
 ```
@@ -93,6 +107,8 @@ curl -H 'X-API-Key: admin-key' http://localhost:8080/honeycomb/models/InventoryC
 ```
 
 ### Shared methods (direct)
+
+`@Sharedwall` can be declared on an interface. If the interface has `@Sharedwall`, all methods are shared; if only method-level annotations are present, only those methods are shared.
 
 OAuth2 (recommended):
 
@@ -140,10 +156,41 @@ curl -u shared:changeit \
 
 ```
 curl -H 'X-API-Key: admin-key' http://localhost:8080/honeycomb/metrics/cells
+curl -H 'X-API-Key: admin-key' http://localhost:8080/honeycomb/metrics/shared-cache
 curl -H 'X-API-Key: admin-key' http://localhost:8080/honeycomb/audit
 
 open http://localhost:8080/honeycomb/admin
 open http://localhost:8080/honeycomb/swagger-ui.html
+```
+
+Shared dispatch settings (optional):
+
+- `honeycomb.shared.scheduler` (default: `boundedElastic`, options: `parallel`)
+- `honeycomb.shared.log-sample-rate` (default: `0.1`, range: 0..1)
+
+### Service cells (method-level exposure)
+
+The example includes a service-style cell implemented with `@Cell` + an interface that declares `@MethodType` annotations:
+
+- Interface: `CatalogServiceApi`
+- Implementation: `CatalogServiceCell`
+- Routes: `/honeycomb/service/{cell}/{method}`
+
+Examples:
+
+```
+# Create
+curl -H 'X-API-Key: admin-key' -H 'Content-Type: application/json' \
+  -d '{"id":"item-1","title":"Example","category":"books","listPrice":9.99}' \
+  http://localhost:8080/honeycomb/service/CatalogService/createItem
+
+# List
+curl -H 'X-API-Key: admin-key' \
+  http://localhost:8080/honeycomb/service/CatalogService/listItems
+
+# Get by id (path id)
+curl -H 'X-API-Key: admin-key' \
+  http://localhost:8080/honeycomb/service/CatalogService/getItem/item-1
 ```
 
 ### WebSocket audit events

@@ -1,6 +1,7 @@
 package com.example.honeycomb.web;
 
 import com.example.honeycomb.service.RequestMetricsService;
+import com.example.honeycomb.util.HoneycombConstants;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatusCode;
@@ -28,7 +29,8 @@ public class RequestMetricsFilter implements WebFilter {
     @NonNull
     public Mono<Void> filter(@NonNull ServerWebExchange exchange, @NonNull WebFilterChain chain) {
         String path = exchange.getRequest().getPath().pathWithinApplication().value();
-        if (!(path.startsWith("/honeycomb") || path.startsWith("/cells"))) {
+        if (!(path.startsWith(HoneycombConstants.Paths.HONEYCOMB_BASE)
+            || path.startsWith(HoneycombConstants.Paths.CELLS_BASE))) {
             return chain.filter(exchange);
         }
         Instant start = Instant.now();
@@ -43,11 +45,41 @@ public class RequestMetricsFilter implements WebFilter {
     }
 
     private String simplifyRoute(String path) {
-        if (path == null) return "unknown";
-        if (path.startsWith("/honeycomb/models/")) return "/honeycomb/models";
-        if (path.startsWith("/honeycomb/cells")) return "/honeycomb/cells";
-        if (path.startsWith("/honeycomb/shared")) return "/honeycomb/shared";
-        if (path.startsWith("/cells")) return "/cells";
-        return path;
+        if (path == null) return HoneycombConstants.Messages.UNKNOWN;
+        if (path.startsWith(HoneycombConstants.Paths.HONEYCOMB_MODELS
+            + HoneycombConstants.Names.SEPARATOR_SLASH)) {
+            return HoneycombConstants.Paths.HONEYCOMB_MODELS;
+        }
+        if (path.startsWith(HoneycombConstants.Paths.HONEYCOMB_CELLS)) {
+            return HoneycombConstants.Paths.HONEYCOMB_CELLS;
+        }
+        if (path.startsWith(HoneycombConstants.Paths.HONEYCOMB_SHARED)) {
+            return HoneycombConstants.Paths.HONEYCOMB_SHARED;
+        }
+        if (path.startsWith(HoneycombConstants.Paths.HONEYCOMB_METRICS)) {
+            return HoneycombConstants.Paths.HONEYCOMB_METRICS;
+        }
+        if (path.startsWith(HoneycombConstants.Paths.HONEYCOMB_AUDIT)) {
+            return HoneycombConstants.Paths.HONEYCOMB_AUDIT;
+        }
+        if (path.startsWith(HoneycombConstants.Paths.HONEYCOMB_ADMIN)) {
+            return HoneycombConstants.Paths.HONEYCOMB_ADMIN;
+        }
+        if (path.startsWith(HoneycombConstants.Paths.HONEYCOMB_ACTUATOR)) {
+            return HoneycombConstants.Paths.HONEYCOMB_ACTUATOR;
+        }
+        if (path.startsWith(HoneycombConstants.Paths.HONEYCOMB_SWAGGER)) {
+            return HoneycombConstants.Paths.HONEYCOMB_SWAGGER;
+        }
+        if (path.startsWith(HoneycombConstants.Paths.HONEYCOMB_API_DOCS)) {
+            return HoneycombConstants.Paths.HONEYCOMB_API_DOCS;
+        }
+        if (path.startsWith(HoneycombConstants.Paths.CELLS_BASE)) {
+            return HoneycombConstants.Paths.CELLS_BASE;
+        }
+        if (path.startsWith(HoneycombConstants.Paths.HONEYCOMB_BASE)) {
+            return HoneycombConstants.Paths.HONEYCOMB_BASE;
+        }
+        return HoneycombConstants.Messages.UNKNOWN;
     }
 }

@@ -21,9 +21,10 @@ import java.util.AbstractMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import com.example.honeycomb.util.HoneycombConstants;
 
 @RestController
-@RequestMapping("/cells")
+@RequestMapping(HoneycombConstants.Paths.CELLS_BASE)
 @SuppressWarnings("null")
 public class CellInteractionController {
     private final CellAddressService addressService;
@@ -46,26 +47,31 @@ public class CellInteractionController {
      * This expects target cells to expose an HTTP endpoint at `/honeycomb/shared/{method}`
      * which accepts POST bodies. Responses from each instance are aggregated.
      */
-    @PostMapping(path = "/{from}/invoke/{to}/shared/{methodName}")
+    @PostMapping(path = HoneycombConstants.Paths.CELLS_INVOKE_SHARED)
     public Mono<ResponseEntity<Map<String,Object>>> invokeShared(
             @PathVariable String from,
             @PathVariable String to,
             @PathVariable String methodName,
-            @RequestParam(value = "policy", required = false) String policy,
+            @RequestParam(value = HoneycombConstants.Params.POLICY, required = false) String policy,
             @RequestHeader MultiValueMap<String, String> headers,
             @RequestBody(required = false) Mono<byte[]> bodyMono,
             ServerWebExchange exchange
     ) {
-        final String pathFinal = "/honeycomb/shared/" + methodName;
+        final String pathFinal = HoneycombConstants.Paths.HONEYCOMB_SHARED
+            + HoneycombConstants.Names.SEPARATOR_SLASH
+            + methodName;
 
         return addressService.findByCell(to).collectList().flatMapMany(list -> {
             var selected = routingPolicyService.selectTargets(to, list, policy);
             if (selected.isEmpty()) {
-                auditLogService.record(from, "cell.invoke", to, "no-targets", Map.of("method", methodName));
+                auditLogService.record(from, HoneycombConstants.Audit.ACTION_CELL_INVOKE, to, HoneycombConstants.Status.NO_TARGETS, Map.of(HoneycombConstants.JsonKeys.METHOD, methodName));
             }
             return Flux.fromIterable(selected);
         }).flatMap(addr -> {
-            String base = "http://" + addr.getHost() + ":" + addr.getPort();
+                String base = HoneycombConstants.Schemes.HTTP
+                    + addr.getHost()
+                    + HoneycombConstants.Names.SEPARATOR_COLON
+                    + addr.getPort();
             URI uri = Objects.requireNonNull(URI.create(base + pathFinal));
 
             WebClient.RequestBodySpec reqSpec = webClient.method(HttpMethod.POST).uri(uri)
@@ -86,16 +92,21 @@ public class CellInteractionController {
                     .exchangeToMono(Mono::just));
 
             return respMono.timeout(Duration.ofSeconds(10))
-                    .flatMap(cr -> cr.bodyToMono(String.class).defaultIfEmpty("")
-                            .map(bodyStr -> new AbstractMap.SimpleEntry<>(addr.getHost() + ":" + addr.getPort(), Map.of(
-                                    "status", cr.statusCode().value(),
-                                    "contentType", cr.headers().contentType().map(MediaType::toString).orElse(""),
-                                    "body", bodyStr
+                        .flatMap(cr -> cr.bodyToMono(String.class).defaultIfEmpty(HoneycombConstants.Messages.EMPTY)
+                            .map(bodyStr -> new AbstractMap.SimpleEntry<>(addr.getHost()
+                                + HoneycombConstants.Names.SEPARATOR_COLON
+                                + addr.getPort(), Map.of(
+                            HoneycombConstants.JsonKeys.STATUS, cr.statusCode().value(),
+                            HoneycombConstants.JsonKeys.CONTENT_TYPE,
+                            cr.headers().contentType().map(MediaType::toString).orElse(HoneycombConstants.Messages.EMPTY),
+                            HoneycombConstants.JsonKeys.BODY, bodyStr
                             ))))
-                    .onErrorResume(e -> Mono.just(new AbstractMap.SimpleEntry<>(addr.getHost() + ":" + addr.getPort(), Map.of("error", e.getMessage()))));
+                        .onErrorResume(e -> Mono.just(new AbstractMap.SimpleEntry<>(addr.getHost()
+                            + HoneycombConstants.Names.SEPARATOR_COLON
+                            + addr.getPort(), Map.of(HoneycombConstants.JsonKeys.ERROR, e.getMessage()))));
         }).collectList().map(list -> {
             Map<String,Object> aggregated = list.stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-            auditLogService.record(from, "cell.invoke", to, "ok", Map.of("method", methodName, "targets", aggregated.keySet()));
+                auditLogService.record(from, HoneycombConstants.Audit.ACTION_CELL_INVOKE, to, HoneycombConstants.Status.OK, Map.of(HoneycombConstants.JsonKeys.METHOD, methodName, HoneycombConstants.JsonKeys.TARGETS, aggregated.keySet()));
             return ResponseEntity.ok(aggregated);
         });
     }
@@ -106,30 +117,38 @@ public class CellInteractionController {
      * defaults to POST and `/honeycomb/models/{to}/items`.
      * Headers from the incoming request are forwarded (except `host`).
      */
-    @RequestMapping(path = "/{from}/forward/{to}", method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.PATCH})
+        @RequestMapping(path = HoneycombConstants.Paths.CELLS_FORWARD,
+            method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.PATCH})
     public Mono<ResponseEntity<Map<String,Object>>> forward(
             @PathVariable String from,
             @PathVariable String to,
-            @RequestParam(value = "method", required = false) String methodParam,
-            @RequestParam(value = "path", required = false) String pathParam,
-            @RequestParam(value = "policy", required = false) String policy,
+            @RequestParam(value = HoneycombConstants.Params.METHOD, required = false) String methodParam,
+            @RequestParam(value = HoneycombConstants.Params.PATH, required = false) String pathParam,
+            @RequestParam(value = HoneycombConstants.Params.POLICY, required = false) String policy,
             @RequestHeader MultiValueMap<String, String> headers,
             @RequestBody(required = false) Mono<byte[]> bodyMono,
             ServerWebExchange exchange
     ) {
         HttpMethod incomingMethod = exchange.getRequest().getMethod();
         final String methodFinal = (methodParam != null ? methodParam.toUpperCase()
-            : (incomingMethod == null ? "POST" : incomingMethod.name()));
-        final String pathFinal = (pathParam != null ? pathParam : "/honeycomb/models/" + to + "/items");
+            : (incomingMethod == null ? HoneycombConstants.HttpMethods.POST : incomingMethod.name()));
+        final String pathFinal = (pathParam != null ? pathParam : HoneycombConstants.Paths.HONEYCOMB_MODELS
+            + HoneycombConstants.Names.SEPARATOR_SLASH
+            + to
+            + HoneycombConstants.Names.SEPARATOR_SLASH
+            + HoneycombConstants.Paths.ITEMS);
 
         return addressService.findByCell(to).collectList().flatMapMany(list -> {
             var selected = routingPolicyService.selectTargets(to, list, policy);
             if (selected.isEmpty()) {
-                auditLogService.record(from, "cell.forward", to, "no-targets", Map.of("path", pathFinal, "method", methodFinal));
+                auditLogService.record(from, HoneycombConstants.Audit.ACTION_CELL_FORWARD, to, HoneycombConstants.Status.NO_TARGETS, Map.of(HoneycombConstants.JsonKeys.PATH, pathFinal, HoneycombConstants.JsonKeys.METHOD, methodFinal));
             }
             return Flux.fromIterable(selected);
         }).flatMap(addr -> {
-            String base = "http://" + addr.getHost() + ":" + addr.getPort();
+                String base = HoneycombConstants.Schemes.HTTP
+                    + addr.getHost()
+                    + HoneycombConstants.Names.SEPARATOR_COLON
+                    + addr.getPort();
             URI uri = Objects.requireNonNull(URI.create(base + pathFinal));
 
             WebClient.RequestBodySpec reqSpec = webClient.method(HttpMethod.valueOf(methodFinal)).uri(uri)
@@ -141,7 +160,7 @@ public class CellInteractionController {
                     });
 
             Mono<ClientResponse> respMono;
-            if (methodFinal.equals("GET") || methodFinal.equals("DELETE")) {
+            if (methodFinal.equals(HoneycombConstants.HttpMethods.GET) || methodFinal.equals(HoneycombConstants.HttpMethods.DELETE)) {
                 respMono = reqSpec.accept(MediaType.APPLICATION_JSON, MediaType.ALL).exchangeToMono(Mono::just);
             } else {
                 Mono<byte[]> body = bodyMono != null ? bodyMono : Mono.just(new byte[0]);
@@ -154,16 +173,21 @@ public class CellInteractionController {
             }
 
             return respMono.timeout(Duration.ofSeconds(10))
-                    .flatMap(cr -> cr.bodyToMono(String.class).defaultIfEmpty("")
-                            .map(bodyStr -> new AbstractMap.SimpleEntry<>(addr.getHost() + ":" + addr.getPort(), Map.of(
-                                    "status", cr.statusCode().value(),
-                                    "contentType", cr.headers().contentType().map(MediaType::toString).orElse(""),
-                                    "body", bodyStr
+                    .flatMap(cr -> cr.bodyToMono(String.class).defaultIfEmpty(HoneycombConstants.Messages.EMPTY)
+                        .map(bodyStr -> new AbstractMap.SimpleEntry<>(addr.getHost()
+                            + HoneycombConstants.Names.SEPARATOR_COLON
+                            + addr.getPort(), Map.of(
+                            HoneycombConstants.JsonKeys.STATUS, cr.statusCode().value(),
+                        HoneycombConstants.JsonKeys.CONTENT_TYPE,
+                        cr.headers().contentType().map(MediaType::toString).orElse(HoneycombConstants.Messages.EMPTY),
+                            HoneycombConstants.JsonKeys.BODY, bodyStr
                             ))))
-                    .onErrorResume(e -> Mono.just(new AbstractMap.SimpleEntry<>(addr.getHost() + ":" + addr.getPort(), Map.of("error", e.getMessage()))));
+                    .onErrorResume(e -> Mono.just(new AbstractMap.SimpleEntry<>(addr.getHost()
+                        + HoneycombConstants.Names.SEPARATOR_COLON
+                        + addr.getPort(), Map.of(HoneycombConstants.JsonKeys.ERROR, e.getMessage()))));
         }).collectList().map(list -> {
             Map<String,Object> aggregated = list.stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-            auditLogService.record(from, "cell.forward", to, "ok", Map.of("path", pathFinal, "method", methodFinal, "targets", aggregated.keySet()));
+                auditLogService.record(from, HoneycombConstants.Audit.ACTION_CELL_FORWARD, to, HoneycombConstants.Status.OK, Map.of(HoneycombConstants.JsonKeys.PATH, pathFinal, HoneycombConstants.JsonKeys.METHOD, methodFinal, HoneycombConstants.JsonKeys.TARGETS, aggregated.keySet()));
             return ResponseEntity.ok(aggregated);
         });
     }

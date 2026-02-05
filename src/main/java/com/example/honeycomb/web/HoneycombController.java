@@ -5,7 +5,12 @@ import com.example.honeycomb.dto.ErrorResponse;
 import com.example.honeycomb.service.AuditLogService;
 import com.example.honeycomb.service.CellRegistry;
 import com.example.honeycomb.service.CellDataStore;
+import com.example.honeycomb.service.CellSchemaValidator;
+import com.example.honeycomb.service.IdempotencyService;
+import com.example.honeycomb.service.ServiceCellRegistry;
 import com.example.honeycomb.config.HoneycombProperties;
+import com.example.honeycomb.config.HoneycombIdempotencyProperties;
+import com.example.honeycomb.util.HoneycombConstants;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -31,11 +36,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.server.ServerWebExchange;
 
 
 @RestController
-@RequestMapping("/honeycomb")
-@Tag(name = "Cell Registry", description = "CRUD operations for cell models and instances")
+@RequestMapping(HoneycombConstants.Paths.HONEYCOMB_BASE)
+@Tag(name = HoneycombConstants.Docs.TAG_CELL_REGISTRY,
+    description = HoneycombConstants.Docs.TAG_CELL_REGISTRY_DESC)
 @Validated
 public class HoneycombController {
     private static final Logger log = LoggerFactory.getLogger(HoneycombController.class);
@@ -43,136 +50,225 @@ public class HoneycombController {
     private final CellDataStore dataStore;
     private final HoneycombProperties props;
     private final AuditLogService auditLogService;
+    private final CellSchemaValidator schemaValidator;
+    private final IdempotencyService idempotencyService;
+    private final HoneycombIdempotencyProperties idempotencyProperties;
+    private final ServiceCellRegistry serviceCellRegistry;
 
-    public HoneycombController(CellRegistry registry, CellDataStore dataStore, HoneycombProperties props, AuditLogService auditLogService) {
+    public HoneycombController(CellRegistry registry,
+                               CellDataStore dataStore,
+                               HoneycombProperties props,
+                               AuditLogService auditLogService,
+                               CellSchemaValidator schemaValidator,
+                               IdempotencyService idempotencyService,
+                               HoneycombIdempotencyProperties idempotencyProperties,
+                               ServiceCellRegistry serviceCellRegistry) {
         this.registry = registry;
         this.dataStore = dataStore;
         this.props = props;
         this.auditLogService = auditLogService;
+        this.schemaValidator = schemaValidator;
+        this.idempotencyService = idempotencyService;
+        this.idempotencyProperties = idempotencyProperties;
+        this.serviceCellRegistry = serviceCellRegistry;
     }
 
-    @Operation(summary = "List all registered cell models")
-    @ApiResponse(responseCode = "200", description = "List of cell names")
-    @GetMapping("/models")
+        @Operation(summary = HoneycombConstants.Docs.REGISTRY_LIST_MODELS)
+        @ApiResponse(responseCode = HoneycombConstants.Swagger.RESP_200,
+            description = HoneycombConstants.Docs.REGISTRY_LIST_MODELS_DESC)
+        @GetMapping(HoneycombConstants.Names.SEPARATOR_SLASH + HoneycombConstants.Paths.MODELS)
     public Flux<String> listModels() {
         return registry.getCellNamesFlux();
     }
 
-    @Operation(summary = "Describe a cell model", description = "Returns fields and shared methods for the cell")
+        @Operation(summary = HoneycombConstants.Docs.REGISTRY_DESCRIBE,
+            description = HoneycombConstants.Docs.REGISTRY_DESCRIBE_DESC)
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Cell description"),
-            @ApiResponse(responseCode = "404", description = "Cell not found")
+            @ApiResponse(responseCode = HoneycombConstants.Swagger.RESP_200, description = HoneycombConstants.Swagger.DESC_CELL),
+            @ApiResponse(responseCode = HoneycombConstants.Swagger.RESP_404, description = HoneycombConstants.Swagger.DESC_CELL_NOT_FOUND)
     })
-    @GetMapping("/models/{name}")
-    public Mono<ResponseEntity<Map<String,Object>>> describe(
-            @Parameter(description = "Cell name") @PathVariable @NotBlank String name) {
+        @GetMapping(HoneycombConstants.Names.SEPARATOR_SLASH + HoneycombConstants.Paths.MODELS + "/{name}")
+        public Mono<ResponseEntity<Map<String,Object>>> describe(
+            @Parameter(description = HoneycombConstants.Docs.PARAM_CELL_NAME) @PathVariable @NotBlank String name) {
         return registry.describeCellMono(name)
                 .map(ResponseEntity::ok)
                 .defaultIfEmpty(ResponseEntity.notFound().build());
     }
 
     // --- CRUD for cell instances -------------------------------------------------
-    @Operation(summary = "List all items in a cell")
+        @Operation(summary = HoneycombConstants.Docs.REGISTRY_LIST_ITEMS)
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "List of items"),
-            @ApiResponse(responseCode = "405", description = "Read operation disabled",
+            @ApiResponse(responseCode = HoneycombConstants.Swagger.RESP_200,
+                description = HoneycombConstants.Docs.REGISTRY_ITEM_LIST_DESC),
+            @ApiResponse(responseCode = HoneycombConstants.Swagger.RESP_405,
+                description = HoneycombConstants.Docs.REGISTRY_READ_DISABLED_DESC,
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
-    @GetMapping("/models/{name}/items")
+        @GetMapping(HoneycombConstants.Names.SEPARATOR_SLASH
+            + HoneycombConstants.Paths.MODELS
+            + "/{name}/"
+            + HoneycombConstants.Paths.ITEMS)
     public Flux<Map<String,Object>> listItems(
-            @Parameter(description = "Cell name") @PathVariable @NotBlank String name) {
-        if (!props.isOperationAllowed(name, "read")) {
-            log.warn("Read operation disabled for {}", name);
-            return Flux.error(new RuntimeException("operation-disabled"));
+            @Parameter(description = HoneycombConstants.Docs.PARAM_CELL_NAME) @PathVariable @NotBlank String name) {
+        if (serviceCellRegistry != null && serviceCellRegistry.hasCell(name)) {
+            return Flux.error(new RuntimeException(ErrorCode.OPERATION_DISABLED.getCode()));
+        }
+        if (!props.isOperationAllowed(name, HoneycombConstants.Ops.READ)) {
+            log.warn(HoneycombConstants.Messages.READ_DISABLED, name);
+            return Flux.error(new RuntimeException(ErrorCode.OPERATION_DISABLED.getCode()));
         }
         return dataStore.list(name);
     }
 
-    @Operation(summary = "Get a specific item by ID")
+        @Operation(summary = HoneycombConstants.Docs.REGISTRY_GET_ITEM)
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Item found"),
-            @ApiResponse(responseCode = "404", description = "Item not found"),
-            @ApiResponse(responseCode = "405", description = "Read operation disabled")
+            @ApiResponse(responseCode = HoneycombConstants.Swagger.RESP_200,
+                description = HoneycombConstants.Docs.REGISTRY_ITEM_FOUND_DESC),
+            @ApiResponse(responseCode = HoneycombConstants.Swagger.RESP_404,
+                description = HoneycombConstants.Docs.REGISTRY_ITEM_NOT_FOUND_DESC),
+            @ApiResponse(responseCode = HoneycombConstants.Swagger.RESP_405,
+                description = HoneycombConstants.Docs.REGISTRY_READ_DISABLED_DESC)
     })
-    @GetMapping("/models/{name}/items/{id}")
+        @GetMapping(HoneycombConstants.Names.SEPARATOR_SLASH
+            + HoneycombConstants.Paths.MODELS
+            + "/{name}/"
+                + HoneycombConstants.Paths.ITEMS
+                + HoneycombConstants.Paths.ID_PATH)
     public Mono<ResponseEntity<Map<String,Object>>> getItem(
-            @Parameter(description = "Cell name") @PathVariable @NotBlank String name,
-            @Parameter(description = "Item ID") @PathVariable @NotBlank String id) {
-        if (!props.isOperationAllowed(name, "read")) {
-            log.warn("Get operation disabled for {}/{}", name, id);
-            return Mono.just(ResponseEntity.status(405).body(Map.of("error", ErrorCode.OPERATION_DISABLED.getCode())));
+            @Parameter(description = HoneycombConstants.Docs.PARAM_CELL_NAME) @PathVariable @NotBlank String name,
+            @Parameter(description = HoneycombConstants.Docs.PARAM_ITEM_ID) @PathVariable @NotBlank String id) {
+        if (serviceCellRegistry != null && serviceCellRegistry.hasCell(name)) {
+            return Mono.just(ResponseEntity.status(405).body(Map.of(HoneycombConstants.JsonKeys.ERROR, ErrorCode.OPERATION_DISABLED.getCode())));
+        }
+        if (!props.isOperationAllowed(name, HoneycombConstants.Ops.READ)) {
+            log.warn(HoneycombConstants.Messages.GET_DISABLED, name, id);
+            return Mono.just(ResponseEntity.status(405).body(Map.of(HoneycombConstants.JsonKeys.ERROR, ErrorCode.OPERATION_DISABLED.getCode())));
         }
         return dataStore.get(name, id).map(ResponseEntity::ok).defaultIfEmpty(ResponseEntity.notFound().build());
     }
 
-    @Operation(summary = "Create a new item")
+        @Operation(summary = HoneycombConstants.Docs.REGISTRY_CREATE_ITEM)
     @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Item created"),
-            @ApiResponse(responseCode = "405", description = "Create operation disabled")
+            @ApiResponse(responseCode = HoneycombConstants.Swagger.RESP_201,
+                description = HoneycombConstants.Docs.REGISTRY_ITEM_CREATED_DESC),
+            @ApiResponse(responseCode = HoneycombConstants.Swagger.RESP_405,
+                description = HoneycombConstants.Docs.REGISTRY_CREATE_DISABLED_DESC)
     })
-    @PostMapping("/models/{name}/items")
+        @PostMapping(HoneycombConstants.Names.SEPARATOR_SLASH
+            + HoneycombConstants.Paths.MODELS
+            + "/{name}/"
+            + HoneycombConstants.Paths.ITEMS)
     public Mono<ResponseEntity<Map<String,Object>>> createItem(
-            @Parameter(description = "Cell name") @PathVariable @NotBlank String name,
-            @Valid @RequestBody Map<String,Object> body) {
-        if (!props.isOperationAllowed(name, "create")) {
-            log.warn("Create operation disabled for {}", name);
-            auditLogService.record("system", "item.create", name, "denied", Map.of("reason", "disabled"));
-            return Mono.just(ResponseEntity.status(405).body(Map.of("error", ErrorCode.OPERATION_DISABLED.getCode())));
+            @Parameter(description = HoneycombConstants.Docs.PARAM_CELL_NAME) @PathVariable @NotBlank String name,
+            @Valid @RequestBody Map<String,Object> body,
+            ServerWebExchange exchange) {
+        if (serviceCellRegistry != null && serviceCellRegistry.hasCell(name)) {
+            return Mono.just(ResponseEntity.status(405).body(Map.of(HoneycombConstants.JsonKeys.ERROR, ErrorCode.OPERATION_DISABLED.getCode())));
         }
-        return dataStore.create(name, body).map(b -> {
-            auditLogService.record("system", "item.create", name, "ok", Map.of("id", b.get("id")));
-            return ResponseEntity.status(201).body(b);
-        });
+        if (!props.isOperationAllowed(name, HoneycombConstants.Ops.CREATE)) {
+            log.warn(HoneycombConstants.Messages.CREATE_DISABLED, name);
+            auditLogService.record(HoneycombConstants.Audit.ACTOR_SYSTEM, HoneycombConstants.Audit.ACTION_ITEM_CREATE, name, HoneycombConstants.Status.DENIED, Map.of(HoneycombConstants.JsonKeys.REASON, HoneycombConstants.Messages.DISABLED));
+            return Mono.just(ResponseEntity.status(405).body(Map.of(HoneycombConstants.JsonKeys.ERROR, ErrorCode.OPERATION_DISABLED.getCode())));
+        }
+        Mono<ResponseEntity<Map<String,Object>>> action = schemaValidator.validate(name, body)
+                .then(dataStore.create(name, body))
+                .map(b -> {
+                    auditLogService.record(HoneycombConstants.Audit.ACTOR_SYSTEM, HoneycombConstants.Audit.ACTION_ITEM_CREATE, name, HoneycombConstants.Status.OK, Map.of(HoneycombConstants.JsonKeys.ID, b.get(HoneycombConstants.JsonKeys.ID)));
+                    return ResponseEntity.status(201).body(b);
+                });
+        String key = idempotencyKey(name, HoneycombConstants.Ops.CREATE, null, exchange);
+        return idempotencyService.handle(key, action);
     }
 
-    @Operation(summary = "Update an existing item")
+        @Operation(summary = HoneycombConstants.Docs.REGISTRY_UPDATE_ITEM)
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Item updated"),
-            @ApiResponse(responseCode = "404", description = "Item not found"),
-            @ApiResponse(responseCode = "405", description = "Update operation disabled")
+            @ApiResponse(responseCode = HoneycombConstants.Swagger.RESP_200,
+                description = HoneycombConstants.Docs.REGISTRY_ITEM_UPDATED_DESC),
+            @ApiResponse(responseCode = HoneycombConstants.Swagger.RESP_404,
+                description = HoneycombConstants.Docs.REGISTRY_ITEM_NOT_FOUND_DESC),
+            @ApiResponse(responseCode = HoneycombConstants.Swagger.RESP_405,
+                description = HoneycombConstants.Docs.REGISTRY_UPDATE_DISABLED_DESC)
     })
-    @PutMapping("/models/{name}/items/{id}")
+        @PutMapping(HoneycombConstants.Names.SEPARATOR_SLASH
+            + HoneycombConstants.Paths.MODELS
+            + "/{name}/"
+                + HoneycombConstants.Paths.ITEMS
+                + HoneycombConstants.Paths.ID_PATH)
     public Mono<ResponseEntity<Map<String,Object>>> updateItem(
-            @Parameter(description = "Cell name") @PathVariable @NotBlank String name,
-            @Parameter(description = "Item ID") @PathVariable @NotBlank String id,
-            @Valid @RequestBody Map<String,Object> body) {
-        if (!props.isOperationAllowed(name, "update")) {
-            log.warn("Update operation disabled for {}/{}", name, id);
-            auditLogService.record("system", "item.update", name, "denied", Map.of("id", id));
-            return Mono.just(ResponseEntity.status(405).body(Map.of("error", ErrorCode.OPERATION_DISABLED.getCode())));
+            @Parameter(description = HoneycombConstants.Docs.PARAM_CELL_NAME) @PathVariable @NotBlank String name,
+            @Parameter(description = HoneycombConstants.Docs.PARAM_ITEM_ID) @PathVariable @NotBlank String id,
+            @Valid @RequestBody Map<String,Object> body,
+            ServerWebExchange exchange) {
+        if (serviceCellRegistry != null && serviceCellRegistry.hasCell(name)) {
+            return Mono.just(ResponseEntity.status(405).body(Map.of(HoneycombConstants.JsonKeys.ERROR, ErrorCode.OPERATION_DISABLED.getCode())));
         }
-        return dataStore.update(name, id, body)
+        if (!props.isOperationAllowed(name, HoneycombConstants.Ops.UPDATE)) {
+            log.warn(HoneycombConstants.Messages.UPDATE_DISABLED, name, id);
+            auditLogService.record(HoneycombConstants.Audit.ACTOR_SYSTEM, HoneycombConstants.Audit.ACTION_ITEM_UPDATE, name, HoneycombConstants.Status.DENIED, Map.of(HoneycombConstants.JsonKeys.ID, id));
+            return Mono.just(ResponseEntity.status(405).body(Map.of(HoneycombConstants.JsonKeys.ERROR, ErrorCode.OPERATION_DISABLED.getCode())));
+        }
+        Mono<ResponseEntity<Map<String,Object>>> action = schemaValidator.validate(name, body)
+                .then(dataStore.update(name, id, body))
                 .map(updated -> {
-                    auditLogService.record("system", "item.update", name, "ok", Map.of("id", id));
+                    auditLogService.record(HoneycombConstants.Audit.ACTOR_SYSTEM, HoneycombConstants.Audit.ACTION_ITEM_UPDATE, name, HoneycombConstants.Status.OK, Map.of(HoneycombConstants.JsonKeys.ID, id));
                     return ResponseEntity.ok(updated);
                 })
                 .defaultIfEmpty(ResponseEntity.notFound().build());
+        String key = idempotencyKey(name, HoneycombConstants.Ops.UPDATE, id, exchange);
+        return idempotencyService.handle(key, action);
     }
 
-    @Operation(summary = "Delete an item")
+        @Operation(summary = HoneycombConstants.Docs.REGISTRY_DELETE_ITEM)
     @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "Item deleted"),
-            @ApiResponse(responseCode = "404", description = "Item not found"),
-            @ApiResponse(responseCode = "405", description = "Delete operation disabled")
+            @ApiResponse(responseCode = HoneycombConstants.Swagger.RESP_204,
+                description = HoneycombConstants.Docs.REGISTRY_ITEM_DELETED_DESC),
+            @ApiResponse(responseCode = HoneycombConstants.Swagger.RESP_404,
+                description = HoneycombConstants.Docs.REGISTRY_ITEM_NOT_FOUND_DESC),
+            @ApiResponse(responseCode = HoneycombConstants.Swagger.RESP_405,
+                description = HoneycombConstants.Docs.REGISTRY_DELETE_DISABLED_DESC)
     })
-    @DeleteMapping("/models/{name}/items/{id}")
+        @DeleteMapping(HoneycombConstants.Names.SEPARATOR_SLASH
+            + HoneycombConstants.Paths.MODELS
+            + "/{name}/"
+                + HoneycombConstants.Paths.ITEMS
+                + HoneycombConstants.Paths.ID_PATH)
     public Mono<ResponseEntity<Void>> deleteItem(
-            @Parameter(description = "Cell name") @PathVariable @NotBlank String name,
-            @Parameter(description = "Item ID") @PathVariable @NotBlank String id) {
-        if (!props.isOperationAllowed(name, "delete")) {
-            log.warn("Delete operation disabled for {}/{}", name, id);
-            auditLogService.record("system", "item.delete", name, "denied", Map.of("id", id));
+            @Parameter(description = HoneycombConstants.Docs.PARAM_CELL_NAME) @PathVariable @NotBlank String name,
+            @Parameter(description = HoneycombConstants.Docs.PARAM_ITEM_ID) @PathVariable @NotBlank String id) {
+        if (serviceCellRegistry != null && serviceCellRegistry.hasCell(name)) {
+            return Mono.just(ResponseEntity.status(405).build());
+        }
+        if (!props.isOperationAllowed(name, HoneycombConstants.Ops.DELETE)) {
+            log.warn(HoneycombConstants.Messages.DELETE_DISABLED, name, id);
+            auditLogService.record(HoneycombConstants.Audit.ACTOR_SYSTEM, HoneycombConstants.Audit.ACTION_ITEM_DELETE, name, HoneycombConstants.Status.DENIED, Map.of(HoneycombConstants.JsonKeys.ID, id));
             return Mono.just(ResponseEntity.status(405).build());
         }
         return dataStore.delete(name, id)
                 .map(ok -> {
                     if (ok) {
-                        auditLogService.record("system", "item.delete", name, "ok", Map.of("id", id));
+                        auditLogService.record(HoneycombConstants.Audit.ACTOR_SYSTEM, HoneycombConstants.Audit.ACTION_ITEM_DELETE, name, HoneycombConstants.Status.OK, Map.of(HoneycombConstants.JsonKeys.ID, id));
                     } else {
-                        auditLogService.record("system", "item.delete", name, "not-found", Map.of("id", id));
+                        auditLogService.record(HoneycombConstants.Audit.ACTOR_SYSTEM, HoneycombConstants.Audit.ACTION_ITEM_DELETE, name, HoneycombConstants.Status.NOT_FOUND, Map.of(HoneycombConstants.JsonKeys.ID, id));
                     }
                     return ok ? ResponseEntity.noContent().<Void>build() : ResponseEntity.notFound().build();
                 });
+    }
+
+    private String idempotencyKey(String cell, String operation, String id, ServerWebExchange exchange) {
+        if (exchange == null || idempotencyProperties == null) return null;
+        String header = idempotencyProperties.getHeader();
+        if (header == null || header.isBlank()) return null;
+        String key = exchange.getRequest().getHeaders().getFirst(header);
+        if (key == null || key.isBlank()) return null;
+        String suffix = id == null
+            ? HoneycombConstants.Messages.EMPTY
+            : HoneycombConstants.Names.SEPARATOR_COLON + id;
+        return cell
+            + HoneycombConstants.Names.SEPARATOR_COLON
+            + operation
+            + suffix
+            + HoneycombConstants.Names.SEPARATOR_COLON
+            + key;
     }
 
 }

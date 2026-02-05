@@ -2,6 +2,7 @@ package com.example.honeycomb.service;
 
 import com.example.honeycomb.annotations.Cell;
 import com.example.honeycomb.model.CellAddress;
+import com.example.honeycomb.util.HoneycombConstants;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.client.discovery.ReactiveDiscoveryClient;
 import org.springframework.core.env.Environment;
@@ -21,7 +22,7 @@ public class CellAddressService {
     private final Environment env;
     private final ReactiveDiscoveryClient discoveryClient;
 
-    @Value("${service.discovery.base-url:http://localhost}")
+    @Value(HoneycombConstants.PropertyValues.SERVICE_DISCOVERY_BASE_URL)
     private String baseUrl;
 
     public CellAddressService(CellRegistry registry, Environment env, ReactiveDiscoveryClient discoveryClient) {
@@ -56,15 +57,15 @@ public class CellAddressService {
      * Persistence operations are no-ops with discovery-based addresses.
      */
     public Mono<CellAddress> create(CellAddress a) {
-        return Mono.error(new UnsupportedOperationException("Cell address registry is discovery-based"));
+        return Mono.error(new UnsupportedOperationException(HoneycombConstants.Messages.CELL_ADDRESS_DISCOVERY_BASED));
     }
 
     public Mono<CellAddress> update(Long id, CellAddress a) {
-        return Mono.error(new UnsupportedOperationException("Cell address registry is discovery-based"));
+        return Mono.error(new UnsupportedOperationException(HoneycombConstants.Messages.CELL_ADDRESS_DISCOVERY_BASED));
     }
 
     public Mono<Void> delete(Long id) {
-        return Mono.error(new UnsupportedOperationException("Cell address registry is discovery-based"));
+        return Mono.error(new UnsupportedOperationException(HoneycombConstants.Messages.CELL_ADDRESS_DISCOVERY_BASED));
     }
 
     private List<CellAddress> addressesForCell(String name) {
@@ -73,10 +74,10 @@ public class CellAddressService {
         Class<?> cls = cellClass.get();
         Cell ann = cls.getAnnotation(Cell.class);
         int annotatedPort = ann != null ? ann.port() : -1;
-        String portProp = env.getProperty("cell.ports." + name);
+        String portProp = env.getProperty(HoneycombConstants.ConfigKeys.CELL_PORTS_PREFIX + name);
         List<Integer> ports = new ArrayList<>();
         if (portProp != null && !portProp.isBlank()) {
-            for (String p : portProp.split(",")) {
+            for (String p : portProp.split(HoneycombConstants.Names.SEPARATOR_COMMA)) {
                 try {
                     int v = Integer.parseInt(p.trim());
                     if (v > 0) ports.add(v);
@@ -87,7 +88,7 @@ public class CellAddressService {
             ports.add(annotatedPort);
         }
 
-        String addressesProp = env.getProperty("cell.addresses." + name);
+        String addressesProp = env.getProperty(HoneycombConstants.ConfigKeys.CELL_ADDRESSES_PREFIX + name);
         if (addressesProp != null && !addressesProp.isBlank()) {
             return parseAddressList(name, addressesProp);
         }
@@ -103,19 +104,21 @@ public class CellAddressService {
 
     private List<CellAddress> parseAddressList(String name, String value) {
         List<CellAddress> addresses = new ArrayList<>();
-        for (String token : value.split(",")) {
+        for (String token : value.split(HoneycombConstants.Names.SEPARATOR_COMMA)) {
             String entry = token.trim();
             if (entry.isBlank()) continue;
             String host = null;
             int port = -1;
             try {
-                URI uri = entry.contains("://") ? URI.create(entry) : URI.create("http://" + entry);
+                URI uri = entry.contains(HoneycombConstants.Regex.PROTOCOL_SEPARATOR)
+                    ? URI.create(entry)
+                    : URI.create(HoneycombConstants.Schemes.HTTP + entry);
                 host = uri.getHost();
                 port = uri.getPort();
             } catch (IllegalArgumentException ignored) {
             }
             if (host == null || host.isBlank()) {
-                String raw = entry.replaceFirst("^https?://", "");
+                String raw = entry.replaceFirst(HoneycombConstants.Regex.HTTP_PREFIX, "");
                 int slash = raw.indexOf('/');
                 if (slash > 0) raw = raw.substring(0, slash);
                 int colon = raw.indexOf(':');
@@ -137,17 +140,19 @@ public class CellAddressService {
     }
 
     private String resolveBaseHost() {
-        if (baseUrl == null || baseUrl.isBlank()) return "localhost";
+            if (baseUrl == null || baseUrl.isBlank()) return HoneycombConstants.Hosts.LOCALHOST;
         try {
-            URI uri = baseUrl.contains("://") ? URI.create(baseUrl) : URI.create("http://" + baseUrl);
+                URI uri = baseUrl.contains(HoneycombConstants.Regex.PROTOCOL_SEPARATOR)
+                        ? URI.create(baseUrl)
+                        : URI.create(HoneycombConstants.Schemes.HTTP + baseUrl);
             if (uri.getHost() != null && !uri.getHost().isBlank()) return uri.getHost();
         } catch (IllegalArgumentException ignored) {
         }
-        String candidate = baseUrl.replaceFirst("^https?://", "");
+        String candidate = baseUrl.replaceFirst(HoneycombConstants.Regex.HTTP_PREFIX, "");
         int slash = candidate.indexOf('/');
         if (slash > 0) candidate = candidate.substring(0, slash);
         int colon = candidate.indexOf(':');
         if (colon > 0) candidate = candidate.substring(0, colon);
-        return candidate.isBlank() ? "localhost" : candidate;
+        return candidate.isBlank() ? HoneycombConstants.Hosts.LOCALHOST : candidate;
     }
 }

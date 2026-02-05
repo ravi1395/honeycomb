@@ -1,0 +1,17 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - /etc/prometheus/alert.rules.yml
+
+scrape_configs:
+  - job_name: honeycomb-apps
+    metrics_path: /honeycomb/actuator/prometheus
+    basic_auth:
+      username: admin
+      password: changeit
+    static_configs:
+      - targets:
+          - honeycomb-app-1:8080
+          - honeycomb-app-2:8080

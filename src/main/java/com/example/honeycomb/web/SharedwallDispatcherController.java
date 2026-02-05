@@ -1,19 +1,21 @@
 package com.example.honeycomb.web;
 
-import com.example.honeycomb.annotations.Cell;
 import com.example.honeycomb.annotations.Sharedwall;
-import com.example.honeycomb.service.CellRegistry;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.context.ApplicationContext;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import org.springframework.http.MediaType;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,97 +27,136 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.concurrent.ThreadLocalRandom;
+import com.example.honeycomb.util.HoneycombConstants;
 
 @RestController
-@RequestMapping("/honeycomb/shared")
-@Tag(name = "Shared Method Dispatcher", description = "Invoke shared methods across cells using @Sharedwall annotations")
+@RequestMapping(HoneycombConstants.Paths.HONEYCOMB_SHARED)
+@Tag(name = HoneycombConstants.Docs.TAG_SHARED_DISPATCHER,
+    description = HoneycombConstants.Docs.TAG_SHARED_DISPATCHER_DESC)
 @SuppressWarnings("null")
 public class SharedwallDispatcherController {
     private static final Logger log = LoggerFactory.getLogger(SharedwallDispatcherController.class);
-    private final ApplicationContext ctx;
     private final ObjectMapper objectMapper;
+    private final SharedwallMethodCache methodCache;
+    private final Scheduler sharedScheduler;
+    private final double logSampleRate;
 
-    public SharedwallDispatcherController(ApplicationContext ctx, CellRegistry registry, ObjectMapper objectMapper) {
-        this.ctx = ctx;
+    public SharedwallDispatcherController(ObjectMapper objectMapper,
+                                          SharedwallMethodCache methodCache,
+                                          @Value("${honeycomb.shared.scheduler:boundedElastic}") String schedulerType,
+                                          @Value("${honeycomb.shared.log-sample-rate:0.1}") double logSampleRate) {
         this.objectMapper = objectMapper;
+        this.methodCache = methodCache;
+        this.sharedScheduler = "parallel".equalsIgnoreCase(schedulerType) ? Schedulers.parallel() : Schedulers.boundedElastic();
+        this.logSampleRate = logSampleRate;
     }
 
-    /**
-     * Generic entrypoint that invokes local methods marked with `@Sharedwall`.
-     * It looks up beans annotated with `@Cell` and finds methods with matching name or alias.
-    * Supported method signatures: () , (String) , (byte[]).
-    * For end-to-end reactive execution, shared methods should return Mono or Flux.
-     */
+        /**
+         * Generic entrypoint that invokes local methods marked with `@Sharedwall`.
+         * Supported method signatures: () , (String) , (byte[]).
+         * For end-to-end reactive execution, shared methods should return Mono or Flux.
+         */
     @Operation(
-            summary = "Invoke a shared method",
-            description = "Dispatches a call to methods annotated with @Sharedwall in @Cell beans. " +
-                    "Supports zero, single, or multi-parameter methods with JSON body binding."
+            summary = HoneycombConstants.Docs.SHARED_DISPATCH_SUMMARY,
+            description = HoneycombConstants.Docs.SHARED_DISPATCH_DESC
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Method invoked successfully"),
-            @ApiResponse(responseCode = "403", description = "Access denied - caller not in allowedFrom list"),
-            @ApiResponse(responseCode = "404", description = "Method not found"),
-            @ApiResponse(responseCode = "500", description = "Invocation error")
+            @ApiResponse(responseCode = HoneycombConstants.Swagger.RESP_200, description = HoneycombConstants.Docs.SHARED_OK),
+            @ApiResponse(responseCode = HoneycombConstants.Swagger.RESP_403, description = HoneycombConstants.Docs.SHARED_FORBIDDEN),
+            @ApiResponse(responseCode = HoneycombConstants.Swagger.RESP_404, description = HoneycombConstants.Docs.SHARED_NOT_FOUND),
+            @ApiResponse(responseCode = HoneycombConstants.Swagger.RESP_500, description = HoneycombConstants.Docs.SHARED_ERROR)
     })
     @PostMapping("/{methodName}")
     public Mono<ResponseEntity<Map<String,Object>>> dispatch(
-            @Parameter(description = "Name or alias of the shared method to invoke")
+            @Parameter(description = HoneycombConstants.Docs.SHARED_METHOD_PARAM)
             @PathVariable String methodName,
             @RequestHeader MultiValueMap<String, String> headers,
             @RequestBody(required = false) Mono<byte[]> bodyMono
     ) {
-        log.debug("Dispatch shared method={}, headers={}, bodyMono={}", methodName, headers, bodyMono);
-        // discover local candidates
-        List<MethodCandidate> candidates = new ArrayList<>();
-        for (String beanName : ctx.getBeanDefinitionNames()) {
-            try {
-                Object bean = ctx.getBean(beanName);
-                Class<?> cls = bean.getClass();
-                if (!cls.isAnnotationPresent(Cell.class)) continue;
-                for (Method m : cls.getDeclaredMethods()) {
-                    Sharedwall s = m.getAnnotation(Sharedwall.class);
-                    if (s == null) continue;
-                    String alias = (s.value() != null && !s.value().isBlank()) ? s.value() : m.getName();
-                    if (alias.equals(methodName)) {
-                        m.setAccessible(true);
-                        candidates.add(new MethodCandidate(bean, m));
+        logSampledDebug(HoneycombConstants.Messages.DISPATCH_SHARED_DEBUG, methodName, headers, bodyMono);
+        return Mono.fromCallable(() -> methodCache.getCandidates(methodName).stream()
+            .map(SharedwallDispatcherController::fromCache)
+            .collect(Collectors.toList()))
+                .subscribeOn(sharedScheduler)
+                .flatMap(candidates -> {
+                    logSampledDebug("Found {} shared candidates for method {}", candidates.size(), methodName);
+                    if (candidates.isEmpty()) {
+                    logSampledInfo(HoneycombConstants.Messages.SHARED_METHOD_NOT_FOUND, methodName);
+                    return Mono.just(ResponseEntity.status(404)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(Map.of(HoneycombConstants.JsonKeys.ERROR,
+                            HoneycombConstants.ErrorKeys.NO_SHARED_METHOD
+                                + HoneycombConstants.Names.SEPARATOR_COLON
+                                + HoneycombConstants.Messages.SPACE
+                                + methodName)));
                     }
-                }
-            } catch (Throwable ignored) {
-            }
-        }
 
-        if (candidates.isEmpty()) {
-            log.info("No shared method '{}' found locally", methodName);
-            return Mono.just(ResponseEntity.status(404).body(Map.of("error", "no shared method '" + methodName + "' found locally")));
-        }
+                    String contentType = headers.getFirst(HttpHeaders.CONTENT_TYPE);
+                    boolean expectsJson = contentType != null && contentType.toLowerCase().contains(MediaType.APPLICATION_JSON_VALUE);
+                    return bodyMono.defaultIfEmpty(new byte[0]).flatMap(body ->
+                            Mono.fromCallable(() -> {
+                                        try {
+                                            logSampledDebug("parsing body for {} (len={})", methodName, body == null ? 0 : body.length);
+                                            if (!expectsJson) {
+                                                return com.fasterxml.jackson.databind.node.NullNode.getInstance();
+                                            }
+                                            return objectMapper.readTree(body);
+                                        } catch (Exception ex) {
+                                            String message = ex.getMessage() == null ? HoneycombConstants.Messages.EMPTY : ex.getMessage();
+                                            logSampledDebug("parse error for {}: {}", methodName, message);
+                                            return com.fasterxml.jackson.databind.node.TextNode.valueOf("__PARSE_ERROR__:" + message);
+                                        }
+                                    })
+                                    .subscribeOn(sharedScheduler)
+                                    .flatMap(rootNode -> {
+                                        logSampledDebug("rootNode for {}: {}", methodName, rootNode);
+                                        // if parsing failed, short-circuit and return a JSON-deserialize error per-candidate
+                                        if (rootNode != null && rootNode.isTextual() && rootNode.asText().startsWith("__PARSE_ERROR__:")) {
+                                            String emsg = rootNode.asText().substring("__PARSE_ERROR__:".length());
+                                            String beanName = candidates.size() > 0 ? candidates.get(0).bean.getClass().getSimpleName() : "unknown";
+                                            Map<String,Object> bodyMap = Map.of(beanName, Map.of(
+                                                    HoneycombConstants.JsonKeys.ERROR,
+                                                    HoneycombConstants.ErrorKeys.JSON_DESERIALIZE_ERROR
+                                                            + HoneycombConstants.Names.SEPARATOR_COLON
+                                                            + HoneycombConstants.Messages.SPACE
+                                                            + emsg
+                                            ));
+                                            return Mono.just(ResponseEntity.ok()
+                                                    .contentType(MediaType.APPLICATION_JSON)
+                                                    .body(bodyMap));
+                                        }
+                                        List<Mono<AbstractMap.SimpleEntry<String, Object>>> calls = candidates.stream()
+                                                .map(c -> {
+                                                    logSampledDebug("scheduling invocation for {}.{}", c.bean.getClass().getSimpleName(), c.method.getName());
+                                                    return invokeCandidate(c, headers, body, rootNode);
+                                                })
+                                                .collect(Collectors.toList());
 
-        return bodyMono.defaultIfEmpty(new byte[0]).flatMap(body -> {
-            // attempt to parse JSON body
-            com.fasterxml.jackson.databind.JsonNode tmpRoot = null;
-            try {
-                tmpRoot = objectMapper.readTree(body);
-            } catch (Exception ignored) {
-                // leave as null on parse failure
-            }
-            final com.fasterxml.jackson.databind.JsonNode rootNode = tmpRoot;
-
-                List<Mono<AbstractMap.SimpleEntry<String, Object>>> calls = candidates.stream()
-                        .map(c -> invokeCandidate(c, headers, body, rootNode))
-                        .collect(Collectors.toList());
-
-            return Flux.mergeSequential(calls).collectList().map(list -> {
-                Map<String,Object> aggregated = list.stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-                return ResponseEntity.ok(aggregated);
-            });
-        });
+                                        return Flux.mergeSequential(calls).collectList().flatMap(list -> {
+                                            Map<String,Object> aggregated = list.stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                                            logSampledDebug("Shared dispatch aggregated result for {}: {}", methodName, aggregated);
+                                            return Mono.fromCallable(() -> objectMapper.writeValueAsString(aggregated))
+                                                .subscribeOn(sharedScheduler)
+                                                .doOnNext(s -> logSampledDebug("Serialized response for {}: {}", methodName, s))
+                                                    .thenReturn(ResponseEntity.ok()
+                                                            .contentType(MediaType.APPLICATION_JSON)
+                                                            .body(aggregated));
+                                        });
+                                    }));
+                });
     }
 
     private static class MethodCandidate {
         final Object bean;
         final Method method;
+        final Sharedwall sharedwall;
 
-        MethodCandidate(Object bean, Method method) { this.bean = bean; this.method = method; }
+        MethodCandidate(Object bean, Method method, Sharedwall sharedwall) {
+            this.bean = bean;
+            this.method = method;
+            this.sharedwall = sharedwall;
+        }
     }
 
     private Mono<AbstractMap.SimpleEntry<String, Object>> invokeCandidate(MethodCandidate c,
@@ -126,23 +167,34 @@ public class SharedwallDispatcherController {
             try {
                 String cellName = c.bean.getClass().getSimpleName();
                 String targetMethod = c.method.getName();
-                log.debug("Invoking candidate {}.{}", cellName, targetMethod);
+                log.debug(HoneycombConstants.Messages.INVOKE_CANDIDATE, cellName, targetMethod);
                 Method m = c.method;
-                final String caller = headers.getFirst("X-From-Cell");
-                // enforce allowed-from restrictions if declared on the method
-                Sharedwall allowedAnnTop = m.getAnnotation(Sharedwall.class);
+                final String caller = headers.getFirst(HoneycombConstants.Headers.FROM_CELL);
+                // enforce allowed-from restrictions if declared on the method or interface
+                Sharedwall allowedAnnTop = c.sharedwall;
                 if (allowedAnnTop != null) {
                     String[] allowedTop = allowedAnnTop.allowedFrom();
                     if (allowedTop != null && allowedTop.length > 0) {
                         boolean okTop = false;
                         if (caller != null) {
                             for (String a : allowedTop) {
-                                if ("*".equals(a) || a.equalsIgnoreCase(caller)) { okTop = true; break; }
+                                if (HoneycombConstants.ConfigKeys.GLOBAL_WILDCARD.equals(a) || a.equalsIgnoreCase(caller)) {
+                                    okTop = true;
+                                    break;
+                                }
                             }
                         }
                         if (!okTop) {
-                            log.warn("Access denied invoking {}.{} from caller={}", cellName, targetMethod, caller);
-                            return Mono.just(new AbstractMap.SimpleEntry<String, Object>(cellName, (Object) Map.of("error", "access-denied: caller='" + caller + "' not allowed")));
+                            log.warn(HoneycombConstants.Messages.ACCESS_DENIED_INVOKE, cellName, targetMethod, caller);
+                            return Mono.just(new AbstractMap.SimpleEntry<String, Object>(cellName, (Object) Map.of(
+                                    HoneycombConstants.JsonKeys.ERROR,
+                                        HoneycombConstants.ErrorKeys.ACCESS_DENIED
+                                            + HoneycombConstants.Names.SEPARATOR_COLON
+                                            + HoneycombConstants.Messages.SPACE
+                                            + HoneycombConstants.Messages.CALLER_PREFIX
+                                            + caller
+                                            + HoneycombConstants.Messages.CALLER_NOT_ALLOWED_SUFFIX
+                            )));
                         }
                     }
                 }
@@ -162,8 +214,14 @@ public class SharedwallDispatcherController {
                             if (rootNode != null) arg = objectMapper.convertValue(rootNode, jt);
                             else arg = objectMapper.readValue(body, jt);
                         } catch (Exception ex) {
-                            log.warn("JSON deserialize error for {}.{}: {}", cellName, targetMethod, ex.getMessage());
-                            return Mono.just(new AbstractMap.SimpleEntry<String, Object>(cellName, (Object) Map.of("error", "json-deserialize-error: " + ex.getMessage())));
+                            log.warn(HoneycombConstants.Messages.JSON_DESERIALIZE_ERROR, cellName, targetMethod, ex.getMessage());
+                            return Mono.just(new AbstractMap.SimpleEntry<String, Object>(cellName, (Object) Map.of(
+                                    HoneycombConstants.JsonKeys.ERROR,
+                                        HoneycombConstants.ErrorKeys.JSON_DESERIALIZE_ERROR
+                                            + HoneycombConstants.Names.SEPARATOR_COLON
+                                            + HoneycombConstants.Messages.SPACE
+                                            + ex.getMessage()
+                            )));
                         }
                     }
                     res = m.invoke(c.bean, arg);
@@ -194,37 +252,61 @@ public class SharedwallDispatcherController {
                     }
                     res = m.invoke(c.bean, args);
                 }
-                log.debug("Invocation {}.{} succeeded", cellName, m.getName());
-                return adaptResult(cellName, res);
+                log.debug(HoneycombConstants.Messages.INVOCATION_SUCCESS, cellName, m.getName());
+                return adaptResult(cellName, res)
+                    .doOnNext(entry -> log.debug("adaptResult emitted for {}: {}", cellName, entry))
+                    .doOnError(err -> log.error("adaptResult error for {}", cellName, err));
             } catch (Throwable e) {
                 return Mono.error(e);
             }
         }).onErrorResume(e -> {
             String cellName = c.bean.getClass().getSimpleName();
             String targetMethod = c.method.getName();
-            String emsg = e == null ? "" : e.getMessage();
+            String emsg = e == null ? HoneycombConstants.Messages.EMPTY : e.getMessage();
             if (emsg == null || emsg.isBlank()) {
                 Throwable cause = e == null ? null : e.getCause();
-                emsg = (cause == null || cause.getMessage() == null) ? "invocation-error" : cause.getMessage();
+                emsg = (cause == null || cause.getMessage() == null) ? HoneycombConstants.ErrorKeys.INVOCATION_ERROR : cause.getMessage();
             }
-            log.error("Invocation error on {}.{}: {}", cellName, targetMethod, emsg, e);
-            return Mono.just(new AbstractMap.SimpleEntry<String, Object>(cellName, (Object) Map.of("error", emsg)));
+            log.error(HoneycombConstants.Messages.INVOCATION_ERROR, cellName, targetMethod, emsg, e);
+            return Mono.just(new AbstractMap.SimpleEntry<String, Object>(cellName, (Object) Map.of(HoneycombConstants.JsonKeys.ERROR, emsg)));
         });
+    }
+
+    private static MethodCandidate fromCache(SharedwallMethodCache.MethodCandidate c) {
+        return new MethodCandidate(c.getBean(), c.getMethod(), c.getSharedwall());
     }
 
     private Mono<AbstractMap.SimpleEntry<String, Object>> adaptResult(String cellName, Object res) {
         if (res instanceof Mono<?> mono) {
-            return mono.defaultIfEmpty(null)
-                    .map(val -> new AbstractMap.SimpleEntry<String, Object>(cellName, (Object) Map.of("result", val)));
+                return mono.defaultIfEmpty(null)
+                    .map(val -> new AbstractMap.SimpleEntry<String, Object>(cellName, (Object) Map.of(HoneycombConstants.JsonKeys.RESULT, val)));
         }
         if (res instanceof Flux<?> flux) {
-            return flux.collectList()
-                    .map(list -> new AbstractMap.SimpleEntry<String, Object>(cellName, (Object) Map.of("result", list)));
+                return flux.collectList()
+                    .map(list -> new AbstractMap.SimpleEntry<String, Object>(cellName, (Object) Map.of(HoneycombConstants.JsonKeys.RESULT, list)));
         }
         if (res instanceof Publisher<?> publisher) {
-            return Flux.from(publisher).collectList()
-                    .map(list -> new AbstractMap.SimpleEntry<String, Object>(cellName, (Object) Map.of("result", list)));
+                return Flux.from(publisher).collectList()
+                    .map(list -> new AbstractMap.SimpleEntry<String, Object>(cellName, (Object) Map.of(HoneycombConstants.JsonKeys.RESULT, list)));
         }
-        return Mono.just(new AbstractMap.SimpleEntry<String, Object>(cellName, (Object) Map.of("result", res)));
+        return Mono.just(new AbstractMap.SimpleEntry<String, Object>(cellName, (Object) Map.of(HoneycombConstants.JsonKeys.RESULT, res)));
+    }
+
+    private boolean shouldSample() {
+        if (logSampleRate <= 0) return false;
+        if (logSampleRate >= 1) return true;
+        return ThreadLocalRandom.current().nextDouble() < logSampleRate;
+    }
+
+    private void logSampledDebug(String msg, Object... args) {
+        if (log.isDebugEnabled() && shouldSample()) {
+            log.debug(msg, args);
+        }
+    }
+
+    private void logSampledInfo(String msg, Object... args) {
+        if (log.isInfoEnabled() && shouldSample()) {
+            log.info(msg, args);
+        }
     }
 }

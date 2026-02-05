@@ -1,0 +1,167 @@
+spring:
+  application:
+    name: com.example.honeycomb.example
+  main:
+    allow-bean-definition-overriding: true
+  cloud:
+    compatibility-verifier:
+      enabled: false
+  data:
+    redis:
+      host: redis
+      port: 6379
+
+server:
+  port: 8080
+
+service:
+  discovery:
+    base-url: "http://honeycomb-app-1"
+
+eureka:
+  client:
+    enabled: false
+
+cell:
+  ports:
+    InventoryCell: "9091"
+    CatalogCell: "9092"
+    PricingCell: "9093"
+  managementPort:
+    InventoryCell: 9191
+    CatalogCell: 9192
+    PricingCell: 9193
+  addresses:
+    InventoryCell: "honeycomb-app-1:9091,honeycomb-app-2:9091"
+    CatalogCell: "honeycomb-app-1:9092,honeycomb-app-2:9092"
+    PricingCell: "honeycomb-app-1:9093,honeycomb-app-2:9093"
+
+honeycomb:
+  storage:
+    type: redis
+    routing:
+      enabled: true
+      per-cell:
+        PricingCell: hibernate
+    hibernate:
+      enabled: true
+      url: postgresql://postgres:5432/honeycomb
+      username: honeycomb
+      password: honeycomb
+      annotation-free: true
+  webclient:
+    connect-timeout-ms: 5000
+    response-timeout-ms: 20000
+  audit:
+    max-entries: 1000
+  security:
+    api-keys:
+      enabled: true
+      header: "X-API-Key"
+      keys:
+        admin: "admin-key"
+        cell: "cell-key"
+      per-cell:
+        "*": ["admin-key", "cell-key"]
+        PricingCell: ["admin-key"]
+    # require-auth: true
+    # jwt:
+    #   enabled: true
+    #   issuer-uri: "https://issuer.example.com/"
+    #   jwk-set-uri: "https://issuer.example.com/.well-known/jwks.json"
+    #   audience: "honeycomb-api"
+    #   roles-claim: "roles"
+    #   role-prefix: "ROLE_"
+    #   scopes-claim: "scp"
+    #   scope-prefix: "SCOPE_"
+    #   shared-roles-claim: "shared_roles"
+    #   shared-role-prefix: "ROLE_"
+    #   default-roles: ["ROLE_USER"]
+    #   per-cell-roles:
+    #     "*": ["ROLE_USER"]
+    #     PricingCell: ["ROLE_ADMIN"]
+    #   per-cell-operation-roles:
+    #     "*":
+    #       read: ["ROLE_USER"]
+    #       create: ["ROLE_ADMIN"]
+    #   shared-method-roles:
+    #     "*": ["ROLE_USER"]
+    #     discount: ["ROLE_PRICING"]
+    # mtls:
+    #   enabled: true
+    #   require-client-cert: true
+  rate-limiter:
+    enabled: true
+    defaults:
+      limit-for-period: 50
+      refresh-period: 1s
+      timeout: 0ms
+    per-cell:
+      InventoryCell:
+        limit-for-period: 25
+        refresh-period: 1s
+      CatalogCell:
+        limit-for-period: 25
+        refresh-period: 1s
+      PricingCell:
+        limit-for-period: 15
+        refresh-period: 1s
+  routing:
+    default-policy: "round-robin"
+    per-cell-policy:
+      "*": "round-robin"
+  autoscale:
+    enabled: true
+    evaluation-interval: 20s
+    scale-up-rps: 2.0
+    scale-down-rps: 0.1
+    per-cell-enabled:
+      "*": true
+    per-cell-scale-up-rps:
+      InventoryCell: 1.0
+      CatalogCell: 1.0
+      PricingCell: 0.5
+    per-cell-scale-down-rps:
+      InventoryCell: 0.1
+      CatalogCell: 0.1
+      PricingCell: 0.05
+  validation:
+    enabled: true
+    schema-dir: "schemas"
+  idempotency:
+    enabled: true
+    store: "redis"
+    header: "Idempotency-Key"
+    ttl-seconds: 300
+
+shared:
+  caller-header: "X-From-Cell"
+  user: "shared"
+  password: "changeit"
+
+actuator:
+  user: "admin"
+  password: "changeit"
+
+management:
+  endpoints:
+    web:
+      base-path: /honeycomb/actuator
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: when_authorized
+      probes:
+        enabled: true
+  metrics:
+    tags:
+      application: honeycomb-example
+
+springdoc:
+  api-docs:
+    path: /honeycomb/api-docs
+  swagger-ui:
+    path: /honeycomb/swagger-ui.html
+    operationsSorter: method
+  show-actuator: false

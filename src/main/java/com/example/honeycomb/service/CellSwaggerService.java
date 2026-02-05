@@ -8,6 +8,7 @@ import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.responses.ApiResponse;
 import org.springframework.stereotype.Service;
+import com.example.honeycomb.util.HoneycombConstants;
 
 import java.util.Set;
 import java.util.Optional;
@@ -30,80 +31,100 @@ public class CellSwaggerService {
             return Optional.empty();
         }
 
-        String base = "/honeycomb/models/" + cellName;
-        String items = base + "/items";
-        String itemById = base + "/items/{id}";
+        String base = HoneycombConstants.Paths.HONEYCOMB_MODELS
+                + HoneycombConstants.Names.SEPARATOR_SLASH
+                + cellName;
+        String items = base
+                + HoneycombConstants.Names.SEPARATOR_SLASH
+                + HoneycombConstants.Paths.ITEMS;
+        String itemById = base
+                + HoneycombConstants.Names.SEPARATOR_SLASH
+                + HoneycombConstants.Paths.ITEMS
+                + HoneycombConstants.Names.SEPARATOR_SLASH
+                + HoneycombConstants.Names.OPEN_BRACE
+                + HoneycombConstants.JsonKeys.ID
+                + HoneycombConstants.Names.CLOSE_BRACE;
 
         Paths paths = new Paths();
 
         // Describe model
         paths.addPathItem(base, new PathItem().get(new Operation()
-                .summary("Describe cell model")
-                .addTagsItem("Cell")
+                .summary(HoneycombConstants.Swagger.SUMMARY_DESCRIBE)
+                .addTagsItem(HoneycombConstants.Swagger.TAG_CELL)
                 .responses(new io.swagger.v3.oas.models.responses.ApiResponses()
-                        .addApiResponse("200", new ApiResponse().description("Cell description"))
-                        .addApiResponse("404", new ApiResponse().description("Cell not found"))
+                        .addApiResponse(HoneycombConstants.Swagger.RESP_200,
+                                new ApiResponse().description(HoneycombConstants.Swagger.DESC_CELL))
+                        .addApiResponse(HoneycombConstants.Swagger.RESP_404,
+                                new ApiResponse().description(HoneycombConstants.Swagger.DESC_CELL_NOT_FOUND))
                 )));
 
         // List items (read)
-        if (properties.isOperationAllowed(cellName, "read")) {
+        if (properties.isOperationAllowed(cellName, HoneycombConstants.Ops.READ)) {
             paths.addPathItem(items, new PathItem().get(new Operation()
-                    .summary("List all items in cell")
-                    .addTagsItem("Cell")
+                    .summary(HoneycombConstants.Swagger.SUMMARY_LIST_ITEMS)
+                    .addTagsItem(HoneycombConstants.Swagger.TAG_CELL)
                     .responses(new io.swagger.v3.oas.models.responses.ApiResponses()
-                            .addApiResponse("200", new ApiResponse().description("List of items"))
+                            .addApiResponse(HoneycombConstants.Swagger.RESP_200,
+                                    new ApiResponse().description(HoneycombConstants.Swagger.DESC_LIST_ITEMS))
                     )));
             paths.addPathItem(itemById, new PathItem().get(new Operation()
-                    .summary("Get item by ID")
-                    .addTagsItem("Cell")
+                    .summary(HoneycombConstants.Swagger.SUMMARY_GET_ITEM)
+                    .addTagsItem(HoneycombConstants.Swagger.TAG_CELL)
                     .responses(new io.swagger.v3.oas.models.responses.ApiResponses()
-                            .addApiResponse("200", new ApiResponse().description("Item found"))
-                            .addApiResponse("404", new ApiResponse().description("Item not found"))
+                            .addApiResponse(HoneycombConstants.Swagger.RESP_200,
+                                    new ApiResponse().description(HoneycombConstants.Swagger.DESC_ITEM_FOUND))
+                            .addApiResponse(HoneycombConstants.Swagger.RESP_404,
+                                    new ApiResponse().description(HoneycombConstants.Swagger.DESC_ITEM_NOT_FOUND))
                     )));
         }
 
         // Create
-        if (properties.isOperationAllowed(cellName, "create")) {
+        if (properties.isOperationAllowed(cellName, HoneycombConstants.Ops.CREATE)) {
             PathItem item = paths.containsKey(items) ? paths.get(items) : new PathItem();
             item.post(new Operation()
-                    .summary("Create item")
-                    .addTagsItem("Cell")
+                    .summary(HoneycombConstants.Swagger.SUMMARY_CREATE_ITEM)
+                    .addTagsItem(HoneycombConstants.Swagger.TAG_CELL)
                     .responses(new io.swagger.v3.oas.models.responses.ApiResponses()
-                            .addApiResponse("201", new ApiResponse().description("Item created"))
+                            .addApiResponse(HoneycombConstants.Swagger.RESP_201,
+                                    new ApiResponse().description(HoneycombConstants.Swagger.DESC_ITEM_CREATED))
                     ));
             paths.addPathItem(items, item);
         }
 
         // Update
-        if (properties.isOperationAllowed(cellName, "update")) {
+        if (properties.isOperationAllowed(cellName, HoneycombConstants.Ops.UPDATE)) {
             PathItem item = paths.containsKey(itemById) ? paths.get(itemById) : new PathItem();
             item.put(new Operation()
-                    .summary("Update item")
-                    .addTagsItem("Cell")
+                    .summary(HoneycombConstants.Swagger.SUMMARY_UPDATE_ITEM)
+                    .addTagsItem(HoneycombConstants.Swagger.TAG_CELL)
                     .responses(new io.swagger.v3.oas.models.responses.ApiResponses()
-                            .addApiResponse("200", new ApiResponse().description("Item updated"))
-                            .addApiResponse("404", new ApiResponse().description("Item not found"))
+                            .addApiResponse(HoneycombConstants.Swagger.RESP_200,
+                                    new ApiResponse().description(HoneycombConstants.Swagger.DESC_ITEM_UPDATED))
+                            .addApiResponse(HoneycombConstants.Swagger.RESP_404,
+                                    new ApiResponse().description(HoneycombConstants.Swagger.DESC_ITEM_NOT_FOUND))
                     ));
             paths.addPathItem(itemById, item);
         }
 
         // Delete
-        if (properties.isOperationAllowed(cellName, "delete")) {
+        if (properties.isOperationAllowed(cellName, HoneycombConstants.Ops.DELETE)) {
             PathItem item = paths.containsKey(itemById) ? paths.get(itemById) : new PathItem();
             item.delete(new Operation()
-                    .summary("Delete item")
-                    .addTagsItem("Cell")
+                    .summary(HoneycombConstants.Swagger.SUMMARY_DELETE_ITEM)
+                    .addTagsItem(HoneycombConstants.Swagger.TAG_CELL)
                     .responses(new io.swagger.v3.oas.models.responses.ApiResponses()
-                            .addApiResponse("204", new ApiResponse().description("Item deleted"))
-                            .addApiResponse("404", new ApiResponse().description("Item not found"))
+                            .addApiResponse(HoneycombConstants.Swagger.RESP_204,
+                                    new ApiResponse().description(HoneycombConstants.Swagger.DESC_ITEM_DELETED))
+                            .addApiResponse(HoneycombConstants.Swagger.RESP_404,
+                                    new ApiResponse().description(HoneycombConstants.Swagger.DESC_ITEM_NOT_FOUND))
                     ));
             paths.addPathItem(itemById, item);
         }
 
         OpenAPI openAPI = new OpenAPI()
                 .info(new Info()
-                        .title("Honeycomb Cell API - " + cellName)
-                        .version("1.0"))
+                        .title(HoneycombConstants.Swagger.INFO_TITLE_PREFIX + cellName)
+                        .version(HoneycombConstants.Swagger.INFO_VERSION))
                 .paths(paths);
 
         return Optional.of(openAPI);
@@ -122,8 +143,8 @@ public class CellSwaggerService {
 
                 return new OpenAPI()
                                 .info(new Info()
-                                                .title("Honeycomb Cell APIs")
-                                                .version("1.0"))
+                                                .title(HoneycombConstants.Swagger.INFO_TITLE_ALL)
+                                                .version(HoneycombConstants.Swagger.INFO_VERSION))
                                 .paths(paths);
         }
 }

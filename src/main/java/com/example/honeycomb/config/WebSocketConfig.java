@@ -1,5 +1,6 @@
 package com.example.honeycomb.config;
 
+import com.example.honeycomb.util.HoneycombConstants;
 import com.example.honeycomb.web.EventWebSocketHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,7 +16,7 @@ public class WebSocketConfig {
     public HandlerMapping webSocketMapping(EventWebSocketHandler handler) {
         SimpleUrlHandlerMapping mapping = new SimpleUrlHandlerMapping();
         var urls = new HashMap<String, Object>();
-        urls.put("/honeycomb/ws/events", handler);
+        urls.put(HoneycombConstants.Paths.HONEYCOMB_WS_EVENTS, handler);
         mapping.setUrlMap(urls);
         mapping.setOrder(-1);
         return mapping;

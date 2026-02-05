@@ -2,6 +2,7 @@ package com.example.honeycomb.service;
 
 import com.example.honeycomb.config.HoneycombAuditProperties;
 import com.example.honeycomb.dto.AuditEvent;
+import com.example.honeycomb.util.HoneycombConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -37,7 +38,7 @@ public class AuditLogService {
                 events.removeLast();
             }
         }
-        log.info("audit action={} cell={} status={} actor={} details={}", action, cell, status, actor, details);
+        log.info(HoneycombConstants.Messages.AUDIT_LOG, action, cell, status, actor, details);
         sink.tryEmitNext(event);
     }
 

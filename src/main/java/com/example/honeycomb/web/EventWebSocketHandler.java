@@ -1,14 +1,14 @@
 package com.example.honeycomb.web;
 
-import com.example.honeycomb.dto.AuditEvent;
 import com.example.honeycomb.service.AuditLogService;
-import com.fasterxml.jackson.core.JsonProcessingException;
+import com.example.honeycomb.util.HoneycombConstants;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.socket.WebSocketHandler;
 import org.springframework.web.reactive.socket.WebSocketSession;
 import org.springframework.lang.NonNull;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 @Component
 @SuppressWarnings("null")
@@ -26,16 +26,12 @@ public class EventWebSocketHandler implements WebSocketHandler {
     public Mono<Void> handle(@NonNull WebSocketSession session) {
         return session.send(
                 auditLogService.stream()
-                        .map(this::toJson)
-                        .map(session::textMessage)
+                        .flatMap(event -> Mono.fromCallable(() -> objectMapper.writeValueAsString(event))
+                                .subscribeOn(Schedulers.boundedElastic())
+                                .onErrorReturn("{\"" + HoneycombConstants.JsonKeys.ERROR + "\":\""
+                                        + HoneycombConstants.Examples.SERIALIZATION
+                                        + "\"}")
+                                .map(session::textMessage))
         );
-    }
-
-    private String toJson(AuditEvent event) {
-        try {
-            return objectMapper.writeValueAsString(event);
-        } catch (JsonProcessingException e) {
-            return "{\"error\":\"serialization\"}";
-        }
     }
 }

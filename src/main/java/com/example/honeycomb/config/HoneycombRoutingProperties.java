@@ -1,13 +1,14 @@
 package com.example.honeycomb.config;
 
+import com.example.honeycomb.util.HoneycombConstants;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.util.HashMap;
 import java.util.Map;
 
-@ConfigurationProperties(prefix = "honeycomb.routing", ignoreInvalidFields = true)
+@ConfigurationProperties(prefix = HoneycombConstants.ConfigKeys.ROUTING_PREFIX, ignoreInvalidFields = true)
 public class HoneycombRoutingProperties {
-    private String defaultPolicy = "all";
+    private String defaultPolicy = HoneycombConstants.RoutingPolicies.ALL;
     private Map<String, String> perCellPolicy = new HashMap<>();
     private Map<String, Map<String, Integer>> weights = new HashMap<>();
 
@@ -39,8 +40,8 @@ public class HoneycombRoutingProperties {
         if (cellName == null) return defaultPolicy;
         String policy = perCellPolicy.get(cellName);
         if (policy != null && !policy.isBlank()) return policy;
-        String fallback = perCellPolicy.get("*");
-        if (fallback == null) fallback = perCellPolicy.get("__all__");
+        String fallback = perCellPolicy.get(HoneycombConstants.ConfigKeys.GLOBAL_WILDCARD);
+        if (fallback == null) fallback = perCellPolicy.get(HoneycombConstants.ConfigKeys.GLOBAL_ALL);
         return (fallback == null || fallback.isBlank()) ? defaultPolicy : fallback;
     }
 
@@ -48,8 +49,8 @@ public class HoneycombRoutingProperties {
         if (cellName == null) return Map.of();
         Map<String, Integer> map = weights.get(cellName);
         if (map != null) return map;
-        Map<String, Integer> fallback = weights.get("*");
-        if (fallback == null) fallback = weights.get("__all__");
+        Map<String, Integer> fallback = weights.get(HoneycombConstants.ConfigKeys.GLOBAL_WILDCARD);
+        if (fallback == null) fallback = weights.get(HoneycombConstants.ConfigKeys.GLOBAL_ALL);
         return fallback == null ? Map.of() : fallback;
     }
 }

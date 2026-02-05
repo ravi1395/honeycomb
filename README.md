@@ -72,6 +72,36 @@ curl -H 'Content-Type: application/json' \
 curl http://localhost:8080/honeycomb/models/SampleModel/items
 ```
 
+### 2b) ServiceCell (method-level exposure)
+For service-driven cells, annotate a Spring bean with `@Cell` and expose only the methods you want using `@MethodType`.
+
+Example:
+```java
+public interface CatalogServiceApi {
+  @MethodType(MethodOp.READ)
+  List<Map<String,Object>> listItems();
+
+  @MethodType(MethodOp.CREATE)
+  Map<String,Object> createItem(Map<String,Object> body);
+}
+
+@Cell("CatalogService")
+public class CatalogServiceCell implements CatalogServiceApi {
+  public List<Map<String,Object>> listItems() { ... }
+  public Map<String,Object> createItem(Map<String,Object> body) { ... }
+}
+```
+
+Calls are routed to `/honeycomb/service/{cell}/{method}`. If your method expects an `id`, you can pass it as a path segment:
+
+```sh
+# list
+curl -H 'X-API-Key: admin-key' http://localhost:8080/honeycomb/service/CatalogService/listItems
+
+# get by id (uses path id)
+curl -H 'X-API-Key: admin-key' http://localhost:8080/honeycomb/service/CatalogService/getItem/item-1
+```
+
 ### 3) Per‑cell servers
 Each cell can run on a dedicated port. These servers only serve `/honeycomb/**` routes.
 
@@ -97,6 +127,8 @@ curl http://localhost:8081/honeycomb/models/SampleModel
 ### 4) Shared methods (cross‑cell invocation)
 Methods annotated with `@Sharedwall` are exposed at `/honeycomb/shared/{name}`.
 
+`@Sharedwall` can also be placed on an interface. If the interface is annotated, all methods are shared. If only method-level annotations are present, only those methods are shared.
+
 ```java
 @Sharedwall(value = "discount", allowedFrom = {"pricing-client"})
 public DiscountResult applyDiscount(DiscountRequest req) { ... }
@@ -113,18 +145,15 @@ curl -H 'X-From-Cell: pricing-client' \
   http://localhost:8080/honeycomb/shared/discount
 ```
 
-**Invoke in code (OAuth2 client, recommended)**
+**Invoke in code (SharedwallClient, recommended)**
 ```java
-WebClient oauthClient = HoneycombUtil.createOAuth2WebClient(builder, clientManager, "sharedwall-client");
-HoneycombUtil.invokeSharedwallOAuth2(
-  oauthClient,
-  "http://localhost:8080",
-  "discount",
-  Map.of("listPrice", 49.99, "discountPct", 0.15),
-  "pricing-client",
-  MediaType.APPLICATION_JSON,
-  "sharedwall-client"
-).subscribe();
+SharedwallClient client = SharedwallClient.builder(oauthClient, "http://localhost:8080")
+  .fromCell("pricing-client")
+  .registrationId("sharedwall-client")
+  .build();
+
+client.invoke("discount", Map.of("listPrice", 49.99, "discountPct", 0.15))
+      .subscribe();
 ```
 
 **Invoke in code (Bearer token)**
@@ -282,6 +311,7 @@ Honeycomb emits request counters and latency timers. It also keeps an in‑memor
 
 **Endpoints**
 - `GET /honeycomb/metrics/cells`
+- `GET /honeycomb/metrics/shared-cache` — shared method cache stats
 - `GET /honeycomb/audit`
 - `GET /honeycomb/actuator/prometheus`
 - `ws://localhost:8080/honeycomb/ws/events`
@@ -289,7 +319,13 @@ Honeycomb emits request counters and latency timers. It also keeps an in‑memor
 Example:
 ```sh
 curl http://localhost:8080/honeycomb/metrics/cells
+curl http://localhost:8080/honeycomb/metrics/shared-cache
 ```
+
+**Shared dispatch settings**
+
+- `honeycomb.shared.scheduler` (default: `boundedElastic`, options: `parallel`)
+- `honeycomb.shared.log-sample-rate` (default: `0.1`, range: 0..1)
 
 ### 10) Autoscaling
 Autoscaling decisions use per‑cell request rates with global and per‑cell thresholds.
@@ -399,6 +435,33 @@ Then access:
 ```
 http://localhost:8080/honeycomb/swagger-ui.html
 http://localhost:9090
+
+## Postman and curl
+
+A Postman collection and environment are provided for the `honeycomb-example` app in `docs/postman`.
+
+- Collection: `docs/postman/honeycomb-example.postman_collection.json`
+- Environment (dev): `docs/postman/honeycomb-example.postman_environment.dev.json`
+- Environment (prod): `docs/postman/honeycomb-example.postman_environment.prod.json`
+
+Import the collection and one of the environments into Postman (File → Import). The environment contains:
+
+- `baseUrl` (dev default: `http://localhost:8080`, prod default: `https://api.example.com`)
+- `apiKey` (dev default: `admin-key`, prod: set your production key)
+
+Examples:
+
+```bash
+# List cells (sends X-API-Key header)
+curl -i -H "X-API-Key: admin-key" http://localhost:8080/honeycomb/cells
+
+# Create an address (JSON body)
+curl -i -X POST -H "Content-Type: application/json" -H "X-API-Key: admin-key" \
+  -d '{"host":"127.0.0.1","port":8080,"protocol":"http"}' \
+  http://localhost:8080/cells/addresses
+```
+
+If your app uses a different API key, update the `apiKey` value in the imported environment.
 ```
 
 ## Tests

@@ -1,5 +1,6 @@
 package com.example.honeycomb.config;
 
+import com.example.honeycomb.util.HoneycombConstants;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
@@ -17,26 +18,29 @@ import java.util.List;
 @Configuration
 public class OpenApiConfig {
 
-    @Value("${server.port:8080}")
+        @Value(HoneycombConstants.PropertyValues.SERVER_PORT)
     private int serverPort;
 
     @Bean
     public OpenAPI honeycombOpenAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("Honeycomb API")
-                        .description("Per-cell microservice runtime with shared method invocation, CRUD operations, and cell registry")
-                        .version("0.1.0")
+                        .title(HoneycombConstants.OpenApi.TITLE)
+                        .description(HoneycombConstants.OpenApi.DESCRIPTION)
+                        .version(HoneycombConstants.OpenApi.VERSION)
                         .contact(new Contact()
-                                .name("Honeycomb Team")
-                                .email("team@honeycomb.example.com"))
+                                .name(HoneycombConstants.OpenApi.CONTACT_NAME)
+                                .email(HoneycombConstants.OpenApi.CONTACT_EMAIL))
                         .license(new License()
-                                .name("MIT License")
-                                .url("https://opensource.org/licenses/MIT")))
+                                .name(HoneycombConstants.OpenApi.LICENSE_NAME)
+                                .url(HoneycombConstants.OpenApi.LICENSE_URL)))
                 .servers(List.of(
                         new Server()
-                                .url("http://localhost:" + serverPort)
-                                .description("Local development server")
+                                .url(HoneycombConstants.Schemes.HTTP
+                                        + HoneycombConstants.Hosts.LOCALHOST
+                                        + HoneycombConstants.Names.SEPARATOR_COLON
+                                        + serverPort)
+                                .description(HoneycombConstants.OpenApi.SERVER_DESC)
                 ));
     }
 }

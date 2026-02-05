@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: com.example.honeycomb.example
+  main:
+    allow-bean-definition-overriding: true
+
+honeycomb:
+  storage:
+    type: memory
+    routing:
+      enabled: true
+      per-cell:
+        InventoryCell: redis
+        CatalogCell: hibernate
+        PricingCell: hibernate
+    hibernate:
+      enabled: true
+      url: postgresql://localhost:5432/honeycomb
+      username: honeycomb
+      password: honeycomb
+      annotation-free: true
+  validation:
+    enabled: true
+    schema-dir: "schemas"
+  idempotency:
+    enabled: true
+    store: "memory"
+    header: "Idempotency-Key"
+    ttl-seconds: 300

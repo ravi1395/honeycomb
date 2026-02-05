@@ -1,12 +1,13 @@
 package com.example.honeycomb.config;
 
+import com.example.honeycomb.util.HoneycombConstants;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
-@ConfigurationProperties(prefix = "honeycomb.rate-limiter")
+@ConfigurationProperties(prefix = HoneycombConstants.ConfigKeys.RATE_LIMITER_PREFIX)
 public class HoneycombRateLimiterProperties {
     private boolean enabled = true;
     private RateLimitConfig defaults = new RateLimitConfig();
@@ -40,8 +41,8 @@ public class HoneycombRateLimiterProperties {
         if (cellName == null) return defaults;
         RateLimitConfig cfg = perCell.get(cellName);
         if (cfg != null) return cfg;
-        RateLimitConfig fallback = perCell.get("*");
-        if (fallback == null) fallback = perCell.get("__all__");
+        RateLimitConfig fallback = perCell.get(HoneycombConstants.ConfigKeys.GLOBAL_WILDCARD);
+        if (fallback == null) fallback = perCell.get(HoneycombConstants.ConfigKeys.GLOBAL_ALL);
         return fallback == null ? defaults : fallback;
     }
 
