@@ -61,7 +61,7 @@ public class SharedwallMethodCache {
                     if (s == null) continue;
                     String alias = (s.value() != null && !s.value().isBlank()) ? s.value() : m.getName();
                     m.setAccessible(true);
-                    next.computeIfAbsent(alias, k -> new ArrayList<>()).add(new MethodCandidate(bean, m));
+                    next.computeIfAbsent(alias, k -> new ArrayList<>()).add(new MethodCandidate(bean, m, s));
                 }
             } catch (Throwable ignored) {
             }
@@ -97,7 +97,7 @@ public class SharedwallMethodCache {
                     String alias = (s.value() != null && !s.value().isBlank()) ? s.value() : m.getName();
                     if (!alias.equals(methodName)) continue;
                     m.setAccessible(true);
-                    candidates.add(new MethodCandidate(bean, m));
+                    candidates.add(new MethodCandidate(bean, m, s));
                 }
             } catch (Throwable ignored) {
             }
@@ -106,12 +106,18 @@ public class SharedwallMethodCache {
     }
 
     public static class MethodCandidate {
-        public final Object bean;
-        public final Method method;
+        private final Object bean;
+        private final Method method;
+        private final Sharedwall sharedwall;
 
-        public MethodCandidate(Object bean, Method method) {
+        public MethodCandidate(Object bean, Method method, Sharedwall sharedwall) {
             this.bean = bean;
             this.method = method;
+            this.sharedwall = sharedwall;
         }
+
+        public Object getBean() { return bean; }
+        public Method getMethod() { return method; }
+        public Sharedwall getSharedwall() { return sharedwall; }
     }
 }

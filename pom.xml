@@ -21,6 +21,8 @@
         <ossrh.release.url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2</ossrh.release.url>
         <ossrh.snapshot.url>https://s01.oss.sonatype.org/content/repositories/snapshots</ossrh.snapshot.url>
         <jmh.version>1.37</jmh.version>
+        <ossrh.release.url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2</ossrh.release.url>
+        <ossrh.snapshot.url>https://s01.oss.sonatype.org/content/repositories/snapshots</ossrh.snapshot.url>
     </properties>
 
     <dependencyManagement>
