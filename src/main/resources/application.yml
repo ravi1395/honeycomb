@@ -74,6 +74,13 @@ honeycomb:
       - delete
     SampleModel:
       - create
+  validation:
+    enabled: true
+    schema-dir: "schemas"
+    fail-on-missing-schema: true
+    per-cell:
+      SampleModel: "SampleModel.schema.json"
+      ExampleSharedService: "ExampleSharedService.schema.json"
   # WebClient timeouts
   webclient:
     connect-timeout-ms: 5000
@@ -130,12 +137,17 @@ honeycomb:
         limit-for-period: 100
         refresh-period: 1s
   routing:
-    default-policy: "all"
+    default-policy: "round-robin"
     per-cell-policy:
-      "*": "all"
+      "*": "round-robin"
     weights:
       SampleModel:
         "localhost:8081": 1
+  shared:
+    cache:
+      enabled: true
+      warmup-enabled: true
+      cache-refresh-ms: 60000
   autoscale:
     enabled: false
     evaluation-interval: 30s

@@ -18,6 +18,8 @@
         <java.version>21</java.version>
         <lombok.version>1.18.42</lombok.version>
         <spring-cloud.version>2024.0.2</spring-cloud.version>
+        <ossrh.release.url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2</ossrh.release.url>
+        <ossrh.snapshot.url>https://s01.oss.sonatype.org/content/repositories/snapshots</ossrh.snapshot.url>
         <jmh.version>1.37</jmh.version>
     </properties>
 
@@ -145,6 +147,19 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <distributionManagement>
+        <repository>
+            <id>ossrh</id>
+            <name>OSSRH Release Repository</name>
+            <url>${ossrh.release.url}</url>
+        </repository>
+        <snapshotRepository>
+            <id>ossrh</id>
+            <name>OSSRH Snapshot Repository</name>
+            <url>${ossrh.snapshot.url}</url>
+        </snapshotRepository>
+    </distributionManagement>
 
     <build>
         <plugins>

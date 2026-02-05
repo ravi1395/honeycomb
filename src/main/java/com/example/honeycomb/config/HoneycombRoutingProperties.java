@@ -8,7 +8,7 @@ import java.util.Map;
 
 @ConfigurationProperties(prefix = HoneycombConstants.ConfigKeys.ROUTING_PREFIX, ignoreInvalidFields = true)
 public class HoneycombRoutingProperties {
-    private String defaultPolicy = HoneycombConstants.RoutingPolicies.ALL;
+    private String defaultPolicy = HoneycombConstants.RoutingPolicies.ROUND_ROBIN;
     private Map<String, String> perCellPolicy = new HashMap<>();
     private Map<String, Map<String, Integer>> weights = new HashMap<>();
 
