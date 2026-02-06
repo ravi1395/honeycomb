@@ -1,6 +1,11 @@
 /Users/ravichandrasekhar/Ravi/project/honeycomb/Example/honeycomb-example/src/main/java/com/example/honeycomb/example/DemoRunner.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/Example/honeycomb-example/src/main/java/com/example/honeycomb/example/ExampleConstants.java
 /Users/ravichandrasekhar/Ravi/project/honeycomb/Example/honeycomb-example/src/main/java/com/example/honeycomb/example/HoneycombExampleApplication.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/Example/honeycomb-example/src/main/java/com/example/honeycomb/example/SharedwallClientExample.java
 /Users/ravichandrasekhar/Ravi/project/honeycomb/Example/honeycomb-example/src/main/java/com/example/honeycomb/example/cells/CatalogCell.java
 /Users/ravichandrasekhar/Ravi/project/honeycomb/Example/honeycomb-example/src/main/java/com/example/honeycomb/example/cells/InventoryCell.java
 /Users/ravichandrasekhar/Ravi/project/honeycomb/Example/honeycomb-example/src/main/java/com/example/honeycomb/example/config/DiscoveryConfig.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/Example/honeycomb-example/src/main/java/com/example/honeycomb/example/service/CatalogServiceApi.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/Example/honeycomb-example/src/main/java/com/example/honeycomb/example/service/CatalogServiceCell.java
 /Users/ravichandrasekhar/Ravi/project/honeycomb/Example/honeycomb-example/src/main/java/com/example/honeycomb/example/shared/PricingCell.java
+/Users/ravichandrasekhar/Ravi/project/honeycomb/Example/honeycomb-example/src/main/java/com/example/honeycomb/example/shared/PricingSharedApi.java

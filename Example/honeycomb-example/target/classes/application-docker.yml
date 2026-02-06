@@ -6,13 +6,17 @@ spring:
   cloud:
     compatibility-verifier:
       enabled: false
+  data:
+    redis:
+      host: redis
+      port: 6379
 
 server:
   port: 8080
 
 service:
   discovery:
-    base-url: "http://localhost"
+    base-url: "http://honeycomb-app-1"
 
 eureka:
   client:
@@ -27,38 +31,29 @@ cell:
     InventoryCell: 9191
     CatalogCell: 9192
     PricingCell: 9193
+  addresses:
+    InventoryCell: "honeycomb-app-1:9091,honeycomb-app-2:9091"
+    CatalogCell: "honeycomb-app-1:9092,honeycomb-app-2:9092"
+    PricingCell: "honeycomb-app-1:9093,honeycomb-app-2:9093"
 
 honeycomb:
-  # storage:
-  #   type: memory
-  #   routing:
-  #     enabled: true
-  #     per-cell:
-  #       InventoryCell: redis
-  #       CatalogCell: hibernate
-  #   hibernate:
-  #     enabled: true
-  #     url: postgresql://localhost:5432/honeycomb
-  #     username: honeycomb
-  #     password: honeycomb
-  #     annotation-free: true
-  # validation:
-  #   enabled: true
-  #   schema-dir: "schemas"
-  # idempotency:
-  #   enabled: true
-  #   header: "Idempotency-Key"
-  #   ttl-seconds: 300
-  disabled-operations:
-    "__all__":
-      - delete
-    CatalogCell:
-      - update
+  storage:
+    type: redis
+    routing:
+      enabled: true
+      per-cell:
+        PricingCell: hibernate
+    hibernate:
+      enabled: true
+      url: postgresql://postgres:5432/honeycomb
+      username: honeycomb
+      password: honeycomb
+      annotation-free: true
   webclient:
     connect-timeout-ms: 5000
     response-timeout-ms: 20000
   audit:
-    max-entries: 500
+    max-entries: 1000
   security:
     api-keys:
       enabled: true
@@ -95,38 +90,54 @@ honeycomb:
     # mtls:
     #   enabled: true
     #   require-client-cert: true
-    #   allowed-subjects:
-    #     - "CN=honeycomb-client,O=Example Corp,L=NYC,ST=NY,C=US"
   rate-limiter:
     enabled: true
     defaults:
-      limit-for-period: 10
+      limit-for-period: 50
       refresh-period: 1s
       timeout: 0ms
     per-cell:
+      InventoryCell:
+        limit-for-period: 25
+        refresh-period: 1s
+      CatalogCell:
+        limit-for-period: 25
+        refresh-period: 1s
       PricingCell:
-        limit-for-period: 5
+        limit-for-period: 15
         refresh-period: 1s
   routing:
     default-policy: "round-robin"
     per-cell-policy:
       "*": "round-robin"
   autoscale:
-    enabled: false
-    evaluation-interval: 15s
+    enabled: true
+    evaluation-interval: 20s
     scale-up-rps: 2.0
-    scale-down-rps: 0.0
+    scale-down-rps: 0.1
     per-cell-enabled:
       "*": true
+    per-cell-scale-up-rps:
+      InventoryCell: 1.0
+      CatalogCell: 1.0
+      PricingCell: 0.5
+    per-cell-scale-down-rps:
+      InventoryCell: 0.1
+      CatalogCell: 0.1
+      PricingCell: 0.05
+  validation:
+    enabled: true
+    schema-dir: "schemas"
+  idempotency:
+    enabled: true
+    store: "redis"
+    header: "Idempotency-Key"
+    ttl-seconds: 300
 
 shared:
   caller-header: "X-From-Cell"
   user: "shared"
   password: "changeit"
-
-example:
-  oauth2:
-    registration-id: ""
 
 actuator:
   user: "admin"
