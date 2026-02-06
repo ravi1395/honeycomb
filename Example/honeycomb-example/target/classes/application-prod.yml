@@ -1,0 +1,60 @@
+spring:
+  cloud:
+    compatibility-verifier:
+      enabled: false
+
+server:
+  forward-headers-strategy: framework
+  shutdown: graceful
+
+honeycomb:
+  security:
+    require-auth: true
+    api-keys:
+      enabled: true
+      header: "X-API-Key"
+      keys:
+        admin: "${HONEYCOMB_ADMIN_KEY:}"
+        cell: "${HONEYCOMB_CELL_KEY:}"
+      per-cell:
+        "*": ["${HONEYCOMB_ADMIN_KEY:}", "${HONEYCOMB_CELL_KEY:}"]
+  webclient:
+    connect-timeout-ms: 3000
+    response-timeout-ms: 10000
+    retry:
+      enabled: true
+      max-attempts: 3
+      backoff-ms: 200
+      max-backoff-ms: 2000
+  rate-limiter:
+    enabled: true
+    defaults:
+      limit-for-period: 50
+      refresh-period: 1s
+      timeout: 0ms
+  autoscale:
+    enabled: true
+    evaluation-interval: 10s
+    scale-up-rps: 2.0
+    scale-down-rps: 0.2
+
+shared:
+  user: "${HONEYCOMB_SHARED_USER:shared}"
+  password: "${HONEYCOMB_SHARED_PASSWORD:changeit}"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: when_authorized
+      probes:
+        enabled: true
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      percentiles:
+        http.server.requests: 0.5,0.9,0.95,0.99

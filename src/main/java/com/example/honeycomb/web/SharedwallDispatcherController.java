@@ -44,12 +44,17 @@ public class SharedwallDispatcherController {
     public SharedwallDispatcherController(ObjectMapper objectMapper,
                                           com.example.honeycomb.service.SharedwallMethodCache methodCache,
                                           @Value("${honeycomb.shared.scheduler:boundedElastic}") String schedulerType,
-                                          @Value("${honeycomb.shared.log-sample-rate:0.1}") double logSampleRate) {
+                                          @Value("${honeycomb.shared.log-sample-rate:0.1}") double logSampleRate,
+                                          io.micrometer.core.instrument.MeterRegistry meterRegistry) {
         this.objectMapper = objectMapper;
         this.methodCache = methodCache;
         this.sharedScheduler = "parallel".equalsIgnoreCase(schedulerType) ? Schedulers.parallel() : Schedulers.boundedElastic();
         this.logSampleRate = logSampleRate;
+        this.meterRegistry = meterRegistry;
+        this.invocationTimer = meterRegistry.timer("honeycomb.shared.invocation.latency");
     }
+    private final io.micrometer.core.instrument.Timer invocationTimer;
+    private final io.micrometer.core.instrument.MeterRegistry meterRegistry;
 
         /**
          * Generic entrypoint that invokes local methods marked with `@Sharedwall`.
@@ -254,7 +259,13 @@ public class SharedwallDispatcherController {
             }
             log.error(HoneycombConstants.Messages.INVOCATION_ERROR, cellName, targetMethod, emsg, e);
             return Mono.just(new AbstractMap.SimpleEntry<String, Object>(cellName, (Object) Map.of(HoneycombConstants.JsonKeys.ERROR, emsg)));
-        });
+        }).subscribeOn(sharedScheduler);
+        // schedule reflective invocation and result adaptation on shared scheduler to avoid blocking reactor threads
+        // note: using subscribeOn so the deferred callable and subsequent map operations run on the provided scheduler
+        // keep the onErrorResume behavior attached
+        // The caller expects a Mono<AbstractMap.SimpleEntry<String,Object>>
+        // (subscribeOn applies to the source Mono returned above)
+        //.subscribeOn(sharedScheduler) is applied by returning the wrapped Mono from above
     }
 
     private Mono<AbstractMap.SimpleEntry<String, Object>> adaptResult(String cellName, Object res) {
