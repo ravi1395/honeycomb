@@ -500,6 +500,8 @@ public final class HoneycombConstants {
         public static final String RANDOM = "random";
         public static final String ROUND_ROBIN = "round-robin";
         public static final String WEIGHTED = "weighted";
+        public static final String LEAST_LATENCY = "least-latency";
+        public static final String CIRCUIT_AWARE = "circuit-aware";
         public static final String ALL = "all";
     }
 

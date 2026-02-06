@@ -1,7 +1,6 @@
 package com.example.honeycomb.web;
 
 import com.example.honeycomb.service.RequestMetricsService;
-import com.example.honeycomb.web.SharedwallMethodCache;
 import com.example.honeycomb.util.HoneycombConstants;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -16,9 +15,9 @@ import java.util.Map;
 @Tag(name = HoneycombConstants.Docs.TAG_METRICS, description = HoneycombConstants.Docs.TAG_METRICS_DESC)
 public class MetricsController {
     private final RequestMetricsService metricsService;
-    private final SharedwallMethodCache sharedwallMethodCache;
+    private final com.example.honeycomb.service.SharedwallMethodCache sharedwallMethodCache;
 
-    public MetricsController(RequestMetricsService metricsService, SharedwallMethodCache sharedwallMethodCache) {
+    public MetricsController(RequestMetricsService metricsService, com.example.honeycomb.service.SharedwallMethodCache sharedwallMethodCache) {
         this.metricsService = metricsService;
         this.sharedwallMethodCache = sharedwallMethodCache;
     }

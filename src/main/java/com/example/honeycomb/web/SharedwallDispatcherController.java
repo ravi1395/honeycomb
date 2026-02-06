@@ -23,7 +23,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.lang.reflect.Method;
 import java.util.AbstractMap;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -38,12 +37,12 @@ import com.example.honeycomb.util.HoneycombConstants;
 public class SharedwallDispatcherController {
     private static final Logger log = LoggerFactory.getLogger(SharedwallDispatcherController.class);
     private final ObjectMapper objectMapper;
-    private final SharedwallMethodCache methodCache;
+    private final com.example.honeycomb.service.SharedwallMethodCache methodCache;
     private final Scheduler sharedScheduler;
     private final double logSampleRate;
 
     public SharedwallDispatcherController(ObjectMapper objectMapper,
-                                          SharedwallMethodCache methodCache,
+                                          com.example.honeycomb.service.SharedwallMethodCache methodCache,
                                           @Value("${honeycomb.shared.scheduler:boundedElastic}") String schedulerType,
                                           @Value("${honeycomb.shared.log-sample-rate:0.1}") double logSampleRate) {
         this.objectMapper = objectMapper;
@@ -75,9 +74,7 @@ public class SharedwallDispatcherController {
             @RequestBody(required = false) Mono<byte[]> bodyMono
     ) {
         logSampledDebug(HoneycombConstants.Messages.DISPATCH_SHARED_DEBUG, methodName, headers, bodyMono);
-        return Mono.fromCallable(() -> methodCache.getCandidates(methodName).stream()
-            .map(SharedwallDispatcherController::fromCache)
-            .collect(Collectors.toList()))
+        return Mono.fromCallable(() -> methodCache.getCandidates(methodName))
                 .subscribeOn(sharedScheduler)
                 .flatMap(candidates -> {
                     logSampledDebug("Found {} shared candidates for method {}", candidates.size(), methodName);
@@ -114,7 +111,7 @@ public class SharedwallDispatcherController {
                                         // if parsing failed, short-circuit and return a JSON-deserialize error per-candidate
                                         if (rootNode != null && rootNode.isTextual() && rootNode.asText().startsWith("__PARSE_ERROR__:")) {
                                             String emsg = rootNode.asText().substring("__PARSE_ERROR__:".length());
-                                            String beanName = candidates.size() > 0 ? candidates.get(0).bean.getClass().getSimpleName() : "unknown";
+                                            String beanName = candidates.size() > 0 ? candidates.get(0).getBean().getClass().getSimpleName() : "unknown";
                                             Map<String,Object> bodyMap = Map.of(beanName, Map.of(
                                                     HoneycombConstants.JsonKeys.ERROR,
                                                     HoneycombConstants.ErrorKeys.JSON_DESERIALIZE_ERROR
@@ -128,7 +125,7 @@ public class SharedwallDispatcherController {
                                         }
                                         List<Mono<AbstractMap.SimpleEntry<String, Object>>> calls = candidates.stream()
                                                 .map(c -> {
-                                                    logSampledDebug("scheduling invocation for {}.{}", c.bean.getClass().getSimpleName(), c.method.getName());
+                                                    logSampledDebug("scheduling invocation for {}.{}", c.getBean().getClass().getSimpleName(), c.getMethod().getName());
                                                     return invokeCandidate(c, headers, body, rootNode);
                                                 })
                                                 .collect(Collectors.toList());
@@ -147,31 +144,19 @@ public class SharedwallDispatcherController {
                 });
     }
 
-    private static class MethodCandidate {
-        final Object bean;
-        final Method method;
-        final Sharedwall sharedwall;
-
-        MethodCandidate(Object bean, Method method, Sharedwall sharedwall) {
-            this.bean = bean;
-            this.method = method;
-            this.sharedwall = sharedwall;
-        }
-    }
-
-    private Mono<AbstractMap.SimpleEntry<String, Object>> invokeCandidate(MethodCandidate c,
+    private Mono<AbstractMap.SimpleEntry<String, Object>> invokeCandidate(com.example.honeycomb.service.SharedwallMethodCache.MethodCandidate c,
                                                                           MultiValueMap<String, String> headers,
                                                                           byte[] body,
                                                                           com.fasterxml.jackson.databind.JsonNode rootNode) {
         return Mono.defer(() -> {
             try {
-                String cellName = c.bean.getClass().getSimpleName();
-                String targetMethod = c.method.getName();
+                String cellName = c.getBean().getClass().getSimpleName();
+                String targetMethod = c.getMethod().getName();
                 log.debug(HoneycombConstants.Messages.INVOKE_CANDIDATE, cellName, targetMethod);
-                Method m = c.method;
+                Method m = c.getMethod();
                 final String caller = headers.getFirst(HoneycombConstants.Headers.FROM_CELL);
                 // enforce allowed-from restrictions if declared on the method or interface
-                Sharedwall allowedAnnTop = c.sharedwall;
+                Sharedwall allowedAnnTop = c.getSharedwall();
                 if (allowedAnnTop != null) {
                     String[] allowedTop = allowedAnnTop.allowedFrom();
                     if (allowedTop != null && allowedTop.length > 0) {
@@ -201,7 +186,7 @@ public class SharedwallDispatcherController {
                 Object res;
                 int paramCount = m.getParameterCount();
                 if (paramCount == 0) {
-                    res = m.invoke(c.bean);
+                    res = m.invoke(c.getBean());
                 } else if (paramCount == 1) {
                     java.lang.reflect.Parameter param = m.getParameters()[0];
                     Class<?> p = param.getType();
@@ -224,7 +209,7 @@ public class SharedwallDispatcherController {
                             )));
                         }
                     }
-                    res = m.invoke(c.bean, arg);
+                    res = m.invoke(c.getBean(), arg);
                 } else {
                     // multi-arg: map using JSON array by index or JSON object by parameter names
                     Object[] args = new Object[paramCount];
@@ -250,7 +235,7 @@ public class SharedwallDispatcherController {
                         args[0] = new String(body);
                         for (int i = 1; i < paramCount; i++) args[i] = null;
                     }
-                    res = m.invoke(c.bean, args);
+                    res = m.invoke(c.getBean(), args);
                 }
                 log.debug(HoneycombConstants.Messages.INVOCATION_SUCCESS, cellName, m.getName());
                 return adaptResult(cellName, res)
@@ -260,8 +245,8 @@ public class SharedwallDispatcherController {
                 return Mono.error(e);
             }
         }).onErrorResume(e -> {
-            String cellName = c.bean.getClass().getSimpleName();
-            String targetMethod = c.method.getName();
+            String cellName = c.getBean().getClass().getSimpleName();
+            String targetMethod = c.getMethod().getName();
             String emsg = e == null ? HoneycombConstants.Messages.EMPTY : e.getMessage();
             if (emsg == null || emsg.isBlank()) {
                 Throwable cause = e == null ? null : e.getCause();
@@ -270,10 +255,6 @@ public class SharedwallDispatcherController {
             log.error(HoneycombConstants.Messages.INVOCATION_ERROR, cellName, targetMethod, emsg, e);
             return Mono.just(new AbstractMap.SimpleEntry<String, Object>(cellName, (Object) Map.of(HoneycombConstants.JsonKeys.ERROR, emsg)));
         });
-    }
-
-    private static MethodCandidate fromCache(SharedwallMethodCache.MethodCandidate c) {
-        return new MethodCandidate(c.getBean(), c.getMethod(), c.getSharedwall());
     }
 
     private Mono<AbstractMap.SimpleEntry<String, Object>> adaptResult(String cellName, Object res) {
