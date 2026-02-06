@@ -84,6 +84,19 @@ public class SharedwallMethodCache {
         return lastRefreshMs.get();
     }
 
+    public long getBuildDurationMs() {
+        return lastRefreshMs.get();
+    }
+
+    public int getMethodCount() {
+        return cacheRef.get().size();
+    }
+
+    public long rebuild() {
+        refresh();
+        return lastRefreshMs.get();
+    }
+
     private List<MethodCandidate> discoverOnDemand(String methodName) {
         List<MethodCandidate> candidates = new ArrayList<>();
         for (String beanName : context.getBeanDefinitionNames()) {

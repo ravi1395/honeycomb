@@ -17,14 +17,14 @@ import java.util.concurrent.TimeUnit;
 public class SharedwallMethodCacheJmhBenchmark {
 
     private ConfigurableApplicationContext context;
-    private SharedwallMethodCache cache;
+    private com.example.honeycomb.service.SharedwallMethodCache cache;
 
     @Setup(Level.Trial)
     public void setup() {
         context = new SpringApplicationBuilder(HoneycombApplication.class)
             .web(WebApplicationType.NONE)
             .run();
-        cache = context.getBean(SharedwallMethodCache.class);
+        cache = context.getBean(com.example.honeycomb.service.SharedwallMethodCache.class);
     }
 
     @TearDown(Level.Trial)

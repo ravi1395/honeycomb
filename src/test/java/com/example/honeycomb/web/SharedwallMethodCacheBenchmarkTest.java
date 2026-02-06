@@ -8,7 +8,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 class SharedwallMethodCacheBenchmarkTest {
 
     @Autowired
-    private SharedwallMethodCache cache;
+    private com.example.honeycomb.service.SharedwallMethodCache cache;
 
     @Test
     void benchmarkCacheLookup() {

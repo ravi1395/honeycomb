@@ -6,7 +6,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.context.ApplicationContext;
-import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
 import java.lang.reflect.Method;
@@ -19,8 +18,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-@Component
-public class SharedwallMethodCache {
+class SharedwallMethodCache {
     private static final Logger log = LoggerFactory.getLogger(SharedwallMethodCache.class);
 
     public static class MethodCandidate {

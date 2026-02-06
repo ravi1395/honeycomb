@@ -1,7 +1,6 @@
 package com.example.honeycomb.web;
 
 import com.example.honeycomb.annotations.Sharedwall;
-import com.example.honeycomb.service.SharedwallMethodCache;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -38,12 +37,12 @@ import com.example.honeycomb.util.HoneycombConstants;
 public class SharedwallDispatcherController {
     private static final Logger log = LoggerFactory.getLogger(SharedwallDispatcherController.class);
     private final ObjectMapper objectMapper;
-    private final SharedwallMethodCache methodCache;
+    private final com.example.honeycomb.service.SharedwallMethodCache methodCache;
     private final Scheduler sharedScheduler;
     private final double logSampleRate;
 
     public SharedwallDispatcherController(ObjectMapper objectMapper,
-                                          SharedwallMethodCache methodCache,
+                                          com.example.honeycomb.service.SharedwallMethodCache methodCache,
                                           @Value("${honeycomb.shared.scheduler:boundedElastic}") String schedulerType,
                                           @Value("${honeycomb.shared.log-sample-rate:0.1}") double logSampleRate) {
         this.objectMapper = objectMapper;
@@ -145,7 +144,7 @@ public class SharedwallDispatcherController {
                 });
     }
 
-    private Mono<AbstractMap.SimpleEntry<String, Object>> invokeCandidate(SharedwallMethodCache.MethodCandidate c,
+    private Mono<AbstractMap.SimpleEntry<String, Object>> invokeCandidate(com.example.honeycomb.service.SharedwallMethodCache.MethodCandidate c,
                                                                           MultiValueMap<String, String> headers,
                                                                           byte[] body,
                                                                           com.fasterxml.jackson.databind.JsonNode rootNode) {
