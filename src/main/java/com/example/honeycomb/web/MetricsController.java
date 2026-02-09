@@ -4,7 +4,11 @@ import com.example.honeycomb.service.RequestMetricsService;
 import com.example.honeycomb.util.HoneycombConstants;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -28,11 +32,49 @@ public class MetricsController {
         return metricsService.snapshotCounts();
     }
 
+    @Operation(summary = HoneycombConstants.Docs.METRICS_SHARED_CACHE_STATS)
     @GetMapping(HoneycombConstants.Names.SEPARATOR_SLASH + "shared-cache")
     public Map<String, Object> sharedCacheStats() {
         return Map.of(
             "methodCount", sharedwallMethodCache.getMethodCount(),
-            "buildDurationMs", sharedwallMethodCache.getBuildDurationMs()
+            "buildDurationMs", sharedwallMethodCache.getBuildDurationMs(),
+            "lastRefreshDurationMs", sharedwallMethodCache.getLastRefreshDurationMs(),
+            "lastRefreshAtMs", sharedwallMethodCache.getLastRefreshAtMs(),
+            "lastRefreshAgeMs", sharedwallMethodCache.getLastRefreshAgeMs(),
+            "nextAllowedRefreshAtMs", sharedwallMethodCache.getNextAllowedRefreshAtMs(),
+            "consecutiveFailures", sharedwallMethodCache.getConsecutiveFailures()
         );
+    }
+
+    @Operation(summary = HoneycombConstants.Docs.METRICS_SHARED_CACHE_REFRESH)
+    @PostMapping(HoneycombConstants.Names.SEPARATOR_SLASH + "shared-cache" + HoneycombConstants.Names.SEPARATOR_SLASH + "refresh")
+    public Map<String, Object> refreshSharedCache() {
+        long durationMs = sharedwallMethodCache.rebuild();
+        return Map.of(
+            HoneycombConstants.JsonKeys.STATUS, HoneycombConstants.Status.OK,
+            "buildDurationMs", durationMs
+        );
+    }
+
+    @Operation(summary = HoneycombConstants.Docs.METRICS_SHARED_CACHE_INVALIDATE_ALL)
+    @DeleteMapping(HoneycombConstants.Names.SEPARATOR_SLASH + "shared-cache")
+    public Map<String, Object> invalidateSharedCache() {
+        sharedwallMethodCache.invalidateAll();
+        return Map.of(
+            HoneycombConstants.JsonKeys.STATUS, HoneycombConstants.Status.OK
+        );
+    }
+
+    @Operation(summary = HoneycombConstants.Docs.METRICS_SHARED_CACHE_INVALIDATE_ONE)
+    @DeleteMapping(HoneycombConstants.Names.SEPARATOR_SLASH + "shared-cache" + HoneycombConstants.Names.SEPARATOR_SLASH + "{method}")
+    public ResponseEntity<Map<String, Object>> invalidateSharedCacheMethod(@PathVariable("method") String method) {
+        boolean removed = sharedwallMethodCache.invalidateMethod(method);
+        if (!removed) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(Map.of(
+            HoneycombConstants.JsonKeys.STATUS, HoneycombConstants.Status.OK,
+            HoneycombConstants.JsonKeys.METHOD, method
+        ));
     }
 }

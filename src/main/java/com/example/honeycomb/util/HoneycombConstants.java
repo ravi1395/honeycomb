@@ -315,6 +315,10 @@ public final class HoneycombConstants {
         public static final String TAG_METRICS = "Metrics";
         public static final String TAG_METRICS_DESC = "Per-cell metrics overview";
         public static final String METRICS_CELL_COUNTS = "Per-cell request counts since start";
+        public static final String METRICS_SHARED_CACHE_STATS = "Shared method cache stats";
+        public static final String METRICS_SHARED_CACHE_REFRESH = "Refresh shared method cache";
+        public static final String METRICS_SHARED_CACHE_INVALIDATE_ALL = "Invalidate all shared cache entries";
+        public static final String METRICS_SHARED_CACHE_INVALIDATE_ONE = "Invalidate shared cache entry by method name";
         public static final String TAG_AUDIT = "Audit";
         public static final String TAG_AUDIT_DESC = "Audit log and event history";
         public static final String AUDIT_LIST = "List recent audit events";

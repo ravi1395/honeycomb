@@ -35,6 +35,40 @@ Additional features
 - Autoscaling decisions based on per-cell request rates (configurable thresholds).
 - Admin UI for live cells, metrics, and audit events.
 
+### Shared cache admin + metrics
+Honeycomb tracks shared-method cache health and allows manual refresh/invalidation.
+
+**Cache endpoints**
+- `GET /honeycomb/metrics/shared-cache` — cache stats
+- `POST /honeycomb/metrics/shared-cache/refresh` — force refresh
+- `DELETE /honeycomb/metrics/shared-cache` — invalidate all entries
+- `DELETE /honeycomb/metrics/shared-cache/{method}` — invalidate a single method
+
+**Metrics (Micrometer)**
+- `honeycomb.shared.cache.refresh.duration` (timer, histograms + percentiles)
+- `honeycomb.shared.cache.refreshes` (counter, tag: `result`)
+- `honeycomb.shared.cache.requests` (counter, tags: `method`, `outcome`)
+- `honeycomb.shared.cache.refresh.skips` (counter, tag: `reason`)
+- `honeycomb.shared.cache.methods` (gauge)
+- `honeycomb.shared.cache.last_refresh_duration_ms` (gauge)
+- `honeycomb.shared.cache.last_refresh_age_ms` (gauge)
+- `honeycomb.shared.cache.consecutive_failures` (gauge)
+- `honeycomb.shared.invoker.fallbacks` (counter, tags: `method`, `cell`, `stage`)
+
+**Config knobs**
+```yaml
+honeycomb:
+  shared:
+    cache:
+      enabled: true
+      warmup-enabled: true
+      cache-refresh-ms: 60000
+      refresh:
+        backoff-base-ms: 1000
+        backoff-max-ms: 30000
+        jitter-ms: 250
+```
+
 ## Production profile
 
 For hardened defaults (security, retries, autoscale, metrics), use the `prod` profile:
