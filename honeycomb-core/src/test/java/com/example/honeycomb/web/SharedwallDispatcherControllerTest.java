@@ -1,0 +1,136 @@
+package com.example.honeycomb.web;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.reactive.server.WebTestClient;
+import com.example.honeycomb.util.HoneycombConstants;
+
+import java.util.Objects;
+
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@AutoConfigureWebTestClient
+public class SharedwallDispatcherControllerTest {
+    private static final String SHARED_USER = "shared";
+    private static final String SHARED_PASSWORD = "changeit";
+    private static final String OTHER_CALLER = "other-caller";
+    private static final String HELLO = "hello";
+    private static final String JSON_MAP = "{\"a\":1,\"b\":\"x\"}";
+    private static final String JSON_ARRAY = "[\"foo\",\"bar\"]";
+    private static final String JSON_NUMBERS = "[1,2,3]";
+    private static final String JSON_EMPTY = "{}";
+    private static final String JSON_MALFORMED = "{notjson";
+    private static final String VALUE_BOOM = "boom";
+
+    @Autowired
+    private WebTestClient webClient;
+
+    @Test
+    void echoSharedMethod() {
+        webClient.post().uri("/honeycomb/shared/echo")
+                .headers(h -> { h.setBasicAuth(SHARED_USER, SHARED_PASSWORD); h.add("X-From-Cell", "test-client"); })
+                .contentType(Objects.requireNonNull(MediaType.TEXT_PLAIN))
+                .bodyValue(HELLO)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.ExampleSharedService.result").isEqualTo(HoneycombConstants.Examples.ECHO_PREFIX + HELLO);
+    }
+
+    @Test
+    void echoDeniedWhenCallerNotAllowed() {
+        webClient.post().uri("/honeycomb/shared/echo")
+                .headers(h -> { h.setBasicAuth(SHARED_USER, SHARED_PASSWORD); h.add("X-From-Cell", OTHER_CALLER); })
+                .contentType(Objects.requireNonNull(MediaType.TEXT_PLAIN))
+                .bodyValue(HELLO)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.ExampleSharedService.error").value(v -> {
+                    // contains access-denied message
+                    assert v.toString().contains(HoneycombConstants.ErrorKeys.ACCESS_DENIED);
+                });
+    }
+
+    @Test
+    void summarizeJsonBinding() {
+        webClient.post().uri("/honeycomb/shared/summarize")
+                .headers(h -> h.setBasicAuth(SHARED_USER, SHARED_PASSWORD))
+                .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                .bodyValue(JSON_MAP)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.ExampleSharedService.result." + HoneycombConstants.Examples.RECEIVED_KEYS).isEqualTo(2);
+    }
+
+    @Test
+    void concatMultiArg() {
+        webClient.post().uri("/honeycomb/shared/concat")
+            .headers(h -> h.setBasicAuth(SHARED_USER, SHARED_PASSWORD))
+            .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                .bodyValue(JSON_ARRAY)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.ExampleSharedService.result").isEqualTo("foo"
+                        + HoneycombConstants.Names.SEPARATOR_COLON
+                        + "bar");
+    }
+
+    @Test
+    void sumListCollection() {
+        webClient.post().uri("/honeycomb/shared/sumList")
+                .headers(h -> h.setBasicAuth(SHARED_USER, SHARED_PASSWORD))
+                .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                .bodyValue(JSON_NUMBERS)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.ExampleSharedService.result").isEqualTo(6);
+    }
+
+    @Test
+    void methodNotFoundReturns404() {
+        webClient.post().uri("/honeycomb/shared/doesNotExist")
+                .headers(h -> h.setBasicAuth(SHARED_USER, SHARED_PASSWORD))
+                .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                .bodyValue(JSON_EMPTY)
+                .exchange()
+                .expectStatus().isNotFound()
+                .expectBody()
+                .jsonPath("$.error").value(v -> {
+                    assert v.toString().contains(HoneycombConstants.ErrorKeys.NO_SHARED_METHOD);
+                });
+    }
+
+    @Test
+    void malformedJsonReturnsDeserializeError() {
+        webClient.post().uri("/honeycomb/shared/summarize")
+                .headers(h -> h.setBasicAuth(SHARED_USER, SHARED_PASSWORD))
+                .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                .bodyValue(JSON_MALFORMED)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.ExampleSharedService.error").value(v -> {
+                    assert v.toString().contains(HoneycombConstants.ErrorKeys.JSON_DESERIALIZE_ERROR);
+                });
+    }
+
+    @Test
+    void invocationExceptionProducesErrorEntry() {
+        webClient.post().uri("/honeycomb/shared/boom")
+                .headers(h -> h.setBasicAuth(SHARED_USER, SHARED_PASSWORD))
+                .contentType(Objects.requireNonNull(MediaType.TEXT_PLAIN))
+                .bodyValue(VALUE_BOOM)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.ExampleSharedService.error").value(v -> {
+                    assert v.toString().contains(HoneycombConstants.Examples.BOOM_EXCEPTION);
+                });
+    }
+}
