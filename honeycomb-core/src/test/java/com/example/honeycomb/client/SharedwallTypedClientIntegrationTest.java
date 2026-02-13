@@ -38,6 +38,17 @@ class SharedwallTypedClientIntegrationTest {
     }
 
     @Test
+    void sharedMethodsEndpointCanFilterByVersion() {
+        webTestClient.get()
+                .uri(HoneycombConstants.Paths.HONEYCOMB_SHARED + "/methods?version=v2")
+                .headers(h -> h.setBasicAuth("shared", "changeit"))
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$[?(@.version=='v2' && @.methodName=='echo')]").exists();
+    }
+
+    @Test
     void createTypedClientWithValidationSucceedsForCompatibleContract() {
         SharedwallClient client = buildClient();
         SummarizeApi api = client.createTypedClient(SummarizeApi.class, true);
@@ -69,6 +80,16 @@ class SharedwallTypedClientIntegrationTest {
         assertEquals("echo:hello", result);
     }
 
+    @Test
+    void createTypedClientCanInvokeSpecificVersion() {
+        SharedwallClient client = buildClient();
+        EchoApiV2 api = client.createTypedClient(EchoApiV2.class, true);
+
+        String result = api.echo("hello").block();
+
+        assertEquals("echo-v2:hello", result);
+    }
+
     private SharedwallClient buildClient() {
         WebClient webClient = WebClient.builder()
                 .defaultHeaders(h -> h.setBasicAuth("shared", "changeit"))
@@ -88,6 +109,12 @@ class SharedwallTypedClientIntegrationTest {
     }
 
     interface EchoApi {
+        @SharedwallResult(mode = SharedwallEnvelopeMode.FIRST_RESULT)
+        Mono<String> echo(String input);
+    }
+
+    interface EchoApiV2 {
+        @SharedwallCall(value = "echo", version = "v2")
         @SharedwallResult(mode = SharedwallEnvelopeMode.FIRST_RESULT)
         Mono<String> echo(String input);
     }

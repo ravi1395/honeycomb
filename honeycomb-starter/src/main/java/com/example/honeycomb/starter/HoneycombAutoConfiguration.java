@@ -9,6 +9,7 @@ import com.example.honeycomb.config.HoneycombRateLimiterProperties;
 import com.example.honeycomb.config.HoneycombRoutingProperties;
 import com.example.honeycomb.config.HoneycombSecurityProperties;
 import com.example.honeycomb.config.HoneycombValidationProperties;
+import com.example.honeycomb.config.HoneycombSharedMethodProperties;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.ComponentScan;
@@ -25,7 +26,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
         HoneycombAutoscaleProperties.class,
         HoneycombAuditProperties.class,
         HoneycombValidationProperties.class,
-        HoneycombIdempotencyProperties.class
+        HoneycombIdempotencyProperties.class,
+        HoneycombSharedMethodProperties.class
 })
 @ComponentScan(
         basePackages = "com.example.honeycomb",

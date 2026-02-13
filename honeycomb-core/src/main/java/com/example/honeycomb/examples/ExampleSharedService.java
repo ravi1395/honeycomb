@@ -19,6 +19,13 @@ public class ExampleSharedService {
         return Mono.just(HoneycombConstants.Examples.ECHO_PREFIX + input);
     }
 
+    @Sharedwall(value = HoneycombConstants.Examples.SHARED_ECHO,
+            version = "v2",
+            allowedFrom = {HoneycombConstants.Examples.SHARED_TEST_CLIENT})
+    public Mono<String> echoV2(String input) {
+        return Mono.just("echo-v2:" + input);
+    }
+
     @Sharedwall
     public Mono<Map<String,Object>> summarize(Map<String,Object> payload) {
         return Mono.just(Map.of(

@@ -7,6 +7,7 @@ public final class HoneycombConstants {
         private Headers() {}
         public static final String REQUEST_ID = "X-Request-Id";
         public static final String FROM_CELL = "X-From-Cell";
+        public static final String SHARED_VERSION = "X-Shared-Version";
         public static final String API_KEY = "X-API-Key";
         public static final String AUTHORIZATION = "Authorization";
         public static final String IDEMPOTENCY_KEY = "Idempotency-Key";

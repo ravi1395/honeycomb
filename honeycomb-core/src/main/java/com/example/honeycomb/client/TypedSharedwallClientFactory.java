@@ -72,6 +72,7 @@ public final class TypedSharedwallClientFactory {
             }
 
             String sharedName = resolveSharedMethodName(method);
+            String sharedVersion = resolveSharedMethodVersion(method);
             Object body = buildRequestBody(method, args);
             Type monoPayloadType = resolveMonoPayloadType(method);
 
@@ -81,11 +82,11 @@ public final class TypedSharedwallClientFactory {
                 String targetCell = resultAnn != null && resultAnn.cell() != null && !resultAnn.cell().isBlank()
                         ? resultAnn.cell()
                         : null;
-                return client.invokeTyped(sharedName, body, payloadClass, mode, targetCell);
+                return client.invokeTyped(sharedName, body, payloadClass, mode, targetCell, sharedVersion);
             }
 
             ParameterizedTypeReference<?> responseType = ParameterizedTypeReference.forType(monoPayloadType);
-            return client.invoke(sharedName, body, null, responseType);
+            return client.invokeVersioned(sharedName, body, null, responseType, sharedVersion);
         };
 
         Object proxy = Proxy.newProxyInstance(apiType.getClassLoader(), new Class<?>[]{apiType}, handler);
@@ -115,9 +116,10 @@ public final class TypedSharedwallClientFactory {
                                   Map<String, List<SharedwallInvokeInfo>> remoteMethods,
                                   SharedwallValidationOptions options) {
         String sharedName = resolveSharedMethodName(method);
-        List<SharedwallInvokeInfo> candidates = remoteMethods.get(sharedName);
+        String sharedVersion = resolveSharedMethodVersion(method);
+        List<SharedwallInvokeInfo> candidates = remoteMethods.get(sharedName + "@" + sharedVersion);
         if (candidates == null || candidates.isEmpty()) {
-            return "missing method '" + sharedName + "' for " + apiType.getSimpleName() + "." + method.getName();
+            return "missing method '" + sharedName + "' version '" + sharedVersion + "' for " + apiType.getSimpleName() + "." + method.getName();
         }
 
         String fromCell = client.fromCell();
@@ -221,7 +223,7 @@ public final class TypedSharedwallClientFactory {
         }
         Map<String, List<SharedwallInvokeInfo>> byName = new HashMap<>();
         for (SharedwallInvokeInfo method : methods) {
-            byName.computeIfAbsent(method.methodName(), ignore -> new java.util.ArrayList<>()).add(method);
+            byName.computeIfAbsent(method.methodName() + "@" + method.version(), ignore -> new java.util.ArrayList<>()).add(method);
         }
         return byName;
     }
@@ -232,6 +234,14 @@ public final class TypedSharedwallClientFactory {
             return ann.value();
         }
         return method.getName();
+    }
+
+    private String resolveSharedMethodVersion(Method method) {
+        SharedwallCall ann = method.getAnnotation(SharedwallCall.class);
+        if (ann != null && ann.version() != null && !ann.version().isBlank()) {
+            return ann.version();
+        }
+        return "v1";
     }
 
     private Object buildRequestBody(Method method, Object[] args) {

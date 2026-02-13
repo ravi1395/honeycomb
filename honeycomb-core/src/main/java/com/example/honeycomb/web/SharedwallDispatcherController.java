@@ -1,8 +1,11 @@
 package com.example.honeycomb.web;
 
 import com.example.honeycomb.annotations.Sharedwall;
+import com.example.honeycomb.config.HoneycombSharedMethodProperties;
 import com.example.honeycomb.dto.SharedMethodInfo;
 import com.example.honeycomb.dto.SharedwallInvokeInfo;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -32,6 +35,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.concurrent.ThreadLocalRandom;
 import com.example.honeycomb.util.HoneycombConstants;
+import reactor.util.retry.Retry;
 
 @RestController
 @RequestMapping(HoneycombConstants.Paths.HONEYCOMB_SHARED)
@@ -47,14 +51,20 @@ public class SharedwallDispatcherController {
     private final io.micrometer.core.instrument.Counter methodsListCounter;
     private final io.micrometer.core.instrument.Counter methodsByCellCounter;
     private final io.micrometer.core.instrument.Counter methodsStubCounter;
+    private final HoneycombSharedMethodProperties sharedMethodProperties;
+    private final CircuitBreakerRegistry circuitBreakerRegistry;
 
     public SharedwallDispatcherController(ObjectMapper objectMapper,
                                           com.example.honeycomb.service.SharedwallMethodCache methodCache,
+                                          HoneycombSharedMethodProperties sharedMethodProperties,
+                                          CircuitBreakerRegistry circuitBreakerRegistry,
                                           @Value("${honeycomb.shared.scheduler:boundedElastic}") String schedulerType,
                                           @Value("${honeycomb.shared.log-sample-rate:0.1}") double logSampleRate,
                                           io.micrometer.core.instrument.MeterRegistry meterRegistry) {
         this.objectMapper = objectMapper;
         this.methodCache = methodCache;
+        this.sharedMethodProperties = sharedMethodProperties;
+        this.circuitBreakerRegistry = circuitBreakerRegistry;
         this.sharedScheduler = "parallel".equalsIgnoreCase(schedulerType) ? Schedulers.parallel() : Schedulers.boundedElastic();
         this.logSampleRate = logSampleRate;
         this.meterRegistry = meterRegistry;
@@ -91,11 +101,12 @@ public class SharedwallDispatcherController {
             @RequestHeader MultiValueMap<String, String> headers,
             @RequestBody(required = false) Mono<byte[]> bodyMono
     ) {
+        String requestedVersion = normalizeVersion(headers.getFirst(HoneycombConstants.Headers.SHARED_VERSION));
         logSampledDebug(HoneycombConstants.Messages.DISPATCH_SHARED_DEBUG, methodName, headers, bodyMono);
-        return Mono.fromCallable(() -> methodCache.getCandidates(methodName))
+        return Mono.fromCallable(() -> methodCache.getCandidates(methodName, requestedVersion))
                 .subscribeOn(sharedScheduler)
                 .flatMap(candidates -> {
-                    logSampledDebug("Found {} shared candidates for method {}", candidates.size(), methodName);
+                    logSampledDebug("Found {} shared candidates for method {} version {}", candidates.size(), methodName, requestedVersion);
                     if (candidates.isEmpty()) {
                     logSampledInfo(HoneycombConstants.Messages.SHARED_METHOD_NOT_FOUND, methodName);
                     return Mono.just(ResponseEntity.status(404)
@@ -143,8 +154,9 @@ public class SharedwallDispatcherController {
                                         }
                                         List<Mono<AbstractMap.SimpleEntry<String, Object>>> calls = candidates.stream()
                                                 .map(c -> {
-                                                    logSampledDebug("scheduling invocation for {}.{}", c.getBean().getClass().getSimpleName(), c.getMethod().getName());
-                                                    return invokeCandidate(c, headers, body, rootNode);
+                                                    logSampledDebug("scheduling invocation for {}.{} version {}", c.getBean().getClass().getSimpleName(), c.getMethod().getName(), requestedVersion);
+                                                    HoneycombSharedMethodProperties.MethodPolicy policy = sharedMethodProperties.resolve(methodName, requestedVersion);
+                                                    return invokeCandidate(c, headers, body, rootNode, methodName, requestedVersion, policy);
                                                 })
                                                 .collect(Collectors.toList());
 
@@ -165,15 +177,22 @@ public class SharedwallDispatcherController {
             @Operation(summary = "List invokable sharedwall methods")
             @ApiResponse(responseCode = HoneycombConstants.Swagger.RESP_200, description = "Sharedwall methods metadata")
             @GetMapping("/methods")
-            public Mono<List<SharedwallInvokeInfo>> listMethods() {
+            public Mono<List<SharedwallInvokeInfo>> listMethods(@RequestParam(name = "version", required = false) String version) {
             methodsListCounter.increment();
-            return Mono.fromCallable(() -> methodCache.getAllCandidates().entrySet().stream()
+                String requestedVersion = (version == null || version.isBlank()) ? null : normalizeVersion(version);
+                return Mono.fromCallable(() -> (requestedVersion == null
+                    ? methodCache.getAllCandidates()
+                    : methodCache.getAllCandidates(requestedVersion)).entrySet().stream()
                     .flatMap(entry -> entry.getValue().stream().map(candidate -> {
                         Method method = candidate.getMethod();
                         List<SharedMethodInfo.ParameterInfo> params = Arrays.stream(method.getParameters())
                             .map(this::toParameterInfo)
                             .toList();
                         String[] allowed = candidate.getSharedwall() != null ? candidate.getSharedwall().allowedFrom() : new String[0];
+                        String methodVersion = candidate.getSharedwall() == null || candidate.getSharedwall().version().isBlank()
+                                ? "v1"
+                                : candidate.getSharedwall().version();
+                        HoneycombSharedMethodProperties.MethodPolicy policy = sharedMethodProperties.resolve(entry.getKey(), methodVersion);
                         return new SharedwallInvokeInfo(
                             candidate.getBean().getClass().getSimpleName(),
                             entry.getKey(),
@@ -183,8 +202,9 @@ public class SharedwallDispatcherController {
                             method.getGenericReturnType().getTypeName(),
                             params,
                                     allowed == null ? List.of() : Arrays.asList(allowed),
-                                    "v1",
-                                    method.isAnnotationPresent(Deprecated.class)
+                                    methodVersion,
+                                    method.isAnnotationPresent(Deprecated.class),
+                                    policy.getPolicyName()
                         );
                     }))
                     .sorted(java.util.Comparator
@@ -197,9 +217,9 @@ public class SharedwallDispatcherController {
     @Operation(summary = "List invokable sharedwall methods grouped by cell")
     @ApiResponse(responseCode = HoneycombConstants.Swagger.RESP_200, description = "Sharedwall methods grouped by exposing cell")
     @GetMapping("/methods/by-cell")
-    public Mono<Map<String, List<SharedwallInvokeInfo>>> listMethodsByCell() {
+    public Mono<Map<String, List<SharedwallInvokeInfo>>> listMethodsByCell(@RequestParam(name = "version", required = false) String version) {
         methodsByCellCounter.increment();
-        return listMethods().map(methods -> methods.stream()
+        return listMethods(version).map(methods -> methods.stream()
                 .collect(Collectors.groupingBy(SharedwallInvokeInfo::cellName, LinkedHashMap::new, Collectors.toList())));
     }
 
@@ -208,10 +228,11 @@ public class SharedwallDispatcherController {
     @GetMapping(value = "/methods/stub", produces = MediaType.TEXT_PLAIN_VALUE)
     public Mono<String> generateJavaStub(
             @RequestParam(name = "interfaceName", defaultValue = "SharedwallApi") String interfaceName,
-            @RequestParam(name = "packageName", defaultValue = "com.example.honeycomb.client.generated") String packageName
+            @RequestParam(name = "packageName", defaultValue = "com.example.honeycomb.client.generated") String packageName,
+            @RequestParam(name = "version", required = false) String version
     ) {
         methodsStubCounter.increment();
-        return listMethods().map(methods -> buildJavaStub(packageName, interfaceName, methods));
+        return listMethods(version).map(methods -> buildJavaStub(packageName, interfaceName, methods));
     }
 
     private String buildJavaStub(String packageName, String interfaceName, List<SharedwallInvokeInfo> methods) {
@@ -225,7 +246,15 @@ public class SharedwallDispatcherController {
         for (SharedwallInvokeInfo method : methods) {
             counter++;
             String methodName = sanitizeIdentifier(method.methodName(), "method" + counter);
-            sb.append("    @SharedwallCall(\"").append(method.methodName()).append("\")\n");
+            if ("v1".equalsIgnoreCase(method.version())) {
+                sb.append("    @SharedwallCall(\"").append(method.methodName()).append("\")\n");
+            } else {
+                sb.append("    @SharedwallCall(value=\"")
+                        .append(method.methodName())
+                        .append("\", version=\"")
+                        .append(method.version())
+                        .append("\")\n");
+            }
             if (method.parameters().isEmpty()) {
                 sb.append("    Mono<Object> ").append(methodName).append("();\n\n");
             } else if (method.parameters().size() == 1) {
@@ -275,8 +304,11 @@ public class SharedwallDispatcherController {
     private Mono<AbstractMap.SimpleEntry<String, Object>> invokeCandidate(com.example.honeycomb.service.SharedwallMethodCache.MethodCandidate c,
                                                                           MultiValueMap<String, String> headers,
                                                                           byte[] body,
-                                                                          com.fasterxml.jackson.databind.JsonNode rootNode) {
-        return Mono.defer(() -> {
+                                                                          com.fasterxml.jackson.databind.JsonNode rootNode,
+                                                                          String methodName,
+                                                                          String version,
+                                                                          HoneycombSharedMethodProperties.MethodPolicy policy) {
+        Mono<AbstractMap.SimpleEntry<String, Object>> source = Mono.defer(() -> {
             try {
                 String cellName = c.getBean().getClass().getSimpleName();
                 String targetMethod = c.getMethod().getName();
@@ -372,7 +404,15 @@ public class SharedwallDispatcherController {
             } catch (Throwable e) {
                 return Mono.error(e);
             }
-        }).onErrorResume(e -> {
+        });
+        if (policy.getTimeout() != null) {
+            source = source.timeout(policy.getTimeout());
+        }
+        if (policy.getRetryCount() > 0) {
+            source = source.retryWhen(Retry.backoff(policy.getRetryCount(), policy.getRetryBackoff()));
+        }
+        source = wrapCircuitBreaker(source, methodName, version, policy);
+        return source.onErrorResume(e -> {
             String cellName = c.getBean().getClass().getSimpleName();
             String targetMethod = c.getMethod().getName();
             String emsg = e == null ? HoneycombConstants.Messages.EMPTY : e.getMessage();
@@ -405,6 +445,25 @@ public class SharedwallDispatcherController {
                     .map(list -> new AbstractMap.SimpleEntry<String, Object>(cellName, (Object) Map.of(HoneycombConstants.JsonKeys.RESULT, list)));
         }
         return Mono.just(new AbstractMap.SimpleEntry<String, Object>(cellName, (Object) Map.of(HoneycombConstants.JsonKeys.RESULT, res)));
+    }
+
+    private <T> Mono<T> wrapCircuitBreaker(Mono<T> source,
+                                           String methodName,
+                                           String version,
+                                           HoneycombSharedMethodProperties.MethodPolicy policy) {
+        if (policy == null || !policy.isCircuitBreakerEnabled()) {
+            return source;
+        }
+        String cbName = "shared-method@" + methodName + ":" + normalizeVersion(version);
+        CircuitBreaker circuitBreaker = circuitBreakerRegistry.circuitBreaker(cbName);
+        return source.transformDeferred(io.github.resilience4j.reactor.circuitbreaker.operator.CircuitBreakerOperator.of(circuitBreaker));
+    }
+
+    private String normalizeVersion(String version) {
+        if (version == null || version.isBlank()) {
+            return "v1";
+        }
+        return version.trim();
     }
 
     private boolean shouldSample() {

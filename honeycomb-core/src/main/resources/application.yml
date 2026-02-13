@@ -148,6 +148,19 @@ honeycomb:
       enabled: true
       warmup-enabled: true
       cache-refresh-ms: 60000
+    methods:
+      policies:
+        default:
+          timeout: 5s
+          retry-count: 1
+          retry-backoff: 200ms
+          circuit-breaker-enabled: true
+        # Example method-version override
+        # discount:v2:
+        #   timeout: 2s
+        #   retry-count: 2
+        #   retry-backoff: 100ms
+        #   circuit-breaker-enabled: true
   autoscale:
     enabled: false
     evaluation-interval: 30s

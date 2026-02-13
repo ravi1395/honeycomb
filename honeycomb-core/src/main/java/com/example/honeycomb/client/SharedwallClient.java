@@ -82,12 +82,21 @@ public final class SharedwallClient {
     }
 
     public Mono<List<SharedwallInvokeInfo>> listInvokableMethods() {
-        if (isDiscoveryCacheValid()) {
+        return listInvokableMethods(null);
+    }
+
+    public Mono<List<SharedwallInvokeInfo>> listInvokableMethods(String version) {
+        boolean useCache = !StringUtils.hasText(version);
+        if (useCache && isDiscoveryCacheValid()) {
             return Mono.just(discoveryCache.get());
         }
 
         String url = baseUrl + HoneycombConstants.Paths.HONEYCOMB_SHARED
                 + HoneycombConstants.Names.SEPARATOR_SLASH + "methods";
+        String requestedVersion = version;
+        if (StringUtils.hasText(requestedVersion)) {
+            url = url + "?version=" + requestedVersion;
+        }
 
         WebClient.RequestHeadersSpec<?> req = webClient.get()
                 .uri(url)
@@ -116,7 +125,11 @@ public final class SharedwallClient {
                 .bodyToMono(new ParameterizedTypeReference<List<SharedwallInvokeInfo>>() {})
                 .timeout(discoveryTimeout)
                 .retry(discoveryRetryCount)
-                .doOnNext(this::updateDiscoveryCache);
+                .doOnNext(methods -> {
+                    if (useCache) {
+                        updateDiscoveryCache(methods);
+                    }
+                });
 
         return remote.onErrorResume(ex -> {
             List<SharedwallInvokeInfo> cached = discoveryCache.get();
@@ -145,15 +158,19 @@ public final class SharedwallClient {
     }
 
     public Mono<Map<String, Object>> invoke(String methodName, Object body) {
-        return invoke(methodName, body, null, new ParameterizedTypeReference<>() {});
+        return doInvoke(methodName, body, null, new ParameterizedTypeReference<>() {}, null);
     }
 
     public Mono<Map<String, Object>> invoke(String methodName, Object body, MediaType contentType) {
-        return invoke(methodName, body, contentType, new ParameterizedTypeReference<>() {});
+        return doInvoke(methodName, body, contentType, new ParameterizedTypeReference<>() {}, null);
+    }
+
+    public Mono<Map<String, Object>> invokeVersioned(String methodName, Object body, String version) {
+        return invokeVersioned(methodName, body, null, new ParameterizedTypeReference<>() {}, version);
     }
 
     public <T> Mono<T> invokeTyped(String methodName, Object body, Class<T> responseType) {
-        return invokeTyped(methodName, body, responseType, SharedwallEnvelopeMode.FIRST_RESULT, null);
+        return invokeTyped(methodName, body, responseType, SharedwallEnvelopeMode.FIRST_RESULT, null, null);
     }
 
     public <T> Mono<T> invokeTyped(String methodName,
@@ -161,7 +178,16 @@ public final class SharedwallClient {
                                    Class<T> responseType,
                                    SharedwallEnvelopeMode mode,
                                    String targetCell) {
-        return invoke(methodName, body, null, new ParameterizedTypeReference<Map<String, Object>>() {})
+        return invokeTyped(methodName, body, responseType, mode, targetCell, null);
+    }
+
+    public <T> Mono<T> invokeTyped(String methodName,
+                                   Object body,
+                                   Class<T> responseType,
+                                   SharedwallEnvelopeMode mode,
+                                   String targetCell,
+                                   String version) {
+        return invokeVersioned(methodName, body, null, new ParameterizedTypeReference<Map<String, Object>>() {}, version)
                 .map(envelope -> {
                     Object mapped = responseMapper.map(envelope, mode, targetCell);
                     if (responseType == Object.class) {
@@ -230,11 +256,27 @@ public final class SharedwallClient {
                 .onErrorResume(fallbackFunction);
     }
 
+    public <T> Mono<T> invokeVersioned(String methodName,
+                              Object body,
+                              MediaType contentType,
+                              ParameterizedTypeReference<T> responseType,
+                              String version) {
+        return doInvoke(methodName, body, contentType, responseType, version);
+    }
+
     @SuppressWarnings("null")
     public <T> Mono<T> invoke(String methodName,
                               Object body,
                               MediaType contentType,
                               ParameterizedTypeReference<T> responseType) {
+        return doInvoke(methodName, body, contentType, responseType, null);
+        }
+
+        private <T> Mono<T> doInvoke(String methodName,
+                      Object body,
+                      MediaType contentType,
+                      ParameterizedTypeReference<T> responseType,
+                      String version) {
         String url = baseUrl + HoneycombConstants.Paths.HONEYCOMB_SHARED
                 + HoneycombConstants.Names.SEPARATOR_SLASH + methodName;
         MediaType resolvedType = resolveContentType(body, contentType);
@@ -250,6 +292,9 @@ public final class SharedwallClient {
                     }
                     if (resolvedType != null) {
                         h.setContentType(resolvedType);
+                    }
+                    if (StringUtils.hasText(version)) {
+                        h.set(HoneycombConstants.Headers.SHARED_VERSION, version);
                     }
                     if (bearerTokenSupplier != null) {
                         String token = bearerTokenSupplier.get();

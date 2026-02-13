@@ -1,4 +1,5 @@
 # Maven / Gradle build output
+target/*
 **/target/
 
 # IDEs

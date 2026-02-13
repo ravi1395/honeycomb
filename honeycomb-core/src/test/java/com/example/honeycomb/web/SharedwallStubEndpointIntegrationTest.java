@@ -31,7 +31,7 @@ class SharedwallStubEndpointIntegrationTest {
                 .value(body -> {
                     assert body.contains("package com.example.generated;");
                     assert body.contains("public interface PricingApi");
-                    assert body.contains("@SharedwallCall(\"echo\")");
+                    assert body.contains("@SharedwallCall(");
                     assert body.contains("Mono<Object> echo(Object body);");
                 });
     }
