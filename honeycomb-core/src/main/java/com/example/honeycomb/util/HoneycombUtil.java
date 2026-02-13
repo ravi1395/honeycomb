@@ -1,7 +1,6 @@
 package com.example.honeycomb.util;
 
 import com.example.honeycomb.config.HoneycombSecurityProperties;
-import com.example.honeycomb.client.SharedwallClient;
 import com.example.honeycomb.security.JwtAudienceValidator;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
@@ -21,7 +20,6 @@ import org.springframework.core.ParameterizedTypeReference;
 import reactor.core.publisher.Mono;
 
 import java.util.Map;
-import java.util.Objects;
 
 public final class HoneycombUtil {
     private HoneycombUtil() {}
@@ -151,67 +149,5 @@ public final class HoneycombUtil {
         return req.bodyValue(body)
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<>() {});
-    }
-
-    public static Mono<Map<String, Object>> invokeSharedwall(WebClient webClient,
-                                                             String baseUrl,
-                                                             String methodName,
-                                                             Object body,
-                                                             String accessToken,
-                                                             String fromCell,
-                                                             MediaType contentType) {
-        String url = baseUrl + HoneycombConstants.Paths.HONEYCOMB_SHARED + HoneycombConstants.Names.SEPARATOR_SLASH + methodName;
-        MediaType resolvedType = contentType;
-        if (resolvedType == null) {
-            if (body instanceof String || body instanceof byte[]) {
-                resolvedType = MediaType.TEXT_PLAIN;
-            } else {
-                resolvedType = MediaType.APPLICATION_JSON;
-            }
-        }
-
-        final MediaType finalContentType = resolvedType;
-        WebClient.RequestBodySpec req = webClient.post()
-                .uri(url)
-                .headers(h -> {
-                    if (StringUtils.hasText(accessToken)) {
-                        h.setBearerAuth(Objects.requireNonNull(accessToken));
-                    }
-                    if (fromCell != null && !fromCell.isBlank()) {
-                        h.add(HoneycombConstants.Headers.FROM_CELL, fromCell);
-                    }
-                    h.setContentType(finalContentType);
-                });
-
-        if (body == null) {
-            return req.retrieve().bodyToMono(new ParameterizedTypeReference<>() {});
-        }
-
-        return req.bodyValue(body)
-                .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<>() {});
-    }
-
-    public static SharedwallClient sharedwallClient(WebClient webClient, String baseUrl, String fromCell) {
-        return SharedwallClient.builder(webClient, baseUrl)
-                .fromCell(fromCell)
-                .build();
-    }
-
-    public static SharedwallClient sharedwallOAuth2Client(WebClient.Builder builder,
-                                                          ReactiveOAuth2AuthorizedClientManager manager,
-                                                          String baseUrl,
-                                                          String fromCell,
-                                                          String registrationId) {
-        ServerOAuth2AuthorizedClientExchangeFilterFunction oauth2 =
-                new ServerOAuth2AuthorizedClientExchangeFilterFunction(manager);
-        if (StringUtils.hasText(registrationId)) {
-            oauth2.setDefaultClientRegistrationId(registrationId);
-        }
-        WebClient client = builder.filter(oauth2).build();
-        return SharedwallClient.builder(client, baseUrl)
-                .fromCell(fromCell)
-                .registrationId(registrationId)
-                .build();
     }
 }

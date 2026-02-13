@@ -4,14 +4,25 @@ Honeycomb is a Spring Boot WebFlux framework for “cells”: lightweight model 
 
 This README explains each feature with concrete examples. For a runnable demo, see the example app at Example/honeycomb-example/README.md.
 
+## Modules
+
+This repository is split into:
+
+- `honeycomb-core` — the implementation/library (controllers, services, annotations, DTOs, config properties).
+- `honeycomb` (starter) — Spring Boot auto-configuration that wires Honeycomb into a consuming app.
+
+### Dependency coordinates
+
+- Recommended (auto-config enabled): `com.honeycomb:honeycomb`
+- Core-only (manual wiring): `com.honeycomb:honeycomb-core`
+
 ## Quick start
 
 Build and run from the repo root:
 
 ```sh
-cd honeycomb
-mvn package
-mvn spring-boot:run
+mvn clean install
+mvn -pl honeycomb-core spring-boot:run
 ```
 
 Try it:
@@ -74,7 +85,7 @@ honeycomb:
 For hardened defaults (security, retries, autoscale, metrics), use the `prod` profile:
 
 ```sh
-SPRING_PROFILES_ACTIVE=prod mvn spring-boot:run
+SPRING_PROFILES_ACTIVE=prod mvn -pl honeycomb-core spring-boot:run
 ```
 
 ## Core concepts
@@ -202,20 +213,114 @@ SharedwallClient client = SharedwallClient.builder(oauthClient, "http://localhos
 
 client.invoke("discount", Map.of("listPrice", 49.99, "discountPct", 0.15))
       .subscribe();
+
+// Fallback value
+client.invoke("discount", Map.of("listPrice", 49.99, "discountPct", 0.15),
+      Map.of("discountedPrice", 49.99, "source", "fallback-value"))
+  .subscribe();
+
+// Fallback supplier
+client.invoke("discount", Map.of("listPrice", 49.99, "discountPct", 0.15),
+      () -> Map.of("discountedPrice", 49.99, "source", "fallback-supplier"))
+  .subscribe();
+
+// Fallback function (error-aware)
+client.invoke("discount", Map.of("listPrice", 49.99, "discountPct", 0.15),
+      ex -> Mono.just(Map.of("discountedPrice", 49.99,
+             "source", "fallback-function",
+             "reason", ex.getClass().getSimpleName())))
+  .subscribe();
+```
+
+**Discover invokable shared methods**
+- `GET /honeycomb/shared/methods`
+- `GET /honeycomb/shared/methods/by-cell`
+- `GET /honeycomb/shared/methods/stub?interfaceName=SharedwallApi&packageName=com.example.client.generated`
+
+```sh
+curl -H 'X-API-Key: admin-key' http://localhost:8080/honeycomb/shared/methods
+```
+
+**Typed method-call mapping (no shared URL hardcoding)**
+```java
+interface PricingApi {
+  @SharedwallCall("discount")
+  Mono<Map<String, Object>> discount(Map<String, Object> request);
+}
+
+SharedwallClient client = SharedwallClient.builder(webClient, "http://localhost:8080")
+    .fromCell("pricing-client")
+  .discoveryTimeout(Duration.ofSeconds(5))
+  .discoveryRetryCount(1)
+  .discoveryCacheTtl(Duration.ofSeconds(30))
+    .build();
+
+PricingApi api = client.createTypedClient(PricingApi.class);
+api.discount(Map.of("listPrice", 49.99, "discountPct", 0.15)).subscribe();
+
+// Optional fail-fast validation at startup:
+PricingApi validatedApi = client.createTypedClient(PricingApi.class, true);
+
+// Optional strict validation options (deprecation + allowedFrom checks)
+PricingApi strictApi = client.createTypedClient(
+  PricingApi.class,
+  true,
+  new SharedwallValidationOptions(true, true)
+);
+
+// Optional: unwrap the shared response envelope into a typed DTO
+record DiscountResult(String currency, java.math.BigDecimal listPrice,
+            java.math.BigDecimal discountPct, java.math.BigDecimal discounted) {}
+
+Mono<DiscountResult> typed = validatedApi.discount(Map.of("listPrice", 49.99, "discountPct", 0.15))
+  .map(envelope -> {
+    Map<String, Object> byCell = (Map<String, Object>) envelope.get("PricingCell");
+    Map<String, Object> result = (Map<String, Object>) byCell.get("result");
+    return new DiscountResult(
+      String.valueOf(result.get("currency")),
+      new java.math.BigDecimal(String.valueOf(result.get("listPrice"))),
+      new java.math.BigDecimal(String.valueOf(result.get("discountPct"))),
+      new java.math.BigDecimal(String.valueOf(result.get("discounted"))));
+  });
+```
+
+Validation mode checks method alias/name and signature compatibility (parameter count/types and return payload type)
+against `/honeycomb/shared/methods` before creating the proxy.
+
+**Response mapping strategies (typed invoke)**
+- `RAW_ENVELOPE` — returns full `{cell -> {result/error}}` map
+- `FIRST_RESULT` — returns first cell's `result`
+- `STRICT_SINGLE_CELL` — requires exactly one cell result (or target cell)
+- `MERGED_RESULTS` — returns `{cell -> result}`
+
+```java
+interface EchoApi {
+  @SharedwallResult(mode = SharedwallEnvelopeMode.FIRST_RESULT)
+  Mono<String> echo(String input);
+}
+```
+
+**Generate typed stubs during build/dev**
+
+Use the utility class to fetch `/honeycomb/shared/methods/stub` and write an interface source file:
+
+```bash
+java -cp honeycomb-core/target/honeycomb-core-0.1.1.jar \
+  com.example.honeycomb.client.SharedwallStubGenerator \
+  http://localhost:8080 \
+  src/main/java/com/example/client/generated/SharedwallApi.java \
+  SharedwallApi \
+  com.example.client.generated
 ```
 
 **Invoke in code (Bearer token)**
 ```java
-WebClient webClient = WebClient.builder().build();
-HoneycombUtil.invokeSharedwall(
-  webClient,
-  "http://localhost:8080",
-  "discount",
-  Map.of("listPrice", 49.99, "discountPct", 0.15),
-  "<access-token>",
-  "pricing-client",
-  MediaType.APPLICATION_JSON
-).subscribe();
+SharedwallClient tokenClient = SharedwallClient.builder(WebClient.builder().build(), "http://localhost:8080")
+    .fromCell("pricing-client")
+    .bearerTokenSupplier(() -> "<access-token>")
+    .build();
+
+tokenClient.invoke("discount", Map.of("listPrice", 49.99, "discountPct", 0.15)).subscribe();
 ```
 
 ### 5) Routing policies for inter‑cell calls
@@ -347,32 +452,12 @@ honeycomb:
     defaults:
       limit-for-period: 50
       refresh-period: 1s
-<<<<<<< HEAD
       timeout: 0ms
     per-cell:
       SampleModel:
         limit-for-period: 10
         refresh-period: 1s
-=======
-  routing:
-    default-policy: "round-robin"
-    per-cell-policy:
-      "*": "round-robin"
-  autoscale:
-    enabled: false
-    evaluation-interval: 30s
-    scale-up-rps: 5.0
-    scale-down-rps: 0.5
-
-  shared:
-    cache:
-      enabled: true
-      warmup-enabled: true
-      cache-refresh-ms: 60000
-
-shared:
-  caller-header: "X-From-Cell"
->>>>>>> 33348e6 (updating read me)
+        timeout: 0ms
 ```
 
 ### 9) Metrics and audit
@@ -488,7 +573,7 @@ http://localhost:8080/honeycomb/admin
 
 ## Example configuration
 
-See [src/main/resources/application.yml](src/main/resources/application.yml) for full configuration examples. The example app also provides a docker profile at Example/honeycomb-example/src/main/resources/application-docker.yml for multi‑instance setups.
+See [honeycomb-core/src/main/resources/application.yml](honeycomb-core/src/main/resources/application.yml) for full configuration examples. The example app also provides a docker profile at Example/honeycomb-example/src/main/resources/application-docker.yml for multi‑instance setups.
 
 ## Running multiple instances (Docker Compose)
 
@@ -501,9 +586,8 @@ docker compose up --build
 
 Then access:
 
-```
-http://localhost:8080/honeycomb/swagger-ui.html
-http://localhost:9090
+- http://localhost:8080/honeycomb/swagger-ui.html
+- http://localhost:9090
 
 ## Postman and curl
 

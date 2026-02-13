@@ -6,41 +6,45 @@ This example app consumes the Honeycomb jar as a dependency and exercises the fu
 
 From the repository root:
 
-1) Build and install the Honeycomb jar into your local Maven repo:
+1) Build and install the Honeycomb modules into your local Maven repo:
 
-```
-cd honeycomb
+```sh
 mvn -DskipTests install
 ```
 
+This installs:
+
+- `com.honeycomb:honeycomb-core` (library)
+- `com.honeycomb:honeycomb` (starter, auto-config)
+
 2) Build and run this example:
 
-```
+```sh
 cd Example/honeycomb-example
 mvn spring-boot:run
 ```
 
 For production-like defaults (security, retries, autoscale), use:
 
-```
+```sh
 SPRING_PROFILES_ACTIVE=prod mvn spring-boot:run
 ```
 
 To enable OAuth2 client wiring, add the oauth2 profile:
 
-```
+```sh
 SPRING_PROFILES_ACTIVE=oauth2 mvn spring-boot:run
 ```
 
 Or combine with prod:
 
-```
+```sh
 SPRING_PROFILES_ACTIVE=prod,oauth2 mvn spring-boot:run
 ```
 
 To enable per‑cell storage routing (Redis + Hibernate Reactive) locally, use:
 
-```
+```sh
 SPRING_PROFILES_ACTIVE=routing mvn spring-boot:run
 ```
 
@@ -130,26 +134,61 @@ curl -u shared:changeit \
   http://localhost:8080/honeycomb/shared/discount
 ```
 
-### Shared methods (via routing)
+### Shared methods (typed in-code invoke)
 
-OAuth2 (recommended):
+Use `SharedwallClient` (or typed proxies generated from `/honeycomb/shared/methods/stub`) in application code
+instead of manually constructing `/cells/{from}/invoke/{to}/shared/{method}` URLs.
 
+Legacy routed invoke endpoints remain available for compatibility and non-Java callers.
+
+Minimal pattern used in this example (`SharedwallClientExample`):
+
+```java
+interface PricingSharedMethods {
+  @SharedwallCall("discount")
+  Mono<Map<String, Object>> discount(Map<String, Object> payload);
+}
+
+record DiscountResult(String currency, BigDecimal listPrice, BigDecimal discountPct, BigDecimal discounted) {}
+
+SharedwallClient sharedwallClient = SharedwallClient.builder(webClient, baseUrl)
+    .fromCell("demo-client")
+    .registrationId(registrationId)
+    .build();
+
+PricingSharedMethods api = sharedwallClient.createTypedClient(PricingSharedMethods.class, true);
+
+Mono<DiscountResult> out = api.discount(Map.of("listPrice", 49.99, "discountPct", 0.12))
+    .map(envelope -> {
+      Map<String, Object> byCell = (Map<String, Object>) envelope.get("PricingCell");
+      Map<String, Object> result = (Map<String, Object>) byCell.get("result");
+      return new DiscountResult(
+          String.valueOf(result.get("currency")),
+          new BigDecimal(String.valueOf(result.get("listPrice"))),
+          new BigDecimal(String.valueOf(result.get("discountPct"))),
+          new BigDecimal(String.valueOf(result.get("discounted"))));
+    });
 ```
-curl -H 'Authorization: Bearer <access-token>' \
-  -H 'X-From-Cell: demo-client' \
-  -H 'Content-Type: application/json' \
-  -d '{"listPrice":49.99,"discountPct":0.10}' \
-  http://localhost:8080/cells/demo-client/invoke/PricingCell/shared/discount?policy=round-robin
+
+`createTypedClient(..., true)` validates method names and signatures against `/honeycomb/shared/methods` during startup.
+
+You can enable stricter startup checks (deprecated methods + allowedFrom restrictions):
+
+```java
+PricingSharedMethods strict = sharedwallClient.createTypedClient(
+    PricingSharedMethods.class,
+    true,
+    new SharedwallValidationOptions(true, true)
+);
 ```
 
-Basic auth (local/dev):
+To auto-unwrap response envelopes to scalar/DTO payloads with typed clients, annotate method return mapping mode:
 
-```
-curl -u shared:changeit \
-  -H 'X-From-Cell: demo-client' \
-  -H 'Content-Type: application/json' \
-  -d '{"listPrice":49.99,"discountPct":0.10}' \
-  http://localhost:8080/cells/demo-client/invoke/PricingCell/shared/discount?policy=round-robin
+```java
+interface PingApi {
+  @SharedwallResult(mode = SharedwallEnvelopeMode.FIRST_RESULT)
+  Mono<String> ping();
+}
 ```
 
 ### Metrics, audit, admin UI

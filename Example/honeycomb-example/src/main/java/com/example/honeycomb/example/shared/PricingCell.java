@@ -1,7 +1,6 @@
 package com.example.honeycomb.example.shared;
 
 import com.example.honeycomb.annotations.Cell;
-import com.example.honeycomb.annotations.Sharedwall;
 import com.example.honeycomb.example.ExampleConstants;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;

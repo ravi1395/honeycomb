@@ -12,27 +12,26 @@
         </encoder>
     </appender>
 
-    <!-- JSON appender for production (structured logging) -->
-    <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
-            <includeMdcKeyName>traceId</includeMdcKeyName>
-            <includeMdcKeyName>spanId</includeMdcKeyName>
-            <includeMdcKeyName>caller</includeMdcKeyName>
-            <includeMdcKeyName>cell</includeMdcKeyName>
-            <fieldNames>
-                <timestamp>@timestamp</timestamp>
-                <message>message</message>
-                <logger>logger</logger>
-                <thread>thread</thread>
-                <level>level</level>
-                <stackTrace>stackTrace</stackTrace>
-            </fieldNames>
-            <customFields>{"service":"honeycomb"}</customFields>
-        </encoder>
-    </appender>
-
     <!-- Conditional logging based on profile -->
     <springProfile name="json,production,prod">
+        <!-- JSON appender for production (structured logging) -->
+        <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                <includeMdcKeyName>traceId</includeMdcKeyName>
+                <includeMdcKeyName>spanId</includeMdcKeyName>
+                <includeMdcKeyName>caller</includeMdcKeyName>
+                <includeMdcKeyName>cell</includeMdcKeyName>
+                <fieldNames>
+                    <timestamp>@timestamp</timestamp>
+                    <message>message</message>
+                    <logger>logger</logger>
+                    <thread>thread</thread>
+                    <level>level</level>
+                    <stackTrace>stackTrace</stackTrace>
+                </fieldNames>
+                <customFields>{"service":"honeycomb"}</customFields>
+            </encoder>
+        </appender>
         <root level="INFO">
             <appender-ref ref="JSON"/>
         </root>
