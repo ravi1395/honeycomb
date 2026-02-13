@@ -149,6 +149,11 @@ interface PricingSharedMethods {
   Mono<Map<String, Object>> discount(Map<String, Object> payload);
 }
 
+interface PricingSharedMethodsV2 {
+  @SharedwallCall(value = "discount", version = "v2")
+  Mono<Map<String, Object>> discount(Map<String, Object> payload);
+}
+
 record DiscountResult(String currency, BigDecimal listPrice, BigDecimal discountPct, BigDecimal discounted) {}
 
 SharedwallClient sharedwallClient = SharedwallClient.builder(webClient, baseUrl)
@@ -171,6 +176,8 @@ Mono<DiscountResult> out = api.discount(Map.of("listPrice", 49.99, "discountPct"
 ```
 
 `createTypedClient(..., true)` validates method names and signatures against `/honeycomb/shared/methods` during startup.
+
+Use `?version=v2` on discovery endpoints to inspect only v2 contracts.
 
 You can enable stricter startup checks (deprecated methods + allowedFrom restrictions):
 

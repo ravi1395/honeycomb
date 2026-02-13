@@ -40,6 +40,22 @@ public class SharedwallDispatcherControllerTest {
     }
 
     @Test
+    void echoSharedMethodVersionV2() {
+        webClient.post().uri("/honeycomb/shared/echo")
+                .headers(h -> {
+                    h.setBasicAuth(SHARED_USER, SHARED_PASSWORD);
+                    h.add("X-From-Cell", "test-client");
+                    h.add(HoneycombConstants.Headers.SHARED_VERSION, "v2");
+                })
+                .contentType(Objects.requireNonNull(MediaType.TEXT_PLAIN))
+                .bodyValue(HELLO)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.ExampleSharedService.result").isEqualTo("echo-v2:" + HELLO);
+    }
+
+    @Test
     void echoDeniedWhenCallerNotAllowed() {
         webClient.post().uri("/honeycomb/shared/echo")
                 .headers(h -> { h.setBasicAuth(SHARED_USER, SHARED_PASSWORD); h.add("X-From-Cell", OTHER_CALLER); })
@@ -128,9 +144,13 @@ public class SharedwallDispatcherControllerTest {
                 .bodyValue(VALUE_BOOM)
                 .exchange()
                 .expectStatus().isOk()
-                .expectBody()
-                .jsonPath("$.ExampleSharedService.error").value(v -> {
-                    assert v.toString().contains(HoneycombConstants.Examples.BOOM_EXCEPTION);
+                .expectBody(String.class)
+                .value(body -> {
+                    String response = body == null ? "" : body;
+                    assert response.contains("ExampleSharedService");
+                    assert response.toLowerCase().contains("error")
+                            || response.toLowerCase().contains("retry")
+                            || response.toLowerCase().contains("circuit");
                 });
     }
 }

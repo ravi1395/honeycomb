@@ -11,6 +11,8 @@ import java.lang.annotation.Target;
 public @interface Sharedwall {
     /** Optional alias or external name for the shared method */
     String value() default HoneycombConstants.Messages.EMPTY;
+    /** Contract version for this shared method. */
+    String version() default "v1";
     /** Optional list of cell names that are allowed to call this shared method. Empty means allow all. Use "*" to explicitly allow all. */
     String[] allowedFrom() default {};
 }

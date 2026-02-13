@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -161,11 +162,48 @@ public class SharedwallMethodCache {
         return list;
     }
 
+    public List<MethodCandidate> getCandidates(String methodName, String version) {
+        String resolvedVersion = normalizeVersion(version);
+        return getCandidates(methodName).stream()
+                .filter(candidate -> Objects.equals(resolveVersion(candidate), resolvedVersion))
+                .toList();
+    }
+
     public Map<String, List<MethodCandidate>> getAllCandidates() {
         if (!cacheEnabled) {
             return discoverAllOnDemand();
         }
         return cacheRef.get();
+    }
+
+    public Map<String, List<MethodCandidate>> getAllCandidates(String version) {
+        String resolvedVersion = normalizeVersion(version);
+        Map<String, List<MethodCandidate>> base = getAllCandidates();
+        Map<String, List<MethodCandidate>> filtered = new HashMap<>();
+        for (Map.Entry<String, List<MethodCandidate>> entry : base.entrySet()) {
+            List<MethodCandidate> list = entry.getValue().stream()
+                    .filter(candidate -> Objects.equals(resolveVersion(candidate), resolvedVersion))
+                    .toList();
+            if (!list.isEmpty()) {
+                filtered.put(entry.getKey(), list);
+            }
+        }
+        return Collections.unmodifiableMap(filtered);
+    }
+
+    private String resolveVersion(MethodCandidate candidate) {
+        Sharedwall sharedwall = candidate.getSharedwall();
+        if (sharedwall == null || sharedwall.version() == null || sharedwall.version().isBlank()) {
+            return "v1";
+        }
+        return sharedwall.version().trim();
+    }
+
+    private String normalizeVersion(String version) {
+        if (version == null || version.isBlank()) {
+            return "v1";
+        }
+        return version.trim();
     }
 
     public long getLastRefreshMs() {

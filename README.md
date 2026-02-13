@@ -237,6 +237,9 @@ client.invoke("discount", Map.of("listPrice", 49.99, "discountPct", 0.15),
 - `GET /honeycomb/shared/methods/by-cell`
 - `GET /honeycomb/shared/methods/stub?interfaceName=SharedwallApi&packageName=com.example.client.generated`
 
+Optional version filter:
+- `GET /honeycomb/shared/methods?version=v2`
+
 ```sh
 curl -H 'X-API-Key: admin-key' http://localhost:8080/honeycomb/shared/methods
 ```
@@ -245,6 +248,11 @@ curl -H 'X-API-Key: admin-key' http://localhost:8080/honeycomb/shared/methods
 ```java
 interface PricingApi {
   @SharedwallCall("discount")
+  Mono<Map<String, Object>> discount(Map<String, Object> request);
+}
+
+interface PricingApiV2 {
+  @SharedwallCall(value = "discount", version = "v2")
   Mono<Map<String, Object>> discount(Map<String, Object> request);
 }
 
@@ -480,6 +488,28 @@ curl http://localhost:8080/honeycomb/metrics/shared-cache
 
 - `honeycomb.shared.scheduler` (default: `boundedElastic`, options: `parallel`)
 - `honeycomb.shared.log-sample-rate` (default: `0.1`, range: 0..1)
+- `honeycomb.shared.methods.policies` per method/version resilience tuning:
+  - key format: `methodName:version` (example: `discount:v2`)
+  - properties: `timeout`, `retry-count`, `retry-backoff`, `circuit-breaker-enabled`
+
+Example:
+
+```yaml
+honeycomb:
+  shared:
+    methods:
+      policies:
+        default:
+          timeout: 5s
+          retry-count: 1
+          retry-backoff: 200ms
+          circuit-breaker-enabled: true
+        discount:v2:
+          timeout: 2s
+          retry-count: 2
+          retry-backoff: 100ms
+          circuit-breaker-enabled: true
+```
 
 ### 10) Autoscaling
 Autoscaling decisions use per‑cell request rates with global and per‑cell thresholds.

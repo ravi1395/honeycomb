@@ -25,7 +25,8 @@ public record SharedwallInvokeInfo(
         @NonNull List<SharedMethodInfo.ParameterInfo> parameters,
     @NonNull List<String> allowedFrom,
     @NonNull String version,
-    boolean deprecated
+    boolean deprecated,
+    @NonNull String resiliencePolicy
 ) {
     public SharedwallInvokeInfo {
         cellName = Objects.requireNonNull(Objects.requireNonNullElse(cellName, ""));
@@ -35,5 +36,6 @@ public record SharedwallInvokeInfo(
         parameters = Objects.requireNonNull(Objects.requireNonNullElse(parameters, List.of()));
         allowedFrom = Objects.requireNonNull(Objects.requireNonNullElse(allowedFrom, List.of()));
         version = Objects.requireNonNull(Objects.requireNonNullElse(version, "v1"));
+        resiliencePolicy = Objects.requireNonNull(Objects.requireNonNullElse(resiliencePolicy, "default"));
     }
 }

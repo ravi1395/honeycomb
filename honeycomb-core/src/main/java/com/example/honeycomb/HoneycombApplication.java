@@ -12,6 +12,7 @@ import com.example.honeycomb.config.HoneycombAutoscaleProperties;
 import com.example.honeycomb.config.HoneycombAuditProperties;
 import com.example.honeycomb.config.HoneycombIdempotencyProperties;
 import com.example.honeycomb.config.HoneycombValidationProperties;
+import com.example.honeycomb.config.HoneycombSharedMethodProperties;
 
 @SpringBootApplication
 @EnableScheduling
@@ -23,7 +24,8 @@ import com.example.honeycomb.config.HoneycombValidationProperties;
     HoneycombAutoscaleProperties.class,
     HoneycombAuditProperties.class,
     HoneycombValidationProperties.class,
-    HoneycombIdempotencyProperties.class
+    HoneycombIdempotencyProperties.class,
+    HoneycombSharedMethodProperties.class
 })
 public class HoneycombApplication {
     public static void main(String[] args) {
