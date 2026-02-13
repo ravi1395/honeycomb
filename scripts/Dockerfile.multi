@@ -1,0 +1,24 @@
+# Lightweight Dockerfile for multi-instance Honeycomb runs.
+# Builds the core jar (not the example) and packages into a minimal JRE image.
+
+FROM maven:3.9.9-eclipse-temurin-21 AS build
+WORKDIR /workspace
+COPY pom.xml .
+COPY honeycomb-core/pom.xml honeycomb-core/pom.xml
+COPY honeycomb-starter/pom.xml honeycomb-starter/pom.xml
+COPY examples/honeycomb-example/pom.xml examples/honeycomb-example/pom.xml
+# cache deps first, then copy sources
+RUN mvn dependency:go-offline -pl honeycomb-core,honeycomb-starter -am -q 2>/dev/null || true
+COPY honeycomb-core honeycomb-core
+COPY honeycomb-starter honeycomb-starter
+COPY examples examples
+RUN mvn -DskipTests package -pl examples/honeycomb-example -am -q
+
+FROM eclipse-temurin:21-jre-alpine
+RUN apk add --no-cache curl
+WORKDIR /app
+COPY --from=build /workspace/examples/honeycomb-example/target/honeycomb-example-1.2.0.jar /app/app.jar
+EXPOSE 8080 9091 9092 9093
+
+ENV JAVA_OPTS=""
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar /app/app.jar"]

@@ -1,0 +1,80 @@
+# Multi-instance Honeycomb setup with per-cell port overrides.
+#
+# Usage:
+#   cd scripts
+#   docker compose -f docker-compose.multi.yml up --build
+#
+# Override instance count:
+#   docker compose -f docker-compose.multi.yml up --build --scale honeycomb=3
+#
+# Environment variables (set in .env or inline):
+#   HONEYCOMB_IMAGE   - pre-built image tag (default: build from source)
+#   SPRING_PROFILES   - comma-separated Spring profiles (default: prod)
+#   CELL_PORTS        - JSON map of cell→port (default: see below)
+
+version: "3.9"
+
+x-honeycomb-common: &honeycomb-common
+  build:
+    context: ..
+    dockerfile: scripts/Dockerfile.multi
+  restart: unless-stopped
+  environment: &honeycomb-env
+    SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES:-prod}
+    JAVA_OPTS: "-Xms256m -Xmx512m"
+  healthcheck:
+    test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+    interval: 15s
+    timeout: 5s
+    retries: 3
+    start_period: 30s
+
+services:
+  # ── Instance 1: SampleModel on 9091 ────────────────────────────────
+  honeycomb-cell-1:
+    <<: *honeycomb-common
+    container_name: honeycomb-cell-1
+    environment:
+      <<: *honeycomb-env
+      CELL_PORTS_SAMPLEMODEL: "9091"
+    ports:
+      - "8081:8080"   # main API
+      - "9091:9091"   # SampleModel cell port
+
+  # ── Instance 2: InventoryCell on 9092 ──────────────────────────────
+  honeycomb-cell-2:
+    <<: *honeycomb-common
+    container_name: honeycomb-cell-2
+    environment:
+      <<: *honeycomb-env
+      CELL_PORTS_INVENTORYCELL: "9092"
+    ports:
+      - "8082:8080"   # main API
+      - "9092:9092"   # InventoryCell cell port
+
+  # ── Instance 3: PricingCell on 9093 ────────────────────────────────
+  honeycomb-cell-3:
+    <<: *honeycomb-common
+    container_name: honeycomb-cell-3
+    environment:
+      <<: *honeycomb-env
+      CELL_PORTS_PRICINGCELL: "9093"
+    ports:
+      - "8083:8080"   # main API
+      - "9093:9093"   # PricingCell cell port
+
+  # ── Load balancer ──────────────────────────────────────────────────
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: honeycomb-lb
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./nginx-multi.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      honeycomb-cell-1:
+        condition: service_healthy
+      honeycomb-cell-2:
+        condition: service_healthy
+      honeycomb-cell-3:
+        condition: service_healthy
