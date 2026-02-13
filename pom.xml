@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.honeycomb</groupId>
     <artifactId>honeycomb-parent</artifactId>
-    <version>0.1.1</version>
+    <version>1.2.0</version>
     <packaging>pom</packaging>
 
     <parent>
@@ -17,7 +17,7 @@
     <modules>
         <module>honeycomb-core</module>
         <module>honeycomb-starter</module>
-        <module>Example/honeycomb-example</module>
+        <module>examples/honeycomb-example</module>
     </modules>
 
     <properties>

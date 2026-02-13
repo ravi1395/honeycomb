@@ -2,7 +2,7 @@
 
 Honeycomb is a Spring Boot WebFlux framework for “cells”: lightweight model components that are discovered at runtime, exposed through a uniform CRUD + metadata API, and optionally hosted on dedicated per‑cell servers. It includes shared method routing, API‑key security, rate limiting, request metrics, audit logging, and autoscaling based on per‑cell request rates.
 
-This README explains each feature with concrete examples. For a runnable demo, see the example app at Example/honeycomb-example/README.md.
+This README explains each feature with concrete examples. For a runnable demo, see the example app at examples/honeycomb-example/README.md.
 
 ## Modules
 
@@ -45,6 +45,15 @@ Additional features
 - Routing policies for inter-cell calls: all/one/random/round-robin/weighted/least-latency/circuit-aware.
 - Autoscaling decisions based on per-cell request rates (configurable thresholds).
 - Admin UI for live cells, metrics, and audit events.
+
+### New in 1.2
+- **Per-method invoke metrics** — counter + timer (p50/p95/p99) + outcome per method+version.
+- **Observation-based distributed tracing** — automatic spans for every shared-method dispatch (Zipkin, OpenTelemetry compatible).
+- **Batch invoke** — `POST /honeycomb/shared/batch` dispatches multiple methods in parallel.
+- **Async fire-and-forget** — `POST /honeycomb/shared/async/{method}` returns 202 Accepted; execution proceeds in background.
+- **Admin diagnostic endpoints** — view registered methods, circuit-breaker states, cache diagnostics, and force-reset breakers.
+- **JSON Schema contract validation** — validate shared-method payloads against JSON Schema before dispatch.
+- **Idempotency for shared dispatch** — `Idempotency-Key` header now honoured in shared-method invocations.
 
 ### Shared cache admin + metrics
 Honeycomb tracks shared-method cache health and allows manual refresh/invalidation.
@@ -91,7 +100,7 @@ SPRING_PROFILES_ACTIVE=prod mvn -pl honeycomb-core spring-boot:run
 ## Core concepts
 
 ### 1) Cell discovery
-Annotate any class with `@com.example.honeycomb.annotations.Cell`. Honeycomb scans the application context and classpath, then registers each cell with the `CellRegistry`.
+Annotate any class with `@com.honeycomb.core.annotations.Cell`. Honeycomb scans the application context and classpath, then registers each cell with the `CellRegistry`.
 
 ```java
 @Cell(port = 8081)
@@ -313,8 +322,8 @@ interface EchoApi {
 Use the utility class to fetch `/honeycomb/shared/methods/stub` and write an interface source file:
 
 ```bash
-java -cp honeycomb-core/target/honeycomb-core-0.1.1.jar \
-  com.example.honeycomb.client.SharedwallStubGenerator \
+java -cp honeycomb-core/target/honeycomb-core-1.2.0.jar \
+  com.honeycomb.core.client.SharedwallStubGenerator \
   http://localhost:8080 \
   src/main/java/com/example/client/generated/SharedwallApi.java \
   SharedwallApi \
@@ -511,6 +520,85 @@ honeycomb:
           circuit-breaker-enabled: true
 ```
 
+### 9b) Per-method invoke metrics & distributed tracing
+
+Honeycomb instruments every shared-method dispatch with Micrometer counters, timers, and Observation-based spans.
+
+**Micrometer metrics**
+
+| Metric | Type | Tags | Description |
+|--------|------|------|-------------|
+| `honeycomb.shared.invoke.total` | counter | `method`, `version` | Total invocations dispatched |
+| `honeycomb.shared.invoke.duration` | timer (p50/p95/p99) | `method`, `version` | End-to-end dispatch latency |
+| `honeycomb.shared.invoke.outcome` | counter | `method`, `version`, `outcome` | Success / error / exception counts |
+
+**Observation tracing**
+
+When `micrometer-observation` is on the classpath (included by default), each dispatch creates an `Observation` named `honeycomb.shared.invoke` with:
+
+- Low-cardinality keys: `method`, `version`
+- High-cardinality key: `request.id`
+
+Pair with any Observation-compatible tracer (Zipkin, OpenTelemetry) to get end-to-end spans automatically.
+
+### 9c) Batch invoke
+
+Invoke multiple shared methods in a single HTTP call. All methods execute in parallel; results are returned in order.
+
+**Endpoint**: `POST /honeycomb/shared/batch`
+
+```sh
+curl -X POST -H 'Content-Type: application/json' -H 'X-API-Key: admin-key' \
+  -d '[
+    {"methodName":"discount","version":"v1","body":{"listPrice":49.99}},
+    {"methodName":"sumList","version":"v1","body":{"numbers":[1,2,3]}}
+  ]' \
+  http://localhost:8080/honeycomb/shared/batch
+```
+
+Response: array of `{ methodName, version, status, result, error, durationMs }`.
+
+### 9d) Async fire-and-forget
+
+Submit a shared-method call for background execution. The server returns 202 Accepted immediately with a tracking ID.
+
+**Endpoint**: `POST /honeycomb/shared/async/{methodName}`
+
+```sh
+curl -X POST -H 'Content-Type: application/json' -H 'X-API-Key: admin-key' \
+  -H 'X-Shared-Version: v2' \
+  -d '{"listPrice":49.99}' \
+  http://localhost:8080/honeycomb/shared/async/discount
+```
+
+Response: `{ "trackingId": "...", "status": "accepted" }`
+
+### 9e) Admin diagnostic endpoints
+
+Operational endpoints for inspecting shared-method state at runtime.
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/honeycomb/admin/shared/methods` | GET | All registered shared methods with metadata |
+| `/honeycomb/admin/shared/circuit-breakers` | GET | All shared-method circuit breaker states |
+| `/honeycomb/admin/shared/circuit-breakers/{method}/{version}` | GET | Specific circuit breaker state |
+| `/honeycomb/admin/shared/circuit-breakers/{method}/{version}/reset` | POST | Force-reset a circuit breaker |
+| `/honeycomb/admin/shared/cache` | GET | Cache diagnostics (method counts, staleness) |
+
+### 9f) Shared-method JSON Schema validation
+
+Validate shared-method request payloads against JSON Schema files before dispatch.
+
+**Config**
+```yaml
+honeycomb:
+  shared:
+    methods:
+      schema-validation-enabled: true
+```
+
+Place schema files in `classpath:schemas/shared/{methodName}-{version}.schema.json`. If no schema file exists, validation is skipped for that method. Invalid payloads receive a 400 response with validation details.
+
 ### 10) Autoscaling
 Autoscaling decisions use per‑cell request rates with global and per‑cell thresholds.
 
@@ -565,7 +653,7 @@ honeycomb:
 ```
 
 ### 13) Idempotency (optional)
-Enable idempotent create/update requests by providing an `Idempotency-Key` header.
+Enable idempotent create/update requests by providing an `Idempotency-Key` header. When enabled, shared-method dispatches also honour the `Idempotency-Key` header — repeated calls with the same key return the cached result instead of re-executing.
 
 ```yaml
 honeycomb:
@@ -603,14 +691,14 @@ http://localhost:8080/honeycomb/admin
 
 ## Example configuration
 
-See [honeycomb-core/src/main/resources/application.yml](honeycomb-core/src/main/resources/application.yml) for full configuration examples. The example app also provides a docker profile at Example/honeycomb-example/src/main/resources/application-docker.yml for multi‑instance setups.
+See [honeycomb-core/src/main/resources/application.yml](honeycomb-core/src/main/resources/application.yml) for full configuration examples. The example app also provides a docker profile at examples/honeycomb-example/src/main/resources/application-docker.yml for multi‑instance setups.
 
 ## Running multiple instances (Docker Compose)
 
 The example app includes a two‑instance setup behind Nginx plus Redis and Prometheus.
 
 ```sh
-cd Example/honeycomb-example
+cd examples/honeycomb-example
 docker compose up --build
 ```
 

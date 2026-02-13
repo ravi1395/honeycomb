@@ -10,9 +10,9 @@
       "presentation": { "reveal": "always" }
     },
     {
-      "label": "Maven: package (Example/honeycomb-example)",
+      "label": "Maven: package (examples/honeycomb-example)",
       "type": "shell",
-      "command": "mvn -f Example/honeycomb-example/pom.xml clean package -DskipTests",
+      "command": "mvn -f examples/honeycomb-example/pom.xml clean package -DskipTests",
       "problemMatcher": ["$maven"],
       "presentation": { "reveal": "always" }
     }
@@ -27,10 +27,10 @@
     {
       "label": "Spring Boot: run (honeycomb-example)",
       "type": "shell",
-      "command": "mvn -f Example/honeycomb-example/pom.xml -DskipTests spring-boot:run",
+      "command": "mvn -f examples/honeycomb-example/pom.xml -DskipTests spring-boot:run",
       "problemMatcher": ["$maven"],
       "presentation": { "reveal": "always" },
-      "options": { "cwd": "${workspaceFolder}/Example/honeycomb-example" }
+      "options": { "cwd": "${workspaceFolder}/examples/honeycomb-example" }
     }
     ,
     {
