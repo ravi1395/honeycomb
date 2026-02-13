@@ -11,7 +11,6 @@ public final class ExampleConstants {
 
     public static final class Shared {
         private Shared() {}
-        public static final String PRICE = "price";
         public static final String DISCOUNT = "discount";
         public static final String PING = "ping";
         public static final String DEMO_CALLER = "demo-client";
@@ -48,20 +47,12 @@ public final class ExampleConstants {
         public static final String SERVER_PORT = "${server.port:8080}";
         public static final String API_KEY_HEADER = "${honeycomb.security.api-keys.header:X-API-Key}";
         public static final String ADMIN_KEY = "${honeycomb.security.api-keys.keys.admin:admin-key}";
-        public static final String SHARED_USER = "${shared.user:shared}";
-        public static final String SHARED_PASSWORD = "${shared.password:changeit}";
-        public static final String CALLER_HEADER = "${shared.caller-header:X-From-Cell}";
         public static final String OAUTH2_REGISTRATION_ID = "${example.oauth2.registration-id:}";
     }
 
     public static final class Hosts {
         private Hosts() {}
         public static final String LOCALHOST = "localhost";
-    }
-
-    public static final class Query {
-        private Query() {}
-        public static final String POLICY_ROUND_ROBIN = "round-robin";
     }
 
     public static final class Packages {
@@ -92,9 +83,7 @@ public final class ExampleConstants {
         public static final String LOG_DESCRIBE = "describe {}: {}";
         public static final String LOG_CREATE_INVENTORY = "create inventory: {}";
         public static final String LOG_INVENTORY_ITEMS = "inventory items: {}";
-        public static final String LOG_SHARED_DISCOUNT = "shared discount: {}";
         public static final String LOG_SHARED_DISCOUNT_UTIL = "shared discount (util): {}";
-        public static final String LOG_CELLS_DISCOUNT = "cells invoke discount: {}";
         public static final String LOG_METRICS = "metrics: {}";
         public static final String LOG_AUDIT = "audit: {}";
     }

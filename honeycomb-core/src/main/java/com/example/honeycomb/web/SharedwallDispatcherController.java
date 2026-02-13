@@ -1,6 +1,8 @@
 package com.example.honeycomb.web;
 
 import com.example.honeycomb.annotations.Sharedwall;
+import com.example.honeycomb.dto.SharedMethodInfo;
+import com.example.honeycomb.dto.SharedwallInvokeInfo;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -23,6 +25,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.lang.reflect.Method;
 import java.util.AbstractMap;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -40,6 +44,9 @@ public class SharedwallDispatcherController {
     private final com.example.honeycomb.service.SharedwallMethodCache methodCache;
     private final Scheduler sharedScheduler;
     private final double logSampleRate;
+    private final io.micrometer.core.instrument.Counter methodsListCounter;
+    private final io.micrometer.core.instrument.Counter methodsByCellCounter;
+    private final io.micrometer.core.instrument.Counter methodsStubCounter;
 
     public SharedwallDispatcherController(ObjectMapper objectMapper,
                                           com.example.honeycomb.service.SharedwallMethodCache methodCache,
@@ -52,6 +59,9 @@ public class SharedwallDispatcherController {
         this.logSampleRate = logSampleRate;
         this.meterRegistry = meterRegistry;
         this.invocationTimer = meterRegistry.timer("honeycomb.shared.invocation.latency");
+        this.methodsListCounter = meterRegistry.counter("honeycomb.shared.methods.requests", "type", "list");
+        this.methodsByCellCounter = meterRegistry.counter("honeycomb.shared.methods.requests", "type", "by_cell");
+        this.methodsStubCounter = meterRegistry.counter("honeycomb.shared.methods.requests", "type", "stub");
     }
     @SuppressWarnings("unused")
     private final io.micrometer.core.instrument.Timer invocationTimer;
@@ -151,6 +161,116 @@ public class SharedwallDispatcherController {
                                     }));
                 });
     }
+
+            @Operation(summary = "List invokable sharedwall methods")
+            @ApiResponse(responseCode = HoneycombConstants.Swagger.RESP_200, description = "Sharedwall methods metadata")
+            @GetMapping("/methods")
+            public Mono<List<SharedwallInvokeInfo>> listMethods() {
+            methodsListCounter.increment();
+            return Mono.fromCallable(() -> methodCache.getAllCandidates().entrySet().stream()
+                    .flatMap(entry -> entry.getValue().stream().map(candidate -> {
+                        Method method = candidate.getMethod();
+                        List<SharedMethodInfo.ParameterInfo> params = Arrays.stream(method.getParameters())
+                            .map(this::toParameterInfo)
+                            .toList();
+                        String[] allowed = candidate.getSharedwall() != null ? candidate.getSharedwall().allowedFrom() : new String[0];
+                        return new SharedwallInvokeInfo(
+                            candidate.getBean().getClass().getSimpleName(),
+                            entry.getKey(),
+                            HoneycombConstants.Paths.HONEYCOMB_SHARED
+                                + HoneycombConstants.Names.SEPARATOR_SLASH
+                                + entry.getKey(),
+                            method.getGenericReturnType().getTypeName(),
+                            params,
+                                    allowed == null ? List.of() : Arrays.asList(allowed),
+                                    "v1",
+                                    method.isAnnotationPresent(Deprecated.class)
+                        );
+                    }))
+                    .sorted(java.util.Comparator
+                        .comparing(SharedwallInvokeInfo::methodName)
+                        .thenComparing(SharedwallInvokeInfo::cellName))
+                    .toList())
+                .subscribeOn(sharedScheduler);
+            }
+
+    @Operation(summary = "List invokable sharedwall methods grouped by cell")
+    @ApiResponse(responseCode = HoneycombConstants.Swagger.RESP_200, description = "Sharedwall methods grouped by exposing cell")
+    @GetMapping("/methods/by-cell")
+    public Mono<Map<String, List<SharedwallInvokeInfo>>> listMethodsByCell() {
+        methodsByCellCounter.increment();
+        return listMethods().map(methods -> methods.stream()
+                .collect(Collectors.groupingBy(SharedwallInvokeInfo::cellName, LinkedHashMap::new, Collectors.toList())));
+    }
+
+    @Operation(summary = "Generate Java interface stub for sharedwall methods")
+    @ApiResponse(responseCode = HoneycombConstants.Swagger.RESP_200, description = "Java interface source code")
+    @GetMapping(value = "/methods/stub", produces = MediaType.TEXT_PLAIN_VALUE)
+    public Mono<String> generateJavaStub(
+            @RequestParam(name = "interfaceName", defaultValue = "SharedwallApi") String interfaceName,
+            @RequestParam(name = "packageName", defaultValue = "com.example.honeycomb.client.generated") String packageName
+    ) {
+        methodsStubCounter.increment();
+        return listMethods().map(methods -> buildJavaStub(packageName, interfaceName, methods));
+    }
+
+    private String buildJavaStub(String packageName, String interfaceName, List<SharedwallInvokeInfo> methods) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("package ").append(packageName).append(";\n\n");
+        sb.append("import com.example.honeycomb.client.SharedwallCall;\n");
+        sb.append("import reactor.core.publisher.Mono;\n\n");
+        sb.append("public interface ").append(interfaceName).append(" {\n");
+
+        int counter = 0;
+        for (SharedwallInvokeInfo method : methods) {
+            counter++;
+            String methodName = sanitizeIdentifier(method.methodName(), "method" + counter);
+            sb.append("    @SharedwallCall(\"").append(method.methodName()).append("\")\n");
+            if (method.parameters().isEmpty()) {
+                sb.append("    Mono<Object> ").append(methodName).append("();\n\n");
+            } else if (method.parameters().size() == 1) {
+                sb.append("    Mono<Object> ").append(methodName).append("(Object body");
+                sb.append(");\n\n");
+            } else {
+                sb.append("    Mono<Object> ").append(methodName).append("(");
+                for (int i = 0; i < method.parameters().size(); i++) {
+                    if (i > 0) sb.append(", ");
+                    String argName = method.parameters().get(i).name();
+                    if (argName == null || argName.isBlank()) {
+                        argName = "arg" + i;
+                    }
+                    sb.append("Object ").append(sanitizeIdentifier(argName, "arg" + i));
+                }
+                sb.append(");\n\n");
+            }
+        }
+
+        sb.append("}\n");
+        return sb.toString();
+    }
+
+    private String sanitizeIdentifier(String candidate, String fallback) {
+        if (candidate == null || candidate.isBlank()) {
+            return fallback;
+        }
+        String cleaned = candidate.replaceAll("[^A-Za-z0-9_]", "_");
+        if (!Character.isJavaIdentifierStart(cleaned.charAt(0))) {
+            cleaned = "_" + cleaned;
+        }
+        StringBuilder out = new StringBuilder();
+        for (int i = 0; i < cleaned.length(); i++) {
+            char c = cleaned.charAt(i);
+            out.append(Character.isJavaIdentifierPart(c) ? c : '_');
+        }
+        return out.toString();
+    }
+
+            private SharedMethodInfo.ParameterInfo toParameterInfo(java.lang.reflect.Parameter parameter) {
+            return new SharedMethodInfo.ParameterInfo(
+                parameter.getName(),
+                parameter.getParameterizedType().getTypeName()
+            );
+            }
 
     private Mono<AbstractMap.SimpleEntry<String, Object>> invokeCandidate(com.example.honeycomb.service.SharedwallMethodCache.MethodCandidate c,
                                                                           MultiValueMap<String, String> headers,

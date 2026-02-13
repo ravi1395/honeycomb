@@ -13,6 +13,7 @@ import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 @Component
@@ -22,18 +23,23 @@ public class DemoRunner implements ApplicationRunner {
     private final WebClient webClient;
     private final ObjectProvider<SharedwallClientExample> sharedwallClientExample;
 
-    @Value(ExampleConstants.PropertyValues.SERVER_PORT)
-    private int serverPort;
+    private final int serverPort;
 
-    @Value(ExampleConstants.PropertyValues.API_KEY_HEADER)
-    private String apiKeyHeader;
+    private final String apiKeyHeader;
 
-    @Value(ExampleConstants.PropertyValues.ADMIN_KEY)
-    private String adminKey;
+    private final String adminKey;
 
-    public DemoRunner(WebClient.Builder builder, ObjectProvider<SharedwallClientExample> sharedwallClientExample) {
+    public DemoRunner(
+            WebClient.Builder builder,
+            ObjectProvider<SharedwallClientExample> sharedwallClientExample,
+            @Value(ExampleConstants.PropertyValues.SERVER_PORT) int serverPort,
+            @Value(ExampleConstants.PropertyValues.API_KEY_HEADER) String apiKeyHeader,
+            @Value(ExampleConstants.PropertyValues.ADMIN_KEY) String adminKey) {
         this.webClient = builder.build();
         this.sharedwallClientExample = sharedwallClientExample;
+        this.serverPort = serverPort;
+        this.apiKeyHeader = Objects.requireNonNull(apiKeyHeader, "apiKeyHeader must not be null");
+        this.adminKey = Objects.requireNonNull(adminKey, "adminKey must not be null");
     }
 
     @Override
@@ -59,7 +65,7 @@ public class DemoRunner implements ApplicationRunner {
                 .then(Mono.defer(() -> {
                     SharedwallClientExample client = sharedwallClientExample.getIfAvailable();
                     if (client == null) return Mono.empty();
-                    return client.callDiscount(base).then(client.callDiscountViaCells(base));
+                    return client.callDiscount(base);
                 }))
                 .then(fetchMetrics(base))
                 .then(fetchAudit(base))
@@ -68,7 +74,9 @@ public class DemoRunner implements ApplicationRunner {
 
     private Mono<Void> listModels(String base) {
         return webClient.get().uri(base + HoneycombConstants.Paths.HONEYCOMB_MODELS)
-                .header(apiKeyHeader, adminKey)
+                .header(
+                        Objects.requireNonNull(apiKeyHeader, "apiKeyHeader must not be null"),
+                        Objects.requireNonNull(adminKey, "adminKey must not be null"))
                 .retrieve()
                 .bodyToMono(String.class)
                 .timeout(Duration.ofSeconds(5))
@@ -78,7 +86,9 @@ public class DemoRunner implements ApplicationRunner {
 
     private Mono<Void> describeModel(String base, String name) {
         return webClient.get().uri(base + HoneycombConstants.Paths.HONEYCOMB_MODELS + "/" + name)
-                .header(apiKeyHeader, adminKey)
+                .header(
+                        Objects.requireNonNull(apiKeyHeader, "apiKeyHeader must not be null"),
+                        Objects.requireNonNull(adminKey, "adminKey must not be null"))
                 .retrieve()
                 .bodyToMono(String.class)
                 .timeout(Duration.ofSeconds(5))
@@ -99,8 +109,10 @@ public class DemoRunner implements ApplicationRunner {
                         + ExampleConstants.Cells.INVENTORY
                 + "/"
                         + ExampleConstants.Values.ROUTE_ITEMS)
-                .header(apiKeyHeader, adminKey)
-                .bodyValue(body)
+                .header(
+                        Objects.requireNonNull(apiKeyHeader, "apiKeyHeader must not be null"),
+                        Objects.requireNonNull(adminKey, "adminKey must not be null"))
+                .bodyValue(Objects.requireNonNull(body, "body must not be null"))
                 .retrieve()
                 .bodyToMono(String.class)
                 .timeout(Duration.ofSeconds(5))
@@ -115,7 +127,9 @@ public class DemoRunner implements ApplicationRunner {
                         + ExampleConstants.Cells.INVENTORY
                 + "/"
                         + ExampleConstants.Values.ROUTE_ITEMS)
-                .header(apiKeyHeader, adminKey)
+                .header(
+                        Objects.requireNonNull(apiKeyHeader, "apiKeyHeader must not be null"),
+                        Objects.requireNonNull(adminKey, "adminKey must not be null"))
                 .retrieve()
                 .bodyToMono(String.class)
                 .timeout(Duration.ofSeconds(5))
@@ -128,7 +142,9 @@ public class DemoRunner implements ApplicationRunner {
                 + HoneycombConstants.Paths.HONEYCOMB_METRICS
                 + "/"
                 + HoneycombConstants.Paths.CELLS)
-                .header(apiKeyHeader, adminKey)
+                .header(
+                        Objects.requireNonNull(apiKeyHeader, "apiKeyHeader must not be null"),
+                        Objects.requireNonNull(adminKey, "adminKey must not be null"))
                 .retrieve()
                 .bodyToMono(String.class)
                 .timeout(Duration.ofSeconds(5))
@@ -138,7 +154,9 @@ public class DemoRunner implements ApplicationRunner {
 
     private Mono<Void> fetchAudit(String base) {
         return webClient.get().uri(base + HoneycombConstants.Paths.HONEYCOMB_AUDIT)
-                .header(apiKeyHeader, adminKey)
+                .header(
+                        Objects.requireNonNull(apiKeyHeader, "apiKeyHeader must not be null"),
+                        Objects.requireNonNull(adminKey, "adminKey must not be null"))
                 .retrieve()
                 .bodyToMono(String.class)
                 .timeout(Duration.ofSeconds(5))

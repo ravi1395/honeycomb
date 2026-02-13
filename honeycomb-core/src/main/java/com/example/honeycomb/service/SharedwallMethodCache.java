@@ -161,6 +161,13 @@ public class SharedwallMethodCache {
         return list;
     }
 
+    public Map<String, List<MethodCandidate>> getAllCandidates() {
+        if (!cacheEnabled) {
+            return discoverAllOnDemand();
+        }
+        return cacheRef.get();
+    }
+
     public long getLastRefreshMs() {
         return lastRefreshDurationMs.get();
     }
@@ -240,6 +247,28 @@ public class SharedwallMethodCache {
             }
         }
         return candidates;
+    }
+
+    private Map<String, List<MethodCandidate>> discoverAllOnDemand() {
+        Map<String, List<MethodCandidate>> next = new HashMap<>();
+        for (String beanName : context.getBeanDefinitionNames()) {
+            try {
+                Object bean = context.getBean(beanName);
+                Class<?> cls = AopUtils.getTargetClass(bean);
+                if (!cls.isAnnotationPresent(Cell.class)) continue;
+                for (Method m : cls.getDeclaredMethods()) {
+                    if (m.isSynthetic() || m.isBridge()) continue;
+                    Sharedwall s = m.getAnnotation(Sharedwall.class);
+                    if (s == null) continue;
+                    String alias = (s.value() != null && !s.value().isBlank()) ? s.value() : m.getName();
+                    m.setAccessible(true);
+                    next.computeIfAbsent(alias, k -> new ArrayList<>())
+                            .add(new MethodCandidate(bean, m, s, objectMapper, meterRegistry));
+                }
+            } catch (Throwable ignored) {
+            }
+        }
+        return Collections.unmodifiableMap(next);
     }
 
     public static class MethodCandidate {

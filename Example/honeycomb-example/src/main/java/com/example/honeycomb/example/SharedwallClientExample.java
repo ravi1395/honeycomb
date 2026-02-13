@@ -1,18 +1,18 @@
 package com.example.honeycomb.example;
 
-import com.example.honeycomb.util.HoneycombConstants;
+import com.example.honeycomb.client.SharedwallCall;
 import com.example.honeycomb.client.SharedwallClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientManager;
 import org.springframework.security.oauth2.client.web.reactive.function.client.ServerOAuth2AuthorizedClientExchangeFilterFunction;
 import reactor.core.publisher.Mono;
 
+import java.math.BigDecimal;
 import java.util.Map;
 
 @Component
@@ -37,41 +37,62 @@ public class SharedwallClientExample {
                 ExampleConstants.JsonKeys.LIST_PRICE, 49.99,
                 ExampleConstants.JsonKeys.DISCOUNT_PCT, 0.12
         );
-        return SharedwallClient.builder(webClient, baseUrl)
+        SharedwallClient sharedwallClient = SharedwallClient.builder(webClient, baseUrl)
                 .fromCell(ExampleConstants.Shared.DEMO_CALLER)
                 .registrationId(registrationId)
-                .build()
-                .invoke(ExampleConstants.Values.ROUTE_DISCOUNT, body, MediaType.APPLICATION_JSON)
+                .build();
+
+        PricingSharedMethods api = sharedwallClient.createTypedClient(PricingSharedMethods.class, true);
+
+        return api.discount(body)
+                .map(this::unwrapDiscount)
                 .doOnNext(resp -> log.info(ExampleConstants.Messages.LOG_SHARED_DISCOUNT_UTIL, resp))
                 .then();
     }
 
-    public Mono<Void> callDiscountViaCells(String baseUrl) {
-        Map<String, Object> body = Map.of(
-                ExampleConstants.JsonKeys.LIST_PRICE, 49.99,
-                ExampleConstants.JsonKeys.DISCOUNT_PCT, 0.10
-        );
-        String url = baseUrl
-                + HoneycombConstants.Paths.CELLS_BASE
-                + HoneycombConstants.Names.SEPARATOR_SLASH
-                + ExampleConstants.Shared.DEMO_CALLER
-                + HoneycombConstants.Names.SEPARATOR_SLASH
-                + HoneycombConstants.Paths.INVOKE
-                + HoneycombConstants.Names.SEPARATOR_SLASH
-                + ExampleConstants.Cells.PRICING
-                + HoneycombConstants.Names.SEPARATOR_SLASH
-                + HoneycombConstants.Paths.SHARED
-                + HoneycombConstants.Names.SEPARATOR_SLASH
-                + ExampleConstants.Values.ROUTE_DISCOUNT
-                + "?" + HoneycombConstants.Params.POLICY + "=" + ExampleConstants.Query.POLICY_ROUND_ROBIN;
+    DiscountResult unwrapDiscount(Map<String, Object> envelope) {
+        Object byCell = envelope.get(ExampleConstants.Cells.PRICING);
+        if (!(byCell instanceof Map<?, ?> cellMapObj)) {
+            return new DiscountResult(ExampleConstants.Values.USD, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
+        }
+        Object resultObj = cellMapObj.get("result");
+        if (!(resultObj instanceof Map<?, ?> resultMapObj)) {
+            return new DiscountResult(ExampleConstants.Values.USD, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
+        }
 
-        return webClient.post().uri(url)
-                .attributes(ServerOAuth2AuthorizedClientExchangeFilterFunction.clientRegistrationId(registrationId))
-                .headers(h -> h.setContentType(MediaType.APPLICATION_JSON))
-                .bodyValue(body)
-                .retrieve()
-                .bodyToMono(String.class)
-                .doOnNext(resp -> log.info(ExampleConstants.Messages.LOG_CELLS_DISCOUNT, resp))
-                .then();
+        String currency = asString(resultMapObj.get(ExampleConstants.JsonKeys.CURRENCY), ExampleConstants.Values.USD);
+        BigDecimal listPrice = asDecimal(resultMapObj.get(ExampleConstants.JsonKeys.LIST_PRICE));
+        BigDecimal discountPct = asDecimal(resultMapObj.get(ExampleConstants.JsonKeys.DISCOUNT_PCT));
+        BigDecimal discounted = asDecimal(resultMapObj.get(ExampleConstants.JsonKeys.DISCOUNTED));
+        return new DiscountResult(currency, listPrice, discountPct, discounted);
     }
+
+    private BigDecimal asDecimal(Object value) {
+        if (value == null) {
+            return BigDecimal.ZERO;
+        }
+        if (value instanceof Number n) {
+            return BigDecimal.valueOf(n.doubleValue());
+        }
+        try {
+            return new BigDecimal(value.toString());
+        } catch (NumberFormatException ex) {
+            return BigDecimal.ZERO;
+        }
+    }
+
+    private String asString(Object value, String fallback) {
+        if (value == null) {
+            return fallback;
+        }
+        String text = value.toString();
+        return text.isBlank() ? fallback : text;
+    }
+
+    interface PricingSharedMethods {
+        @SharedwallCall(ExampleConstants.Values.ROUTE_DISCOUNT)
+        Mono<Map<String, Object>> discount(Map<String, Object> payload);
+    }
+
+    record DiscountResult(String currency, BigDecimal listPrice, BigDecimal discountPct, BigDecimal discounted) {}
 }
