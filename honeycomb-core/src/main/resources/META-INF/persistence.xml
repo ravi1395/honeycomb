@@ -5,6 +5,6 @@
              version="3.0">
     <persistence-unit name="honeycomb-reactive">
         <provider>org.hibernate.reactive.provider.ReactivePersistenceProvider</provider>
-        <class>com.example.honeycomb.persistence.CellRecord</class>
+        <class>com.honeycomb.core.persistence.CellRecord</class>
     </persistence-unit>
 </persistence>

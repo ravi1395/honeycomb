@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.honeycomb</groupId>
         <artifactId>honeycomb-parent</artifactId>
-        <version>0.1.1</version>
+        <version>1.2.0</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -108,6 +108,12 @@
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
+
+        <!-- Micrometer Observation API for tracing spans -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-observation</artifactId>
         </dependency>
 
         <!-- Netty native DNS resolver for macOS -->

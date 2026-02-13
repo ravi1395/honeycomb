@@ -1,0 +1,68 @@
+# honeycomb-cell@.service — systemd template unit for Honeycomb cell instances.
+#
+# Install:
+#   sudo cp scripts/honeycomb-cell@.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#
+# Start a cell:
+#   sudo systemctl start honeycomb-cell@SampleModel-9091
+#   sudo systemctl start honeycomb-cell@InventoryCell-9092
+#
+# Enable at boot:
+#   sudo systemctl enable honeycomb-cell@SampleModel-9091
+#
+# View logs:
+#   journalctl -u honeycomb-cell@SampleModel-9091 -f
+#
+# Instance naming: <CellName>-<Port>  (the part after @)
+#   Extracted by splitting on '-' where the last segment is the port.
+
+[Unit]
+Description=Honeycomb Cell Instance (%i)
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=honeycomb
+Group=honeycomb
+WorkingDirectory=/opt/honeycomb
+
+# Parse instance name: "SampleModel-9091" → CELL_NAME=SampleModel, CELL_PORT=9091
+Environment=INSTANCE=%i
+ExecStartPre=/bin/bash -c 'echo "Starting cell instance: %i"'
+
+ExecStart=/bin/bash -c '\
+  CELL_NAME="${INSTANCE%%-*}" && \
+  CELL_PORT="${INSTANCE##*-}" && \
+  exec /usr/bin/java \
+    -Xms256m -Xmx512m \
+    -Dspring.profiles.active=${SPRING_PROFILES:-prod} \
+    -jar /opt/honeycomb/honeycomb-example-1.2.0.jar \
+    --cell.ports.${CELL_NAME}=${CELL_PORT}'
+
+# Graceful shutdown
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+# Restart policy
+Restart=on-failure
+RestartSec=10
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=honeycomb-%i
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/honeycomb/logs
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

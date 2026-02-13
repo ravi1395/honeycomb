@@ -149,6 +149,7 @@ honeycomb:
       warmup-enabled: true
       cache-refresh-ms: 60000
     methods:
+      schema-validation-enabled: false
       policies:
         default:
           timeout: 5s
