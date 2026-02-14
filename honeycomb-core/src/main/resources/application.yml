@@ -143,11 +143,21 @@ honeycomb:
     weights:
       SampleModel:
         "localhost:8081": 1
+  events:
+    enabled: true
+    transport: memory            # memory | redis
+    default-topic: honeycomb-events
+    buffer-size: 256
   shared:
     cache:
       enabled: true
       warmup-enabled: true
       cache-refresh-ms: 60000
+      type: local                # local | redis
+      redis-key-prefix: "honeycomb:cache:"
+      redis-invalidate-channel: "honeycomb:cache:invalidate"
+      redis-ttl-seconds: 300
+      sync-enabled: false
     methods:
       schema-validation-enabled: false
       policies:
