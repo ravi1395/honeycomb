@@ -118,6 +118,30 @@ honeycomb:
     scale-down-rps: 0.0
     per-cell-enabled:
       "*": true
+  # ─── gRPC Transport (v1.4.0) ───
+  # Set enabled: true to activate gRPC transport alongside HTTP.
+  # Transport modes:  http  = HTTP only (gRPC client beans still available)
+  #                   grpc  = gRPC only (no HTTP server)
+  #                   both  = both HTTP and gRPC servers (default when enabled)
+  grpc:
+    enabled: false
+    transport: both
+    server:
+      port: 9090
+      max-inbound-message-size: 4194304
+      keep-alive-time: 30s
+      keep-alive-timeout: 5s
+    client:
+      default-target: "localhost:9090"
+      deadline: 10s
+      negotiation-type: plaintext
+      load-balancing-policy: round_robin
+      max-retries: 1
+      # per-cell-targets:
+      #   InventoryCell: "inventory-service:9090"
+      #   CatalogCell: "catalog-service:9090"
+    reflection-enabled: true
+    health-enabled: true
 
 shared:
   caller-header: "X-From-Cell"

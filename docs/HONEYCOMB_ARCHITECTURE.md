@@ -20,6 +20,13 @@ Key ideas:
 - `CellAdminController`: Controls per-cell servers (start/stop/restart) and provides status.
 - `RequestMetricsFilter`, `RateLimitFilter`, `ApiKeyAuthFilter`: Observability and security.
 
+### gRPC transport (v1.4.0+)
+- `SharedwallGrpcService`: gRPC equivalent of `SharedwallDispatcherController` — invokes `@Sharedwall` methods over gRPC.
+- `CellGrpcService`: gRPC CRUD service for cell items.
+- `HealthGrpcService`: gRPC health check delegating to Spring Boot HealthEndpoint.
+- `GrpcSharedwallClient` / `GrpcCellClient`: Builder-pattern clients for outgoing gRPC calls.
+- Transport mode (`http`/`grpc`/`both`) is selectable via `honeycomb.grpc.transport`. See [GRPC.md](GRPC.md) for details.
+
 ### Registry and routing
 - `CellRegistry`: Discovers `@Cell` types and provides metadata.
 - `ServiceCellRegistry`: Maps `@MethodType` methods (class or interface level) for service-style cells.
@@ -55,6 +62,7 @@ Key ideas:
 ```mermaid
 flowchart TB
     Client -->|HTTP| WebFlux
+    Client -->|gRPC| GrpcTransport
 
     subgraph WebFlux
       HM[HoneycombController]
@@ -64,11 +72,23 @@ flowchart TB
       FILT[Security/RateLimit/Metrics Filters]
     end
 
+    subgraph GrpcTransport[gRPC Transport v1.4]
+      SWGS[SharedwallGrpcService]
+      CGS[CellGrpcService]
+      HGS[HealthGrpcService]
+      GINT[GrpcServerInterceptor]
+    end
+
     WebFlux --> FILT
     FILT --> HM
     FILT --> SWD
     FILT --> CIA
     FILT --> ADM
+
+    GrpcTransport --> GINT
+    GINT --> SWGS
+    GINT --> CGS
+    GINT --> HGS
 
     HM --> REG[CellRegistry]
     HM --> STORE[CellDataStore]
@@ -77,6 +97,9 @@ flowchart TB
 
     SWD --> SWC[SharedwallMethodCache]
     SWD --> REG
+
+    SWGS --> SWC
+    CGS --> STORE
 
     CIA --> ROUTE[RoutingPolicyService]
     CIA --> ADDR[CellAddressService]

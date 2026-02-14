@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.honeycomb</groupId>
         <artifactId>honeycomb-parent</artifactId>
-        <version>1.3.0</version>
+        <version>1.4.0</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -20,6 +20,14 @@
             <groupId>com.honeycomb</groupId>
             <artifactId>honeycomb-core</artifactId>
             <version>${project.version}</version>
+        </dependency>
+
+        <!-- Optional gRPC transport module — pulled in when honeycomb.grpc.enabled=true -->
+        <dependency>
+            <groupId>com.honeycomb</groupId>
+            <artifactId>honeycomb-grpc</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
         </dependency>
 
         <dependency>
