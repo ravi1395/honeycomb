@@ -1,5 +1,11 @@
 package com.honeycomb.example;
 
+/**
+ * Central constants for the honeycomb-example application.
+ *
+ * <p>Contains nested classes for package names, auto-config exclusions,
+ * shared-method names, and discovery service values.</p>
+ */
 public final class ExampleConstants {
     private ExampleConstants() {}
 

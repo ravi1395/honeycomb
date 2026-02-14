@@ -9,6 +9,15 @@ import reactor.core.publisher.Mono;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+/**
+ * Kubernetes-style readiness probe for Honeycomb cells.
+ *
+ * <p>Registered as the {@code cellReadiness} health component.
+ * Reports {@code UP} when every cell's descriptor is resolvable,
+ * indicating the registry is initialised and ready to serve traffic.</p>
+ *
+ * @see CellRegistry
+ */
 @Component("cellReadiness")
 public class CellReadinessIndicator implements ReactiveHealthIndicator {
     private final CellRegistry registry;

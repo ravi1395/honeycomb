@@ -13,6 +13,15 @@ import com.honeycomb.core.util.HoneycombConstants;
 import java.util.Set;
 import java.util.Optional;
 
+/**
+ * Dynamically builds per-cell OpenAPI 3.0 specifications describing
+ * CRUD endpoints and the model-describe path.
+ *
+ * <p>Used by {@link com.honeycomb.core.web.CellSwaggerController} to
+ * serve {@code /honeycomb/swagger/{cell}} and the combined spec.</p>
+ *
+ * @see com.honeycomb.core.web.CellSwaggerController
+ */
 @Service
 public class CellSwaggerService {
     private final CellRegistry cellRegistry;

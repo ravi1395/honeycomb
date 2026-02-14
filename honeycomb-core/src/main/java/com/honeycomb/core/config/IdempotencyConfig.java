@@ -12,6 +12,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 
+/**
+ * Spring configuration that creates {@link com.honeycomb.core.service.IdempotencyStore}
+ * beans (in-memory and optionally Redis-backed) based on
+ * {@link HoneycombIdempotencyProperties}.
+ */
 @Configuration
 public class IdempotencyConfig {
     @Bean

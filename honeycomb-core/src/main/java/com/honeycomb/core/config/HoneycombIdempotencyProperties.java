@@ -3,6 +3,14 @@ package com.honeycomb.core.config;
 import com.honeycomb.core.util.HoneycombConstants;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+/**
+ * Idempotency configuration properties bound to {@code honeycomb.idempotency.*}.
+ *
+ * <p>Configures the idempotency header name, TTL, store type
+ * (memory or redis), and key prefix.</p>
+ *
+ * @see com.honeycomb.core.service.IdempotencyService
+ */
 @ConfigurationProperties(prefix = HoneycombConstants.ConfigKeys.IDEMPOTENCY_PREFIX, ignoreInvalidFields = true)
 public class HoneycombIdempotencyProperties {
     /**

@@ -20,6 +20,13 @@ import java.util.Objects;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
+/**
+ * Global {@link org.springframework.web.bind.annotation.RestControllerAdvice}
+ * that maps common exceptions to structured {@link com.honeycomb.core.dto.ErrorResponse} payloads.
+ *
+ * <p>Handles validation errors, missing cells/methods, JSON parse failures,
+ * circuit-breaker open states, and generic {@code Exception}s.</p>
+ */
 @RestControllerAdvice
 public class ErrorHandlerAdvice {
     private static final Logger log = LoggerFactory.getLogger(ErrorHandlerAdvice.class);

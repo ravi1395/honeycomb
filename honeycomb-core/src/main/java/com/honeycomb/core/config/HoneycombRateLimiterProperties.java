@@ -7,6 +7,12 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Rate-limiter configuration properties bound to {@code honeycomb.rate-limiter.*}.
+ *
+ * <p>Defines global defaults and optional per-cell overrides for
+ * request rate limits enforced by {@link com.honeycomb.core.web.RateLimitFilter}.</p>
+ */
 @ConfigurationProperties(prefix = HoneycombConstants.ConfigKeys.RATE_LIMITER_PREFIX)
 public class HoneycombRateLimiterProperties {
     private boolean enabled = true;

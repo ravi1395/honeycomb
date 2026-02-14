@@ -17,6 +17,15 @@ import reactor.core.publisher.Mono;
 import java.util.Map;
 import com.honeycomb.core.util.HoneycombConstants;
 
+/**
+ * Admin REST endpoints for managing cell server lifecycle.
+ *
+ * <p>Mapped at {@code /honeycomb/cells}. Provides operations to list,
+ * start, stop, and restart per-cell HTTP servers, plus runtime status
+ * reporting.</p>
+ *
+ * @see com.honeycomb.core.service.CellServerManager
+ */
 @RestController
 @RequestMapping(HoneycombConstants.Paths.HONEYCOMB_BASE
     + HoneycombConstants.Names.SEPARATOR_SLASH

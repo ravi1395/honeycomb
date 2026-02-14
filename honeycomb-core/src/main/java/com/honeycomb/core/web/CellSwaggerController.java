@@ -10,6 +10,18 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
+/**
+ * Serves dynamically generated OpenAPI specifications for individual cells
+ * or all cells combined.
+ *
+ * <p>Endpoints:
+ * <ul>
+ *   <li>{@code GET /honeycomb/swagger/{cell}} – single-cell spec</li>
+ *   <li>{@code GET /honeycomb/swagger} – merged spec for all cells</li>
+ * </ul>
+ *
+ * @see com.honeycomb.core.service.CellSwaggerService
+ */
 @RestController
 @RequestMapping(HoneycombConstants.Paths.HONEYCOMB_SWAGGER)
 public class CellSwaggerController {

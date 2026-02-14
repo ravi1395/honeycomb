@@ -5,6 +5,14 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * JSON Schema validation configuration properties bound to
+ * {@code honeycomb.validation.*}.
+ *
+ * <p>Configures the schema directory, per-cell schema file mappings,
+ * and the {@code fail-on-missing} flag for
+ * {@link com.honeycomb.core.service.CellSchemaValidator}.</p>
+ */
 @ConfigurationProperties(prefix = com.honeycomb.core.util.HoneycombConstants.ConfigKeys.VALIDATION_PREFIX,
     ignoreInvalidFields = true)
 public class HoneycombValidationProperties {

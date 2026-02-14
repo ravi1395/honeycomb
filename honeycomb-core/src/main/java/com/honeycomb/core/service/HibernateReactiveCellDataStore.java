@@ -15,6 +15,13 @@ import java.util.Optional;
 import java.util.UUID;
 import com.honeycomb.core.util.HoneycombConstants;
 
+/**
+ * Hibernate Reactive (Mutiny) backed {@link CellDataStore} that persists
+ * cell data as {@link com.honeycomb.core.persistence.CellRecord} entities.
+ *
+ * <p>Delegates to a {@code Mutiny.SessionFactory} created by
+ * {@link com.honeycomb.core.config.HibernateReactiveConfig}.</p>
+ */
 public class HibernateReactiveCellDataStore implements CellDataStore {
     private static final TypeReference<Map<String,Object>> MAP_TYPE = new TypeReference<>() {};
 

@@ -9,6 +9,13 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Map;
 
+/**
+ * Example cell that implements {@link PricingSharedApi}, exposing
+ * {@code price}, {@code discount}, and {@code ping} as shared methods.
+ *
+ * <p>Hosted on port 9093. Demonstrates version-aware shared-method dispatch
+ * and the {@code allowedFrom} access control.</p>
+ */
 @Cell(port = 9093)
 @Component
 public class PricingCell implements PricingSharedApi {

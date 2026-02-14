@@ -11,6 +11,16 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.LongAdder;
 
+/**
+ * Records per-cell request counts and latency timers via Micrometer
+ * and provides windowed RPS (requests-per-second) snapshots.
+ *
+ * <p>The windowed RPS data is consumed by {@link AutoScaleService}
+ * for autoscale evaluations and by {@link com.honeycomb.core.web.MetricsController}
+ * for the admin dashboard.</p>
+ *
+ * @see com.honeycomb.core.web.RequestMetricsFilter
+ */
 @Service
 public class RequestMetricsService {
     private final MeterRegistry registry;

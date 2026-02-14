@@ -10,6 +10,15 @@ import reactor.core.publisher.Mono;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+/**
+ * Kubernetes-style liveness probe for Honeycomb cells.
+ *
+ * <p>Registered as the {@code cellLivenessIndicator} health component.
+ * Reports {@code UP} for every cell that is present in the registry,
+ * confirming the JVM can still load cell definitions.</p>
+ *
+ * @see CellRegistry
+ */
 @Component(HoneycombConstants.Health.LIVENESS_COMPONENT)
 public class CellLivenessIndicator implements ReactiveHealthIndicator {
     private final CellRegistry registry;

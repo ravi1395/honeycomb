@@ -7,6 +7,16 @@ import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.util.List;
 
+/**
+ * Custom {@link OAuth2TokenValidator} that verifies a JWT contains the
+ * expected audience ({@code aud}) claim.
+ *
+ * <p>If no audience is configured (blank or {@code null}), all tokens pass.
+ * Otherwise the validator rejects tokens whose {@code aud} list does not
+ * include the required value, returning an {@code invalid_token} error.</p>
+ *
+ * @see SecurityConfig#jwtDecoder(HoneycombSecurityProperties)
+ */
 public class JwtAudienceValidator implements OAuth2TokenValidator<Jwt> {
     private final String audience;
 

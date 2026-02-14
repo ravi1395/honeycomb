@@ -8,6 +8,12 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import reactor.core.publisher.Flux;
 
+/**
+ * Provides a no-op {@link ReactiveDiscoveryClient} bean when no real
+ * service-discovery provider (Eureka, Consul, etc.) is on the classpath.
+ *
+ * <p>Prevents auto-configuration failures in local / standalone mode.</p>
+ */
 @Configuration
 public class DiscoveryConfig {
 

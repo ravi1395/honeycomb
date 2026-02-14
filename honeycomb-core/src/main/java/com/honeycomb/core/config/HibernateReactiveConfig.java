@@ -12,6 +12,14 @@ import org.springframework.context.annotation.Configuration;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Conditional configuration that creates a Hibernate Reactive
+ * {@link org.hibernate.reactive.mutiny.Mutiny.SessionFactory} bean.
+ *
+ * <p>Activates only when Mutiny is on the classpath and
+ * {@code honeycomb.storage.default-backend} is set to {@code hibernate}.
+ * Reads JDBC URL, user, and password from {@link HoneycombStorageProperties}.</p>
+ */
 @Configuration
 @ConditionalOnClass(Mutiny.SessionFactory.class)
 @ConditionalOnExpression(HoneycombConstants.ConfigExpressions.STORAGE_HIBERNATE_ENABLED)

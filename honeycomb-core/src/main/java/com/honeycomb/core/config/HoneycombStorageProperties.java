@@ -3,6 +3,15 @@ package com.honeycomb.core.config;
 import com.honeycomb.core.util.HoneycombConstants;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+/**
+ * Storage backend configuration properties bound to {@code honeycomb.storage.*}.
+ *
+ * <p>Configures the default backend (memory, redis, hibernate), key prefix,
+ * Hibernate connection properties, and per-cell storage routing.</p>
+ *
+ * @see com.honeycomb.core.service.CellDataStoreRouter
+ * @see CellDataStoreConfig
+ */
 @ConfigurationProperties(prefix = HoneycombConstants.ConfigKeys.STORAGE_PREFIX, ignoreInvalidFields = true)
 public class HoneycombStorageProperties {
     /**

@@ -8,6 +8,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Security configuration properties bound to {@code honeycomb.security.*}.
+ *
+ * <p>Configures API-key authentication, JWT (OAuth2 Resource Server),
+ * and mutual TLS (mTLS) for Honeycomb endpoints. Includes per-cell
+ * key allowlists and per-cell/shared-method role requirements.</p>
+ *
+ * @see com.honeycomb.core.security.ApiKeyAuthFilter
+ * @see com.honeycomb.core.security.JwtCellAccessFilter
+ * @see com.honeycomb.core.security.MtlsAuthFilter
+ */
 @ConfigurationProperties(prefix = HoneycombConstants.ConfigKeys.SECURITY_PREFIX)
 public class HoneycombSecurityProperties {
     private ApiKeys apiKeys = new ApiKeys();

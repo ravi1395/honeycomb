@@ -21,6 +21,13 @@ import org.springframework.context.annotation.Primary;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Spring configuration that conditionally creates {@link com.honeycomb.core.service.CellDataStore}
+ * beans: Redis, Hibernate Reactive, in-memory, and the routing delegator.
+ *
+ * <p>Bean creation is driven by {@link HoneycombStorageProperties} values
+ * to ensure only the required backends are instantiated.</p>
+ */
 @Configuration
 @EnableConfigurationProperties(HoneycombStorageProperties.class)
 public class CellDataStoreConfig {

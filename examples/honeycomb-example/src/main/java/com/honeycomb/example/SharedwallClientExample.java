@@ -15,6 +15,14 @@ import reactor.core.publisher.Mono;
 import java.math.BigDecimal;
 import java.util.Map;
 
+/**
+ * Demonstrates the typed {@link com.honeycomb.core.client.SharedwallClient}
+ * and {@link com.honeycomb.core.client.TypedSharedwallClientFactory} APIs
+ * by invoking shared methods on the local Pricing cell.
+ *
+ * <p>Conditional on an {@code ReactiveOAuth2AuthorizedClientManager} bean
+ * being present, so it only activates when OAuth2 is configured.</p>
+ */
 @Component
 @ConditionalOnBean(ReactiveOAuth2AuthorizedClientManager.class)
 public class SharedwallClientExample {

@@ -2,6 +2,12 @@ package com.honeycomb.example.cells;
 
 import com.honeycomb.core.annotations.Cell;
 
+/**
+ * Example cell representing an inventory data model.
+ *
+ * <p>Hosted on port 9091. Contains typical inventory fields
+ * (sku, quantity, warehouse). Used in integration and smoke tests.</p>
+ */
 @Cell(port = 9091)
 public class InventoryCell {
     private String id;

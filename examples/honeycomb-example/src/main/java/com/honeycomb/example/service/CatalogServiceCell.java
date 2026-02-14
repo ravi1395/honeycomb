@@ -8,6 +8,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Service cell implementation of {@link CatalogServiceApi} backed by
+ * an in-memory {@link ConcurrentHashMap}.
+ *
+ * <p>Demonstrates the {@link com.honeycomb.core.annotations.MethodType}
+ * annotation for CRUD operations and the {@code /honeycomb/service/{cell}}
+ * dispatch path.</p>
+ */
 @Cell("CatalogService")
 public class CatalogServiceCell implements CatalogServiceApi {
     private final Map<String, Map<String, Object>> store = new ConcurrentHashMap<>();

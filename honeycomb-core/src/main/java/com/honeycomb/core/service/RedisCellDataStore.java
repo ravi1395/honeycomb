@@ -14,6 +14,14 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Redis-backed {@link CellDataStore} using {@code ReactiveStringRedisTemplate}.
+ *
+ * <p>Keys are namespaced with a configurable prefix to allow
+ * multi-tenant Redis clusters. All operations are non-blocking.</p>
+ *
+ * @see com.honeycomb.core.config.HoneycombStorageProperties
+ */
 public class RedisCellDataStore implements CellDataStore {
     private static final TypeReference<Map<String,Object>> MAP_TYPE = new TypeReference<>() {};
 

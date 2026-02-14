@@ -9,6 +9,13 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * In-memory {@link IdempotencyStore} backed by a {@link java.util.concurrent.ConcurrentHashMap}
+ * with TTL-based expiry.
+ *
+ * <p>Suitable for single-instance deployments. Entries are lazily
+ * evicted when accessed after their TTL has elapsed.</p>
+ */
 public class InMemoryIdempotencyStore implements IdempotencyStore {
     private final ConcurrentHashMap<String, Entry> cache = new ConcurrentHashMap<>();
 

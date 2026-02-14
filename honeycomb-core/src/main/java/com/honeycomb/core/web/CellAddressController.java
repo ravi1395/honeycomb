@@ -9,6 +9,14 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+/**
+ * Read-only REST endpoints for listing and querying cell network addresses.
+ *
+ * <p>Mapped at {@code /cells/addresses}. Used by service discovery
+ * clients and the admin UI to find cell instances.</p>
+ *
+ * @see com.honeycomb.core.service.CellAddressService
+ */
 @RestController
 @RequestMapping(HoneycombConstants.Paths.CELLS_BASE)
 public class CellAddressController {

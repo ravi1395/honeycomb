@@ -10,6 +10,15 @@ import reactor.core.publisher.Mono;
 import java.util.Locale;
 import java.util.Map;
 
+/**
+ * Orchestrates idempotency logic for Honeycomb write operations.
+ *
+ * <p>Checks the configured {@link IdempotencyStore} for a cached response
+ * keyed by the idempotency header before executing the action.
+ * On a cache miss, executes the action and stores the result.</p>
+ *
+ * @see com.honeycomb.core.config.HoneycombIdempotencyProperties
+ */
 @Component
 public class IdempotencyService {
     private final HoneycombIdempotencyProperties properties;

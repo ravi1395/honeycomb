@@ -15,6 +15,13 @@ import reactor.core.publisher.Mono;
 import java.time.Duration;
 import java.time.Instant;
 
+/**
+ * {@link WebFilter} that records per-cell request counts and latency metrics
+ * via {@link com.honeycomb.core.service.RequestMetricsService}.
+ *
+ * <p>Runs at low priority so that authentication filters execute first.
+ * Measures wall-clock time from filter entry to response commit.</p>
+ */
 @Component
 @SuppressWarnings("null")
 @Order(Ordered.LOWEST_PRECEDENCE - 10)

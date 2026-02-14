@@ -7,6 +7,14 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Autoscale configuration properties bound to {@code honeycomb.autoscale.*}.
+ *
+ * <p>Configures RPS thresholds, evaluation interval, and per-cell
+ * overrides for automatic cell server scaling.</p>
+ *
+ * @see com.honeycomb.core.service.AutoScaleService
+ */
 @ConfigurationProperties(prefix = HoneycombConstants.ConfigKeys.AUTOSCALE_PREFIX, ignoreInvalidFields = true)
 public class HoneycombAutoscaleProperties {
     private boolean enabled = false;

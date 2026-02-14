@@ -18,6 +18,24 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import com.honeycomb.core.util.HoneycombConstants;
 import com.honeycomb.core.util.HoneycombUtil;
 
+/**
+ * Central Spring Security configuration for Honeycomb.
+ *
+ * <p>Defines the reactive {@link SecurityWebFilterChain} with:
+ * <ul>
+ *   <li>CSRF disabled (API-only service).</li>
+ *   <li>Hardened HTTP headers (HSTS, X-Frame-Options DENY, Referrer-Policy, Permissions-Policy).</li>
+ *   <li>Path-based authorisation: actuator behind ACTUATOR role, shared methods behind SHARED_INVOKER.</li>
+ *   <li>HTTP Basic + optional OAuth2 resource server (JWT) support.</li>
+ * </ul>
+ *
+ * <p>Also registers a {@link MapReactiveUserDetailsService} with built-in
+ * actuator and shared-method users, and exposes a {@link BCryptPasswordEncoder}.</p>
+ *
+ * @see ApiKeyAuthFilter
+ * @see JwtCellAccessFilter
+ * @see MtlsAuthFilter
+ */
 @Configuration
 public class SecurityConfig {
     @Value(HoneycombConstants.PropertyValues.ACTUATOR_USER)

@@ -19,6 +19,15 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * {@link WebFilter} that applies per-IP rate limiting on Honeycomb endpoints
+ * using Resilience4j rate limiters.
+ *
+ * <p>Runs at high priority (after mTLS and API-key filters). When a client
+ * exceeds the configured limit, responds with HTTP 429 Too Many Requests.</p>
+ *
+ * @see com.honeycomb.core.config.HoneycombRateLimiterProperties
+ */
 @Component
 @SuppressWarnings("null")
 @Order(Ordered.HIGHEST_PRECEDENCE + 20)

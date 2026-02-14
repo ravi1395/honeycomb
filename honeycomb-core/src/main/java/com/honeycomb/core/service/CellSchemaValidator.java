@@ -18,6 +18,17 @@ import java.io.InputStream;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * Validates cell CRUD payloads against per-cell JSON Schema files
+ * loaded from the classpath.
+ *
+ * <p>Schema files are resolved from the directory configured in
+ * {@code honeycomb.validation.schema-dir} and cached after first load.
+ * When {@code fail-on-missing} is {@code true}, a missing schema causes
+ * a validation error rather than a silent pass.</p>
+ *
+ * @see com.honeycomb.core.config.HoneycombValidationProperties
+ */
 @Component
 public class CellSchemaValidator {
     private final HoneycombValidationProperties properties;

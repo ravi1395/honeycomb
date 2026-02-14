@@ -16,6 +16,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
+/**
+ * {@link ApplicationRunner} that logs cell registration and shared-method
+ * availability on startup, serving as a quick-start smoke check.
+ */
 @Component
 public class DemoRunner implements ApplicationRunner {
     private static final Logger log = LoggerFactory.getLogger(DemoRunner.class);
