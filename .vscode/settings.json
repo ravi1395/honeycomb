@@ -1,6 +1,6 @@
 {
     "java.compile.nullAnalysis.mode": "automatic",
-    "java.configuration.updateBuildConfiguration": "interactive",
+    "java.configuration.updateBuildConfiguration": "automatic",
     "markdown.preview.openByDefault": true,
     "workbench.editorAssociations": {
         "*.md": "vscode.markdown.preview.editor"

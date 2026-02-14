@@ -9,12 +9,15 @@ This README explains each feature with concrete examples. For a runnable demo, s
 This repository is split into:
 
 - `honeycomb-core` — the implementation/library (controllers, services, annotations, DTOs, config properties).
+- `honeycomb-grpc` — optional gRPC transport module for inter-cell communication via Protocol Buffers.
 - `honeycomb` (starter) — Spring Boot auto-configuration that wires Honeycomb into a consuming app.
+- `examples/honeycomb-example` — runnable demo application.
 
 ### Dependency coordinates
 
 - Recommended (auto-config enabled): `com.honeycomb:honeycomb`
 - Core-only (manual wiring): `com.honeycomb:honeycomb-core`
+- gRPC transport: `com.honeycomb:honeycomb-grpc`
 
 ## Quick start
 
@@ -58,6 +61,18 @@ Additional features
 ### New in 1.3
 - **Event-driven cell communication** — publish/subscribe event bus with SSE streaming (`/honeycomb/events/stream`). Supports in-memory and Redis transports, topic filtering, and `@CellEventListener` annotation for declarative event handling.
 - **Dynamic OpenAPI auto-generation** — CRUD paths for every discovered cell and invoke paths for every `@Sharedwall` method are injected into the Swagger spec at runtime. No manual OpenAPI annotations required.
+
+### New in 1.4
+- **gRPC transport module** (`honeycomb-grpc`) — full gRPC alternative to the HTTP/WebFlux transport for inter-cell communication.
+  - **Three transport modes:** `http`, `grpc`, or `both` — configurable per application via `honeycomb.grpc.transport`.
+  - **Sharedwall over gRPC** — `Invoke`, `ListMethods`, and `InvokeStream` (server-streaming) RPCs mirror the HTTP shared-method dispatcher.
+  - **Cell CRUD over gRPC** — `ListItems`, `GetItem`, `CreateItem`, `UpdateItem`, `DeleteItem` RPCs mirror the HTTP cell CRUD API.
+  - **gRPC health check** — delegates to Spring Boot HealthEndpoint for consistent health reporting.
+  - **Builder-pattern clients** — `GrpcSharedwallClient` and `GrpcCellClient` with per-cell target routing, deadline, TLS configuration.
+  - **Automatic metadata propagation** — request IDs, caller cell identity, API keys via gRPC interceptors.
+  - **Zero-config auto-configuration** — `@ConditionalOnProperty` activation; just add the dependency and set `honeycomb.grpc.enabled=true`.
+  - **gRPC reflection** for `grpcurl`/`grpcui` debugging.
+  - See [docs/GRPC.md](docs/GRPC.md) for the full guide.
 - **Distributed Redis shared-method cache** — cross-instance cache synchronization via Redis pub/sub. Metadata publishing, cluster-wide invalidation, and admin endpoints at `/honeycomb/admin/cache/`.
 
 ### Shared cache admin + metrics

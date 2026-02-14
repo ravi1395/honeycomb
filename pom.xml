@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.honeycomb</groupId>
     <artifactId>honeycomb-parent</artifactId>
-    <version>1.3.0</version>
+    <version>1.4.0</version>
     <packaging>pom</packaging>
 
     <parent>
@@ -16,6 +16,7 @@
 
     <modules>
         <module>honeycomb-core</module>
+        <module>honeycomb-grpc</module>
         <module>honeycomb-starter</module>
         <module>examples/honeycomb-example</module>
     </modules>
@@ -27,6 +28,11 @@
         <ossrh.release.url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2</ossrh.release.url>
         <ossrh.snapshot.url>https://s01.oss.sonatype.org/content/repositories/snapshots</ossrh.snapshot.url>
         <jmh.version>1.37</jmh.version>
+        <grpc.version>1.68.0</grpc.version>
+        <protobuf.version>4.28.2</protobuf.version>
+        <grpc-spring-boot.version>3.1.0.RELEASE</grpc-spring-boot.version>
+        <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
+        <protobuf-maven-plugin.version>0.6.1</protobuf-maven-plugin.version>
     </properties>
 
     <dependencyManagement>
