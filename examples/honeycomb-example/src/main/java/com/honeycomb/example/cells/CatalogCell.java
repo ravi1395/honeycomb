@@ -2,6 +2,12 @@ package com.honeycomb.example.cells;
 
 import com.honeycomb.core.annotations.Cell;
 
+/**
+ * Example cell representing a product catalog data model.
+ *
+ * <p>Hosted on port 9092. Contains typical catalog fields
+ * (title, description, price). Demonstrates basic cell registration.</p>
+ */
 @Cell(port = 9092)
 public class CatalogCell {
     private String id;

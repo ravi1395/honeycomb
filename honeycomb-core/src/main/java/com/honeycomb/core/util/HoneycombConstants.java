@@ -1,5 +1,14 @@
 package com.honeycomb.core.util;
 
+/**
+ * Central constants for the Honeycomb framework.
+ *
+ * <p>Organised into nested inner classes: {@code Headers}, {@code Paths},
+ * {@code ConfigKeys}, {@code Defaults}, {@code Health}, {@code Docs},
+ * {@code ErrorKeys}, {@code Roles}, {@code Ops}, {@code JsonKeys},
+ * {@code Persistence}, and more. All values are compile-time constants
+ * referenced throughout controllers, filters, properties, and tests.</p>
+ */
 public final class HoneycombConstants {
     private HoneycombConstants() {}
 

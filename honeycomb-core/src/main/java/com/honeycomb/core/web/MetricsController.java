@@ -14,6 +14,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
+/**
+ * Exposes request-count metrics per cell and shared-method cache statistics.
+ *
+ * <p>Mapped at {@code /honeycomb/metrics}. Returns JSON maps of
+ * per-cell request counts and cache hit/miss ratios for the admin UI.</p>
+ *
+ * @see com.honeycomb.core.service.RequestMetricsService
+ */
 @RestController
 @RequestMapping(HoneycombConstants.Paths.HONEYCOMB_METRICS)
 @Tag(name = HoneycombConstants.Docs.TAG_METRICS, description = HoneycombConstants.Docs.TAG_METRICS_DESC)

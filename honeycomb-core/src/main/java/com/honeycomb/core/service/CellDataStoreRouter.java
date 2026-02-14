@@ -8,6 +8,15 @@ import reactor.core.publisher.Mono;
 import java.util.Locale;
 import java.util.Map;
 
+/**
+ * Routing {@link CellDataStore} that delegates to the correct backend
+ * (in-memory, Redis, or Hibernate) based on per-cell storage configuration.
+ *
+ * <p>Reads the {@code honeycomb.storage.routing} map to determine which
+ * backend handles each cell. Falls back to the global default store.</p>
+ *
+ * @see com.honeycomb.core.config.HoneycombStorageProperties
+ */
 public class CellDataStoreRouter implements CellDataStore {
     private final HoneycombStorageProperties storageProperties;
     private final Map<String, CellDataStore> storesByType;

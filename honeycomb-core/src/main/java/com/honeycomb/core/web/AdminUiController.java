@@ -6,6 +6,12 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * Serves a single-page admin HTML dashboard at {@code /honeycomb/admin}.
+ *
+ * <p>The dashboard provides live status, metrics, and audit event
+ * views using SSE or polling against the Honeycomb API.</p>
+ */
 @RestController
 @RequestMapping(HoneycombConstants.Paths.HONEYCOMB_ADMIN)
 public class AdminUiController {

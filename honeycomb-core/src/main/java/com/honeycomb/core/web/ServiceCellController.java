@@ -21,6 +21,15 @@ import reactor.core.publisher.Mono;
 import java.lang.reflect.Method;
 import java.util.Map;
 
+/**
+ * Dynamic dispatcher that routes HTTP requests to service-cell methods
+ * based on path variables ({@code /honeycomb/service/{cell}/{method}}).
+ *
+ * <p>Resolves the target bean and {@link com.honeycomb.core.annotations.MethodType}-annotated
+ * method from the {@link com.honeycomb.core.service.ServiceCellRegistry}.</p>
+ *
+ * @see com.honeycomb.core.service.ServiceCellRegistry
+ */
 @RestController
 @RequestMapping("/honeycomb/service")
 @SuppressWarnings("null")

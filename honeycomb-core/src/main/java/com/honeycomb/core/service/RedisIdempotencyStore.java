@@ -12,6 +12,13 @@ import com.honeycomb.core.util.HoneycombConstants;
 import java.time.Duration;
 import java.util.Map;
 
+/**
+ * Redis-backed {@link IdempotencyStore} using {@code ReactiveStringRedisTemplate}
+ * with native TTL support.
+ *
+ * <p>Recommended for multi-instance deployments where all replicas
+ * must share the same idempotency cache.</p>
+ */
 @SuppressWarnings("null")
 public class RedisIdempotencyStore implements IdempotencyStore {
     private static final TypeReference<Map<String,Object>> MAP_TYPE = new TypeReference<>() {};

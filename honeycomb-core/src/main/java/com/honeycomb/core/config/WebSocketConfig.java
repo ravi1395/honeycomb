@@ -10,6 +10,12 @@ import org.springframework.web.reactive.socket.server.support.WebSocketHandlerAd
 
 import java.util.HashMap;
 
+/**
+ * WebFlux WebSocket configuration that maps the
+ * {@code /honeycomb/ws/events} endpoint to
+ * {@link com.honeycomb.core.web.EventWebSocketHandler}, enabling
+ * real-time audit event streaming to browser clients.
+ */
 @Configuration
 public class WebSocketConfig {
     @Bean

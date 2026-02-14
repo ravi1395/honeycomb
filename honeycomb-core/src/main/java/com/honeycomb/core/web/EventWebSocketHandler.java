@@ -10,6 +10,13 @@ import org.springframework.lang.NonNull;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
+/**
+ * Streams audit events to WebSocket clients as JSON text messages.
+ *
+ * <p>Listens at {@code ws://host/honeycomb/ws/events}. Each connected
+ * client receives a live feed from the {@link com.honeycomb.core.service.AuditLogService}
+ * reactive sink.</p>
+ */
 @Component
 @SuppressWarnings("null")
 public class EventWebSocketHandler implements WebSocketHandler {

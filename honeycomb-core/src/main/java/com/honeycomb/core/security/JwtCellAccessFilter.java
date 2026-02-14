@@ -20,6 +20,24 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * Low-priority {@link WebFilter} that enforces per-cell and per-shared-method
+ * role requirements when JWT authentication is active.
+ *
+ * <p>Evaluates after Spring Security's built-in filters so the
+ * {@code ReactiveSecurityContextHolder} already contains the decoded JWT.
+ * The filter:
+ * <ol>
+ *   <li>Skips actuator paths.</li>
+ *   <li>For shared-method paths, resolves required roles from
+ *       {@code honeycomb.security.jwt.shared-method-roles}.</li>
+ *   <li>For cell paths, maps the HTTP method to a CRUD operation and
+ *       resolves required roles from {@code honeycomb.security.jwt.cell-roles}.</li>
+ *   <li>Returns 403 if the principal lacks any of the required authorities.</li>
+ * </ol>
+ *
+ * @see HoneycombSecurityProperties.JwtProperties
+ */
 @Component
 @SuppressWarnings("null")
 @Order(Ordered.LOWEST_PRECEDENCE - 10)

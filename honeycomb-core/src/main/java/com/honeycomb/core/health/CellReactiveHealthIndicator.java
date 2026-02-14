@@ -10,6 +10,15 @@ import reactor.core.publisher.Mono;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+/**
+ * Spring Boot Actuator health indicator that reports the overall status of
+ * registered Honeycomb cells.
+ *
+ * <p>Exposed at {@code /actuator/health} (or the configured management path).
+ * Includes the total cell count and per-cell descriptor maps as health details.</p>
+ *
+ * @see CellRegistry
+ */
 @Component
 public class CellReactiveHealthIndicator implements ReactiveHealthIndicator {
     private final CellRegistry registry;

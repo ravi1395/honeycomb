@@ -15,6 +15,13 @@ import reactor.core.publisher.Mono;
 
 import java.util.UUID;
 
+/**
+ * Highest-priority {@link WebFilter} that ensures every request and response
+ * carries a unique {@code X-Request-Id} header.
+ *
+ * <p>If the incoming request already has the header, it is preserved;
+ * otherwise a new UUID is generated and attached.</p>
+ */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class RequestIdFilter implements WebFilter {

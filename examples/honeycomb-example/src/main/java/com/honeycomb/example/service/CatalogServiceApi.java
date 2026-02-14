@@ -6,6 +6,13 @@ import com.honeycomb.core.annotations.MethodType;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Typed interface for the Catalog service cell’s operations.
+ *
+ * <p>Each method is annotated with {@link MethodType} to map it
+ * to a CRUD operation dispatched by
+ * {@link com.honeycomb.core.web.ServiceCellController}.</p>
+ */
 public interface CatalogServiceApi {
     @MethodType(MethodOp.READ)
     List<Map<String, Object>> listItems();

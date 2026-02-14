@@ -6,6 +6,16 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+/**
+ * Marks a class as a Honeycomb cell — a lightweight, runtime-discoverable model component.
+ *
+ * <p>Annotated classes are automatically registered in the {@code CellRegistry} at startup,
+ * exposed through the uniform CRUD API at {@code /honeycomb/models/{name}/items},
+ * and optionally hosted on a dedicated per-cell HTTP server.</p>
+ *
+ * @see com.honeycomb.core.service.CellRegistry
+ * @see com.honeycomb.core.service.CellServerManager
+ */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Cell {

@@ -32,6 +32,17 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
+/**
+ * Caches and resolves {@link com.honeycomb.core.annotations.Sharedwall @Sharedwall}-annotated
+ * methods from {@link com.honeycomb.core.annotations.Cell @Cell} beans.
+ *
+ * <p>Builds an in-memory index of method name → {@link java.lang.reflect.Method}
+ * at startup, supporting fast reflective dispatch from the
+ * {@link com.honeycomb.core.web.SharedwallDispatcherController}.
+ * Provides hit/miss statistics for observability.</p>
+ *
+ * @see com.honeycomb.core.annotations.Sharedwall
+ */
 @Component
 @SuppressWarnings("null")
 public class SharedwallMethodCache {

@@ -16,6 +16,17 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Resolves and lists cell network addresses for inter-cell routing
+ * and static service discovery.
+ *
+ * <p>Aggregates addresses from the JPA-backed
+ * {@link com.honeycomb.core.repo.CellAddressRepository}, environment
+ * config, and the live {@link CellRegistry}.</p>
+ *
+ * @see com.honeycomb.core.model.CellAddress
+ * @see com.honeycomb.core.web.CellAddressController
+ */
 @Service
 public class CellAddressService {
     private final CellRegistry registry;

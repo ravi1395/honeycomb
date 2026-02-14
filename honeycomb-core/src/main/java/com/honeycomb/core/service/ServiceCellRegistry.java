@@ -16,6 +16,15 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Scans {@link com.honeycomb.core.annotations.Cell @Cell} beans for
+ * {@link com.honeycomb.core.annotations.MethodType @MethodType}-annotated methods
+ * and builds a lookup table of service-level cell operations keyed by
+ * {@code cell + path}.
+ *
+ * <p>Used by {@link com.honeycomb.core.web.ServiceCellController} to
+ * dynamically dispatch HTTP requests to the correct method.</p>
+ */
 @Component
 public class ServiceCellRegistry {
     private static final Logger log = LoggerFactory.getLogger(ServiceCellRegistry.class);

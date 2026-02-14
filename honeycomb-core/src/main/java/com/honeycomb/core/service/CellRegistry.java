@@ -22,6 +22,18 @@ import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Central registry of all Honeycomb cells discovered at startup.
+ *
+ * <p>Scans the Spring {@link org.springframework.context.ApplicationContext} for
+ * {@link com.honeycomb.core.annotations.Cell @Cell}-annotated beans and also performs
+ * a classpath scan for annotated classes that may not be Spring-managed.
+ * Maintains a thread-safe name→{@link Class} map used by controllers,
+ * the data store router, and the admin UI.</p>
+ *
+ * @see com.honeycomb.core.annotations.Cell
+ * @see CellServerManager
+ */
 @Component
 public class CellRegistry implements ApplicationContextAware {
     private ApplicationContext context;

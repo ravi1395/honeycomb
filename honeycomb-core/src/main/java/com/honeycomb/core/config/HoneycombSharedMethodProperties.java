@@ -6,6 +6,15 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Shared-method policy configuration properties bound to
+ * {@code honeycomb.shared.methods.*}.
+ *
+ * <p>Configures per-method/version resilience policies and the
+ * schema-validation toggle for shared-method invocations.</p>
+ *
+ * @see com.honeycomb.core.service.SharedMethodSchemaValidator
+ */
 @ConfigurationProperties(prefix = "honeycomb.shared.methods")
 public class HoneycombSharedMethodProperties {
 

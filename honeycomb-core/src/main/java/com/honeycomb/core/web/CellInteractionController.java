@@ -27,6 +27,16 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import com.honeycomb.core.util.HoneycombConstants;
 
+/**
+ * Proxies invoke and forward requests between cells using WebClient
+ * with circuit-breaker and retry support.
+ *
+ * <p>Endpoints under {@code /cells/{cell}/invoke} and
+ * {@code /cells/{cell}/forward} allow one cell to call
+ * another via the Honeycomb routing layer.</p>
+ *
+ * @see com.honeycomb.core.service.RoutingPolicyService
+ */
 @RestController
 @RequestMapping(HoneycombConstants.Paths.CELLS_BASE)
 @SuppressWarnings("null")

@@ -28,6 +28,17 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Manages per-cell Reactor Netty HTTP servers and optional management-port servers.
+ *
+ * <p>On {@link org.springframework.boot.context.event.ApplicationReadyEvent},
+ * auto-starts a server for each registered cell on its configured port.
+ * Supports reactive and blocking start/stop/restart operations and exposes
+ * runtime status via {@link com.honeycomb.core.dto.CellRuntimeStatus}.</p>
+ *
+ * @see CellRegistry
+ * @see com.honeycomb.core.web.CellAdminController
+ */
 @Component
 @SuppressWarnings("null")
 public class CellServerManager implements ApplicationContextAware {

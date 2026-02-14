@@ -5,6 +5,18 @@ import reactor.core.publisher.Mono;
 
 import java.util.Map;
 
+/**
+ * Reactive CRUD contract for per-cell data storage.
+ *
+ * <p>Implementations include in-memory, Redis, and Hibernate Reactive
+ * backends. The active implementation per cell is selected by
+ * {@link CellDataStoreRouter} based on YAML configuration.</p>
+ *
+ * @see InMemoryCellDataStore
+ * @see RedisCellDataStore
+ * @see HibernateReactiveCellDataStore
+ * @see CellDataStoreRouter
+ */
 public interface CellDataStore {
     Flux<Map<String,Object>> list(String cell);
 

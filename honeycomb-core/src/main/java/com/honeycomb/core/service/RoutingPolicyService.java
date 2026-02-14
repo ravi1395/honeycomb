@@ -15,6 +15,20 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * Selects target cell addresses using configurable routing policies.
+ *
+ * <p>Supported policies:
+ * <ul>
+ *   <li>{@code random} – uniform random selection</li>
+ *   <li>{@code round-robin} – sequential cycling</li>
+ *   <li>{@code weighted} – probability-based on configured weights</li>
+ *   <li>{@code least-latency} – picks the address with lowest recent latency</li>
+ *   <li>{@code circuit-aware} – skips addresses whose circuit is open</li>
+ * </ul>
+ *
+ * @see com.honeycomb.core.config.HoneycombRoutingProperties
+ */
 @Service
 public class RoutingPolicyService {
     private final HoneycombRoutingProperties props;

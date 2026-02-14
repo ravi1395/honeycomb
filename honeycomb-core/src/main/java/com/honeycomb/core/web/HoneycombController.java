@@ -39,6 +39,16 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.server.ServerWebExchange;
 
 
+/**
+ * Primary REST controller for the Honeycomb cell registry.
+ *
+ * <p>Exposes CRUD operations at {@code /honeycomb/models/{cell}/items}
+ * for every registered {@code @Cell}. Supports JSON Schema validation,
+ * idempotency headers, and operation-disable policies.</p>
+ *
+ * @see com.honeycomb.core.service.CellRegistry
+ * @see com.honeycomb.core.service.CellDataStore
+ */
 @RestController
 @RequestMapping(HoneycombConstants.Paths.HONEYCOMB_BASE)
 @Tag(name = HoneycombConstants.Docs.TAG_CELL_REGISTRY,

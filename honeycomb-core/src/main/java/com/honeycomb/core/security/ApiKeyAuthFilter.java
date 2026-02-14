@@ -20,6 +20,22 @@ import reactor.core.publisher.Mono;
 
 import java.util.Objects;
 
+/**
+ * High-priority {@link WebFilter} that authenticates incoming requests using an
+ * API key header (default {@code X-API-Key}).
+ *
+ * <p>When enabled via {@code honeycomb.security.api-keys.enabled=true}, the filter:
+ * <ol>
+ *   <li>Bypasses OpenAPI / Swagger paths to keep docs publicly accessible.</li>
+ *   <li>Skips non-Honeycomb paths and requests carrying a Bearer / Basic {@code Authorization} header.</li>
+ *   <li>Validates the key against the global allow-list and optional per-cell key sets.</li>
+ *   <li>On success, publishes a {@link UsernamePasswordAuthenticationToken} to the
+ *       reactive security context so downstream filters see an authenticated principal.</li>
+ * </ol>
+ *
+ * @see HoneycombSecurityProperties
+ * @see CellPathResolver#resolveCell(String)
+ */
 @Component
 @SuppressWarnings("null")
 @Order(Ordered.HIGHEST_PRECEDENCE + 10)

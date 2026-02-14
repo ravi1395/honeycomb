@@ -16,6 +16,17 @@ import com.honeycomb.core.util.HoneycombConstants;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 
+/**
+ * Highest-priority {@link WebFilter} that validates mutual TLS (mTLS)
+ * client certificates when enabled.
+ *
+ * <p>Activates when {@code honeycomb.security.mtls.enabled=true}.
+ * Checks the presented X.509 certificate chain against the configured
+ * subject DN allowlist. If {@code require-client-cert} is {@code true}
+ * and no certificate is provided, the request is rejected with 401.</p>
+ *
+ * @see HoneycombSecurityProperties.MtlsProperties
+ */
 @Component
 @SuppressWarnings("null")
 @Order(Ordered.HIGHEST_PRECEDENCE + 5)

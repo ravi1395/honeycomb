@@ -7,6 +7,14 @@ import java.util.List;
 import java.util.Map;
 import com.honeycomb.core.util.HoneycombConstants;
 
+/**
+ * Root configuration properties bound to {@code honeycomb.*}.
+ *
+ * <p>Holds the per-cell disabled-operations map with wildcard and global
+ * support (e.g. disable CREATE on a specific cell). Consumed by
+ * {@link com.honeycomb.core.web.HoneycombController} to enforce
+ * operation policies.</p>
+ */
 @ConfigurationProperties(prefix = HoneycombConstants.ConfigKeys.HONEYCOMB_PREFIX)
 public class HoneycombProperties {
 

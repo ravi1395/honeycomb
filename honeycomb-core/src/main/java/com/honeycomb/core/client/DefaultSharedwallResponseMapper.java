@@ -3,6 +3,13 @@ package com.honeycomb.core.client;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+/**
+ * Default {@link SharedwallResponseMapper} that dispatches envelope
+ * extraction via a {@code switch} over {@link SharedwallEnvelopeMode}.
+ *
+ * <p>Handles RAW, FIRST_RESULT, STRICT, and MERGED modes with
+ * appropriate error handling for unexpected envelope shapes.</p>
+ */
 public final class DefaultSharedwallResponseMapper implements SharedwallResponseMapper {
     @Override
     public Object map(Map<String, Object> envelope, SharedwallEnvelopeMode mode, String targetCell) {

@@ -20,6 +20,16 @@ import java.util.function.Function;
 import java.util.UUID;
 import java.util.function.Supplier;
 
+/**
+ * Builder-based WebClient wrapper for inter-cell sharedwall invocations.
+ *
+ * <p>Provides a fluent API for calling {@code @Sharedwall} methods on remote
+ * Honeycomb instances with service-discovery address caching and pluggable
+ * {@link SharedwallResponseMapper} strategies.</p>
+ *
+ * @see SharedwallCall
+ * @see TypedSharedwallClientFactory
+ */
 public final class SharedwallClient {
     private final WebClient webClient;
     private final String baseUrl;

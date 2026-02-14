@@ -3,6 +3,12 @@ package com.honeycomb.core.web;
 import org.springframework.util.StringUtils;
 import com.honeycomb.core.util.HoneycombConstants;
 
+/**
+ * Stateless utility that extracts the target cell name from a Honeycomb
+ * request path.
+ *
+ * <p>Example: for {@code /honeycomb/models/user/items/42}, returns {@code "user"}.</p>
+ */
 public final class CellPathResolver {
     private CellPathResolver() {}
 

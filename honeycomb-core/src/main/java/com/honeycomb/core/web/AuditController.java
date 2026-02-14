@@ -11,6 +11,14 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 
+/**
+ * Returns a paginated list of audit events from the in-memory audit log.
+ *
+ * <p>Mapped at {@code GET /honeycomb/audit}. Supports optional
+ * {@code page} and {@code size} query parameters.</p>
+ *
+ * @see com.honeycomb.core.service.AuditLogService
+ */
 @RestController
 @RequestMapping(HoneycombConstants.Paths.HONEYCOMB_AUDIT)
 @Tag(name = HoneycombConstants.Docs.TAG_AUDIT, description = HoneycombConstants.Docs.TAG_AUDIT_DESC)

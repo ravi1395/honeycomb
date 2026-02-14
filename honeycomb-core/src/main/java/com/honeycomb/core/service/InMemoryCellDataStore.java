@@ -11,6 +11,11 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import com.honeycomb.core.util.HoneycombConstants;
 
+/**
+ * In-memory {@link CellDataStore} backed by a {@link java.util.concurrent.ConcurrentHashMap}.
+ *
+ * <p>Suitable for development and testing. Data is lost on restart.</p>
+ */
 public class InMemoryCellDataStore implements CellDataStore {
     // cellName -> (id -> object map)
     private final ConcurrentHashMap<String, ConcurrentHashMap<String, Map<String, Object>>> store = new ConcurrentHashMap<>();

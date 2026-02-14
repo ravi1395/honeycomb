@@ -21,6 +21,13 @@ import reactor.core.publisher.Mono;
 
 import java.util.Map;
 
+/**
+ * Static utility methods for common Honeycomb cross-cutting concerns.
+ *
+ * <p>Includes helpers for configuring OAuth2 / JWT on
+ * {@link org.springframework.security.config.web.server.ServerHttpSecurity},
+ * building reactive JWT decoders, and WebClient builder factories.</p>
+ */
 public final class HoneycombUtil {
     private HoneycombUtil() {}
 

@@ -9,6 +9,12 @@ import reactor.core.publisher.Mono;
 
 import java.util.Map;
 
+/**
+ * Built-in example cell bean that exposes {@link com.honeycomb.core.annotations.Sharedwall @Sharedwall}
+ * methods for quick-start testing.
+ *
+ * <p>Provides {@code echo} and {@code info} shared methods out of the box.</p>
+ */
 @Cell
 @Component
 public class ExampleSharedService {

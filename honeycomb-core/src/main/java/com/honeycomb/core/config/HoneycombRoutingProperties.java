@@ -6,6 +6,14 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Routing policy configuration properties bound to {@code honeycomb.routing.*}.
+ *
+ * <p>Configures the default routing policy (random, round-robin, weighted,
+ * least-latency, circuit-aware) plus per-cell policy and weight maps.</p>
+ *
+ * @see com.honeycomb.core.service.RoutingPolicyService
+ */
 @ConfigurationProperties(prefix = HoneycombConstants.ConfigKeys.ROUTING_PREFIX, ignoreInvalidFields = true)
 public class HoneycombRoutingProperties {
     private String defaultPolicy = HoneycombConstants.RoutingPolicies.ROUND_ROBIN;

@@ -39,6 +39,19 @@ import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
 import reactor.util.retry.Retry;
 
+/**
+ * Dispatches HTTP requests to {@code @Sharedwall}-annotated methods
+ * with retries, circuit breakers, and observability.
+ *
+ * <p>Endpoint: {@code POST /honeycomb/shared/{name}}.
+ * Resolves the target method from the {@link com.honeycomb.core.service.SharedwallMethodCache},
+ * deserialises the JSON body into the method parameters, and invokes
+ * the method reflectively. Supports versioned dispatch and
+ * per-method resilience policies.</p>
+ *
+ * @see com.honeycomb.core.annotations.Sharedwall
+ * @see com.honeycomb.core.service.SharedwallMethodCache
+ */
 @RestController
 @RequestMapping(HoneycombConstants.Paths.HONEYCOMB_SHARED)
 @Tag(name = HoneycombConstants.Docs.TAG_SHARED_DISPATCHER,

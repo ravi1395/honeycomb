@@ -16,6 +16,14 @@ import org.springframework.context.event.EventListener;
 import org.springframework.core.env.Environment;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
+/**
+ * Spring Boot entry point for the Honeycomb example application.
+ *
+ * <p>Demonstrates a multi-cell setup with {@code InventoryCell},
+ * {@code CatalogCell}, {@code PricingCell}, and service cells.
+ * Excludes cloud-discovery auto-configs and provides local
+ * replacements via {@link com.honeycomb.example.config.DiscoveryConfig}.</p>
+ */
 @SpringBootApplication(
     scanBasePackages = {ExampleConstants.Packages.HONEYCOMB, ExampleConstants.Packages.HONEYCOMB_EXAMPLE},
     excludeName = {

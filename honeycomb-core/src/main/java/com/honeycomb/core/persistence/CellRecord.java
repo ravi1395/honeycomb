@@ -7,6 +7,13 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 
+/**
+ * JPA entity for persisting cell item data in a relational store.
+ * Used by the Hibernate Reactive data store implementation.
+ * Stores serialised JSON payloads keyed by cell name and item ID.
+ *
+ * @see com.honeycomb.core.service.HibernateReactiveCellDataStore
+ */
 @Entity
 @Table(name = HoneycombConstants.Persistence.TABLE_CELL_RECORDS)
 public class CellRecord {

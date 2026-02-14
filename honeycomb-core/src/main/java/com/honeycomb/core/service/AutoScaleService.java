@@ -10,6 +10,19 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.util.Map;
 
+/**
+ * Periodically evaluates per-cell request rates and automatically
+ * starts or stops cell servers based on configurable RPS thresholds.
+ *
+ * <p>Runs on a fixed schedule controlled by
+ * {@code honeycomb.autoscale.evaluation-interval}. When the
+ * windowed RPS exceeds the scale-up threshold a stopped cell is
+ * started; when it drops below the scale-down threshold a running
+ * cell is stopped.</p>
+ *
+ * @see com.honeycomb.core.config.HoneycombAutoscaleProperties
+ * @see RequestMetricsService
+ */
 @Service
 public class AutoScaleService {
     private static final Logger log = LoggerFactory.getLogger(AutoScaleService.class);

@@ -16,6 +16,16 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Maintains a bounded in-memory audit log of Honeycomb operations
+ * and streams events to subscribers via a reactive {@link reactor.core.publisher.Sinks.Many}.
+ *
+ * <p>Log size is capped by {@code honeycomb.audit.max-entries}.
+ * Events are consumed by the {@link com.honeycomb.core.web.AuditController}
+ * and the {@link com.honeycomb.core.web.EventWebSocketHandler}.</p>
+ *
+ * @see com.honeycomb.core.dto.AuditEvent
+ */
 @Service
 public class AuditLogService {
     private static final Logger log = LoggerFactory.getLogger(AuditLogService.class);
