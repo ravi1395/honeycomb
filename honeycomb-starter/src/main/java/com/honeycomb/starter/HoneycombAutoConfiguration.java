@@ -4,6 +4,8 @@ import com.honeycomb.core.HoneycombApplication;
 import com.honeycomb.core.config.HoneycombAutoscaleProperties;
 import com.honeycomb.core.config.HoneycombAuditProperties;
 import com.honeycomb.core.config.HoneycombIdempotencyProperties;
+import com.honeycomb.core.config.HoneycombCacheProperties;
+import com.honeycomb.core.config.HoneycombEventProperties;
 import com.honeycomb.core.config.HoneycombProperties;
 import com.honeycomb.core.config.HoneycombRateLimiterProperties;
 import com.honeycomb.core.config.HoneycombRoutingProperties;
@@ -16,6 +18,16 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
+/**
+ * Spring Boot auto-configuration entry point for the Honeycomb framework.
+ *
+ * <p>Enables all Honeycomb configuration properties and component-scans the
+ * {@code com.honeycomb.core} package for controllers, services, and config classes.</p>
+ *
+ * <p><b>v1.3 additions:</b> {@link HoneycombEventProperties} (event bus config)
+ * and {@link HoneycombCacheProperties} (distributed cache config) are now
+ * included in the {@code @EnableConfigurationProperties} set.</p>
+ */
 @AutoConfiguration
 @EnableScheduling
 @EnableConfigurationProperties({
@@ -27,7 +39,9 @@ import org.springframework.scheduling.annotation.EnableScheduling;
         HoneycombAuditProperties.class,
         HoneycombValidationProperties.class,
         HoneycombIdempotencyProperties.class,
-        HoneycombSharedMethodProperties.class
+        HoneycombSharedMethodProperties.class,
+        HoneycombEventProperties.class,        // v1.3: event-driven cell communication
+        HoneycombCacheProperties.class          // v1.3: distributed Redis cache sync
 })
 @ComponentScan(
         basePackages = "com.honeycomb.core",

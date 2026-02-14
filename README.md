@@ -55,6 +55,11 @@ Additional features
 - **JSON Schema contract validation** — validate shared-method payloads against JSON Schema before dispatch.
 - **Idempotency for shared dispatch** — `Idempotency-Key` header now honoured in shared-method invocations.
 
+### New in 1.3
+- **Event-driven cell communication** — publish/subscribe event bus with SSE streaming (`/honeycomb/events/stream`). Supports in-memory and Redis transports, topic filtering, and `@CellEventListener` annotation for declarative event handling.
+- **Dynamic OpenAPI auto-generation** — CRUD paths for every discovered cell and invoke paths for every `@Sharedwall` method are injected into the Swagger spec at runtime. No manual OpenAPI annotations required.
+- **Distributed Redis shared-method cache** — cross-instance cache synchronization via Redis pub/sub. Metadata publishing, cluster-wide invalidation, and admin endpoints at `/honeycomb/admin/cache/`.
+
 ### Shared cache admin + metrics
 Honeycomb tracks shared-method cache health and allows manual refresh/invalidation.
 
@@ -88,6 +93,97 @@ honeycomb:
         backoff-max-ms: 30000
         jitter-ms: 250
 ```
+
+### Event-driven cell communication (v1.3)
+
+Honeycomb includes a reactive event bus for asynchronous inter-cell communication. Events are modelled as `CellEvent` records with well-known types (`cell.registered`, `item.created`, `shared.invoked`, etc.) and custom payloads.
+
+**Transport options**
+- `memory` (default) — in-process Reactor Sinks. Zero external dependencies; ideal for development and single-instance deployments.
+- `redis` — Redis pub/sub. Events are broadcast across all instances in a cluster.
+
+**Configuration**
+```yaml
+honeycomb:
+  events:
+    enabled: true
+    transport: memory       # memory | redis
+    default-topic: honeycomb.events
+    buffer-size: 256        # in-memory sink buffer size
+```
+
+**REST endpoints**
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/honeycomb/events/stream` | GET (SSE) | Real-time stream of all cell events |
+| `/honeycomb/events/stream/{topic}` | GET (SSE) | Stream events for a specific topic |
+| `/honeycomb/events/publish` | POST | Publish a custom event |
+
+**Publishing events programmatically**
+```java
+@Autowired CellEventPublisher eventPublisher;
+
+CellEvent event = CellEvent.of("item.created", "InventoryCell",
+                                Map.of("sku", "SKU-1", "qty", 5));
+eventPublisher.publish(event).subscribe();
+```
+
+**Declarative event listeners**
+```java
+@Cell("CatalogCell")
+public class CatalogCell {
+
+    @CellEventListener(CellEvent.TYPE_ITEM_CREATED)
+    public Mono<Void> onItemCreated(CellEvent event) {
+        // react to new inventory items
+        return Mono.empty();
+    }
+}
+```
+
+`@CellEventListener` supports type filtering, source-cell filtering (`fromCells`), and ordering.
+
+**Metrics (Micrometer)**
+- `honeycomb.events.published` (counter, tag: `transport`)
+- `honeycomb.events.publish.errors` (counter, tag: `transport`)
+- `honeycomb.events.routed` (counter)
+- `honeycomb.events.dropped` (counter)
+
+### Dynamic OpenAPI auto-generation (v1.3)
+
+Honeycomb automatically generates OpenAPI path items for every discovered cell and shared method at runtime. The Swagger UI at `/honeycomb/swagger-ui.html` will include:
+
+- **Cell CRUD (Dynamic)** tag — list/get/create/update/delete paths for each `@Cell` class with accurate schemas derived from class fields.
+- **Shared Methods (Dynamic)** tag — `POST` invoke paths for each `@Sharedwall` method with request/response schemas, version headers, `X-From-Cell`, and `Idempotency-Key` parameters.
+
+No additional annotations are required — the customizer introspects the `CellRegistry` and `SharedwallMethodCache` at runtime.
+
+### Distributed Redis shared-method cache (v1.3)
+
+For multi-instance deployments, shared-method cache metadata can be synchronized across instances via Redis. Each instance publishes its method inventory to a Redis hash and listens for invalidation signals on a pub/sub channel.
+
+**Configuration**
+```yaml
+honeycomb:
+  shared:
+    cache:
+      type: redis                   # local | redis
+      redis-key-prefix: honeycomb:shared-cache
+      redis-invalidate-channel: honeycomb:cache:invalidate
+      redis-ttl-seconds: 120        # TTL for cached metadata (0 = no expiry)
+      sync-enabled: true
+```
+
+**Admin endpoints** (only active when `type=redis` and Redis is available)
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/honeycomb/admin/cache/cluster` | GET | Cluster-wide shared method cache metadata |
+| `/honeycomb/admin/cache/invalidate` | POST | Broadcast cache invalidation (`?method=discount` or `*`) |
+| `/honeycomb/admin/cache/sync` | POST | Force-sync local cache metadata to Redis |
+
+**Metrics (Micrometer)**
+- `honeycomb.shared.cache.redis.sync` (counter, tag: `result`)
+- `honeycomb.shared.cache.redis.invalidation.received` (counter)
 
 ## Production profile
 
@@ -322,7 +418,7 @@ interface EchoApi {
 Use the utility class to fetch `/honeycomb/shared/methods/stub` and write an interface source file:
 
 ```bash
-java -cp honeycomb-core/target/honeycomb-core-1.2.0.jar \
+java -cp honeycomb-core/target/honeycomb-core-1.3.0.jar \
   com.honeycomb.core.client.SharedwallStubGenerator \
   http://localhost:8080 \
   src/main/java/com/example/client/generated/SharedwallApi.java \

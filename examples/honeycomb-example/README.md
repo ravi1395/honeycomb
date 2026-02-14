@@ -255,6 +255,84 @@ ws://localhost:8080/honeycomb/ws/events
 - JWT and mTLS can be enabled via the `honeycomb.security` section in the app config.
 - OAuth2 client settings are in `spring.security.oauth2.client` and `example.oauth2.*` (including `registration-id`).
 
+### New in 1.3
+
+#### Event streaming (SSE)
+
+Stream all cell events in real time using Server-Sent Events:
+
+```sh
+curl -N -H 'X-API-Key: admin-key' http://localhost:8080/honeycomb/events/stream
+```
+
+Stream events for a specific topic:
+
+```sh
+curl -N -H 'X-API-Key: admin-key' http://localhost:8080/honeycomb/events/stream/my-topic
+```
+
+Publish a custom event via HTTP:
+
+```sh
+curl -X POST -H 'Content-Type: application/json' -H 'X-API-Key: admin-key' \
+  -d '{"type":"custom","sourceCell":"demo","payload":{"message":"hello"},"topic":"my-topic"}' \
+  http://localhost:8080/honeycomb/events/publish
+```
+
+Events are also published automatically by the framework on cell lifecycle changes, CRUD operations, and shared method invocations.
+
+#### Dynamic OpenAPI
+
+Swagger UI now auto-generates paths for all discovered cells and shared methods. Visit:
+
+```
+http://localhost:8080/honeycomb/swagger-ui.html
+```
+
+Look for the **Cell CRUD (Dynamic)** and **Shared Methods (Dynamic)** tag groups.
+
+#### Distributed cache admin (requires Redis)
+
+When `honeycomb.shared.cache.type=redis`, the following admin endpoints are available:
+
+```sh
+# View cluster-wide cache metadata
+curl -H 'X-API-Key: admin-key' http://localhost:8080/honeycomb/admin/cache/cluster
+
+# Broadcast cache invalidation to all instances
+curl -X POST -H 'X-API-Key: admin-key' http://localhost:8080/honeycomb/admin/cache/invalidate
+
+# Invalidate a specific method across all instances
+curl -X POST -H 'X-API-Key: admin-key' 'http://localhost:8080/honeycomb/admin/cache/invalidate?method=discount'
+
+# Force sync local cache metadata to Redis
+curl -X POST -H 'X-API-Key: admin-key' http://localhost:8080/honeycomb/admin/cache/sync
+```
+
+#### Event bus configuration
+
+```yaml
+honeycomb:
+  events:
+    enabled: true
+    transport: memory       # memory | redis
+    default-topic: honeycomb.events
+    buffer-size: 256
+```
+
+#### Distributed cache configuration
+
+```yaml
+honeycomb:
+  shared:
+    cache:
+      type: redis
+      redis-key-prefix: honeycomb:shared-cache
+      redis-invalidate-channel: honeycomb:cache:invalidate
+      redis-ttl-seconds: 120
+      sync-enabled: true
+```
+
 Environment placeholders for OAuth2 client:
 
 ```
