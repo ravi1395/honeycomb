@@ -280,13 +280,13 @@ public final class SharedwallClient {
                               MediaType contentType,
                               ParameterizedTypeReference<T> responseType) {
         return doInvoke(methodName, body, contentType, responseType, null);
-        }
+    }
 
-        private <T> Mono<T> doInvoke(String methodName,
-                      Object body,
-                      MediaType contentType,
-                      ParameterizedTypeReference<T> responseType,
-                      String version) {
+    private <T> Mono<T> doInvoke(String methodName,
+                                 Object body,
+                                 MediaType contentType,
+                                 ParameterizedTypeReference<T> responseType,
+                                 String version) {
         String url = baseUrl + HoneycombConstants.Paths.HONEYCOMB_SHARED
                 + HoneycombConstants.Names.SEPARATOR_SLASH + methodName;
         MediaType resolvedType = resolveContentType(body, contentType);

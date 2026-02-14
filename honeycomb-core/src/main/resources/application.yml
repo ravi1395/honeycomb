@@ -26,18 +26,17 @@ eureka:
   instance:
     prefer-ip-address: true
 
-cell:
-  # Static discovery examples (comma-separated)
-  # addresses:
-  #   SampleModel: "sample-service:8081,other-service:8082"
-  # ports:
-  #   SampleModel: "8081,8082"
-
 # Example application properties for shared caller tests
 app:
   test-caller: "test-client"
 
 honeycomb:
+  # Per-cell static discovery (uncomment to configure)
+  # cell:
+  #   addresses:
+  #     SampleModel: "sample-service:8081,other-service:8082"
+  #   ports:
+  #     SampleModel: "8081,8082"
   # Storage backend for cell items: memory | redis | hibernate
   # storage:
   #   type: hibernate
