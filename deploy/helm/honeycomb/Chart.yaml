@@ -1,0 +1,16 @@
+apiVersion: v2
+name: honeycomb
+description: Helm chart for the Honeycomb cell-based microservice framework
+type: application
+version: 1.4.2
+appVersion: "1.4.2"
+keywords:
+  - honeycomb
+  - microservices
+  - cells
+  - spring-boot
+  - grpc
+home: https://github.com/honeycomb-framework/honeycomb
+maintainers:
+  - name: Honeycomb Team
+    email: team@honeycomb.example.com

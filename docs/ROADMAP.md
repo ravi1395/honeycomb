@@ -16,11 +16,11 @@ Last updated: 2026-02-14
 
 | # | Feature | Status | Target |
 |---|---------|--------|--------|
-| 4 | **GraalVM native image support** — Spring AOT hints + native build plugin for sub-100ms startup | 📋 Planned | v1.4.0 |
-| 5 | **gRPC transport for inter-cell calls** — Protobuf-based shared-method dispatch option for internal hot-path latency | 📋 Planned | v1.4.0 |
-| 6 | **Cell versioning & blue-green dispatch** — Run v1/v2 of a cell simultaneously with configurable traffic split (90/10, canary) | 📋 Planned | v1.4.0 |
-| 7 | **Kubernetes operator / Helm chart** — `HoneycombCell` CRD auto-creating Deployments, Services, HPA per cell | 📋 Planned | v1.4.0 |
-| 8 | **Distributed locking (Redis/Zookeeper)** — Coordinated idempotency, leader election for autoscale decisions | 📋 Planned | v1.4.0 |
+| 4 | **GraalVM native image support** — Spring AOT hints + native build plugin for sub-100ms startup | ✅ Complete | v1.4.2 |
+| 5 | **gRPC transport for inter-cell calls** — Protobuf-based shared-method dispatch option for internal hot-path latency | ✅ Complete | v1.4.2 |
+| 6 | **Cell versioning & blue-green dispatch** — Run v1/v2 of a cell simultaneously with configurable traffic split (90/10, canary) | ✅ Complete | v1.4.2 |
+| 7 | **Kubernetes operator / Helm chart** — `HoneycombCell` CRD auto-creating Deployments, Services, HPA per cell | ✅ Complete | v1.4.2 |
+| 8 | **Distributed locking (Redis/Zookeeper)** — Coordinated idempotency, leader election for autoscale decisions | ✅ Complete | v1.4.2 |
 
 ### Tier 3 — Developer Experience (v1.5)
 
