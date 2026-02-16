@@ -1,0 +1,22 @@
+# ─── gRPC Profile ───
+# Activate with: --spring.profiles.active=grpc
+# This enables gRPC transport alongside HTTP (transport=both).
+# To run gRPC-only, set transport: grpc
+
+honeycomb:
+  grpc:
+    enabled: true
+    transport: both
+    server:
+      port: 9090
+    client:
+      default-target: "localhost:9090"
+      deadline: 10s
+      negotiation-type: plaintext
+    reflection-enabled: true
+    health-enabled: true
+
+# net.devh gRPC server properties (auto-configured by grpc-spring-boot-starter)
+grpc:
+  server:
+    port: 9090

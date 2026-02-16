@@ -1,0 +1,97 @@
+{
+  "groups": [
+    {
+      "name": "honeycomb.grpc",
+      "type": "com.honeycomb.grpc.config.HoneycombGrpcProperties",
+      "description": "Honeycomb gRPC transport module configuration."
+    },
+    {
+      "name": "honeycomb.grpc.server",
+      "type": "com.honeycomb.grpc.config.HoneycombGrpcProperties$Server",
+      "description": "gRPC server settings."
+    },
+    {
+      "name": "honeycomb.grpc.client",
+      "type": "com.honeycomb.grpc.config.HoneycombGrpcProperties$Client",
+      "description": "gRPC client settings for outgoing calls."
+    }
+  ],
+  "properties": [
+    {
+      "name": "honeycomb.grpc.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Enable the Honeycomb gRPC transport module.",
+      "defaultValue": false
+    },
+    {
+      "name": "honeycomb.grpc.transport",
+      "type": "com.honeycomb.grpc.config.HoneycombGrpcProperties$TransportMode",
+      "description": "Transport mode: http, grpc, or both.",
+      "defaultValue": "both"
+    },
+    {
+      "name": "honeycomb.grpc.reflection-enabled",
+      "type": "java.lang.Boolean",
+      "description": "Enable gRPC server reflection for debugging tools.",
+      "defaultValue": true
+    },
+    {
+      "name": "honeycomb.grpc.health-enabled",
+      "type": "java.lang.Boolean",
+      "description": "Enable gRPC health check service.",
+      "defaultValue": true
+    },
+    {
+      "name": "honeycomb.grpc.server.port",
+      "type": "java.lang.Integer",
+      "description": "gRPC server listen port.",
+      "defaultValue": 9090
+    },
+    {
+      "name": "honeycomb.grpc.server.max-inbound-message-size",
+      "type": "java.lang.Integer",
+      "description": "Maximum inbound message size in bytes.",
+      "defaultValue": 4194304
+    },
+    {
+      "name": "honeycomb.grpc.client.default-target",
+      "type": "java.lang.String",
+      "description": "Default gRPC target (host:port or dns:///name:port).",
+      "defaultValue": "localhost:9090"
+    },
+    {
+      "name": "honeycomb.grpc.client.per-cell-targets",
+      "type": "java.util.Map<java.lang.String,java.lang.String>",
+      "description": "Per-cell gRPC target overrides."
+    },
+    {
+      "name": "honeycomb.grpc.client.deadline",
+      "type": "java.time.Duration",
+      "description": "Client-side RPC deadline.",
+      "defaultValue": "10s"
+    },
+    {
+      "name": "honeycomb.grpc.client.negotiation-type",
+      "type": "java.lang.String",
+      "description": "Channel negotiation type: plaintext or tls.",
+      "defaultValue": "plaintext"
+    }
+  ],
+  "hints": [
+    {
+      "name": "honeycomb.grpc.transport",
+      "values": [
+        { "value": "http", "description": "HTTP-only: gRPC module loaded but inactive." },
+        { "value": "grpc", "description": "gRPC-only: starts gRPC server, disables HTTP shared endpoints." },
+        { "value": "both", "description": "Both HTTP and gRPC servers run concurrently." }
+      ]
+    },
+    {
+      "name": "honeycomb.grpc.client.negotiation-type",
+      "values": [
+        { "value": "plaintext", "description": "Unencrypted gRPC (default for development)." },
+        { "value": "tls", "description": "TLS-encrypted gRPC." }
+      ]
+    }
+  ]
+}

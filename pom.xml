@@ -28,7 +28,7 @@
         <ossrh.release.url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2</ossrh.release.url>
         <ossrh.snapshot.url>https://s01.oss.sonatype.org/content/repositories/snapshots</ossrh.snapshot.url>
         <jmh.version>1.37</jmh.version>
-        <grpc.version>1.68.0</grpc.version>
+        <grpc.version>1.75.0</grpc.version>
         <protobuf.version>4.28.2</protobuf.version>
         <grpc-spring-boot.version>3.1.0.RELEASE</grpc-spring-boot.version>
         <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
