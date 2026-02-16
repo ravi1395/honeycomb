@@ -12,7 +12,7 @@
 
     <groupId>com.honeycomb</groupId>
     <artifactId>honeycomb-example</artifactId>
-    <version>1.4.0</version>
+    <version>1.4.2</version>
     <name>honeycomb-example</name>
     <description>Example app that consumes the Honeycomb jar</description>
 
@@ -37,7 +37,7 @@
         <dependency>
             <groupId>com.honeycomb</groupId>
             <artifactId>honeycomb</artifactId>
-            <version>1.4.0</version>
+            <version>1.4.2</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -64,7 +64,7 @@
         <dependency>
             <groupId>com.honeycomb</groupId>
             <artifactId>honeycomb-grpc</artifactId>
-            <version>1.4.0</version>
+            <version>1.4.2</version>
         </dependency>
 
         <dependency>
@@ -97,4 +97,37 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <!-- GraalVM Native Image — activate with: mvn -Pnative native:compile -->
+        <profile>
+            <id>native</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.graalvm.buildtools</groupId>
+                        <artifactId>native-maven-plugin</artifactId>
+                        <version>0.10.4</version>
+                        <extensions>true</extensions>
+                        <executions>
+                            <execution>
+                                <id>build-native</id>
+                                <goals>
+                                    <goal>compile-no-fork</goal>
+                                </goals>
+                                <phase>package</phase>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <buildArgs>
+                                <buildArg>--no-fallback</buildArg>
+                                <buildArg>--enable-url-protocols=http,https</buildArg>
+                                <buildArg>-H:+ReportExceptionStackTraces</buildArg>
+                            </buildArgs>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

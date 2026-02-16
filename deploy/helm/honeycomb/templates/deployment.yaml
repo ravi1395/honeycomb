@@ -1,0 +1,116 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "honeycomb.fullname" . }}
+  labels:
+    {{- include "honeycomb.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "honeycomb.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        {{- toYaml .Values.podAnnotations | nindent 8 }}
+      labels:
+        {{- include "honeycomb.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "honeycomb.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.honeycomb.serverPort }}
+              protocol: TCP
+            {{- if .Values.honeycomb.grpc.enabled }}
+            - name: grpc
+              containerPort: {{ .Values.honeycomb.grpc.serverPort }}
+              protocol: TCP
+            {{- end }}
+          env:
+            - name: SERVER_PORT
+              value: {{ .Values.honeycomb.serverPort | quote }}
+            - name: SPRING_PROFILES_ACTIVE
+              value: {{ .Values.honeycomb.profiles | quote }}
+            - name: HONEYCOMB_SECURITY_API__KEY_KEYS_0_
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "honeycomb.fullname" . }}-secret
+                  key: api-key
+            - name: HONEYCOMB_STORAGE_TYPE
+              value: {{ .Values.honeycomb.storage.type | quote }}
+            {{- if .Values.honeycomb.redis.host }}
+            - name: SPRING_DATA_REDIS_HOST
+              value: {{ .Values.honeycomb.redis.host | quote }}
+            - name: SPRING_DATA_REDIS_PORT
+              value: {{ .Values.honeycomb.redis.port | quote }}
+            {{- end }}
+            {{- if .Values.honeycomb.grpc.enabled }}
+            - name: HONEYCOMB_GRPC_ENABLED
+              value: "true"
+            - name: HONEYCOMB_GRPC_SERVER_PORT
+              value: {{ .Values.honeycomb.grpc.serverPort | quote }}
+            {{- end }}
+            - name: HONEYCOMB_VERSIONING_ENABLED
+              value: {{ .Values.honeycomb.versioning.enabled | quote }}
+            - name: HONEYCOMB_LOCKING_ENABLED
+              value: {{ .Values.honeycomb.locking.enabled | quote }}
+            {{- range $key, $value := .Values.honeycomb.cellPorts }}
+            - name: CELL_PORTS_{{ $key | upper }}
+              value: {{ $value | quote }}
+            {{- end }}
+            {{- range $key, $value := .Values.honeycomb.extraEnv }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+          {{- with .Values.probes.liveness }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.probes.readiness }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.probes.startup }}
+          startupProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            {{- with .Values.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        {{- with .Values.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

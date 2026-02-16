@@ -534,7 +534,7 @@ public final class HoneycombConstants {
         private OpenApi() {}
         public static final String TITLE = "Honeycomb API";
         public static final String DESCRIPTION = "Per-cell microservice runtime with shared method invocation, CRUD operations, and cell registry";
-        public static final String VERSION = "1.3.0";
+        public static final String VERSION = "1.4.2";
         public static final String CONTACT_NAME = "Honeycomb Team";
         public static final String CONTACT_EMAIL = "team@honeycomb.example.com";
         public static final String LICENSE_NAME = "MIT License";

@@ -1,0 +1,150 @@
+# -- Global defaults for the Honeycomb Helm chart
+# Override these in your own values-<env>.yaml or with --set.
+
+replicaCount: 1
+
+image:
+  repository: honeycomb/honeycomb-example
+  tag: "1.4.2"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# -- Honeycomb application configuration injected as env vars / configmap
+honeycomb:
+  # Main HTTP server port
+  serverPort: 8080
+  # Spring profiles to activate
+  profiles: "prod"
+  # API key for admin endpoints
+  apiKey: "changeme"
+
+  # -- Per-cell ports (cell.ports.<name>=<port>)
+  cellPorts: {}
+  #   catalog: 8081
+  #   inventory: 8082
+
+  # -- Storage backend: memory | redis | hibernate
+  storage:
+    type: memory
+
+  # -- Redis connection (used by storage, events, cache, idempotency, locking)
+  redis:
+    host: ""
+    port: 6379
+
+  # -- Versioning / blue-green
+  versioning:
+    enabled: false
+    trafficSplit: {}
+
+  # -- Distributed locking
+  locking:
+    enabled: false
+    type: redis
+
+  # -- gRPC transport
+  grpc:
+    enabled: false
+    serverPort: 9090
+
+  # -- Extra environment variables as key-value pairs
+  extraEnv: {}
+
+# -- Service configuration
+service:
+  type: ClusterIP
+  port: 8080
+  grpcPort: 9090
+  annotations: {}
+
+# -- Ingress
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: honeycomb.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# -- Autoscaling (HorizontalPodAutoscaler)
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# -- Pod resource requests / limits
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi
+
+# -- Liveness, readiness, and startup probes
+probes:
+  liveness:
+    httpGet:
+      path: /actuator/health/liveness
+      port: http
+    initialDelaySeconds: 30
+    periodSeconds: 10
+  readiness:
+    httpGet:
+      path: /actuator/health/readiness
+      port: http
+    initialDelaySeconds: 15
+    periodSeconds: 5
+  startup:
+    httpGet:
+      path: /actuator/health
+      port: http
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    failureThreshold: 30
+
+# -- Pod annotations (e.g. Prometheus scraping)
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8080"
+  prometheus.io/path: "/actuator/prometheus"
+
+# -- Pod security context
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+# -- Container security context
+securityContext:
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+
+# -- Node selector, tolerations, affinity
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# -- Additional volumes and volumeMounts
+extraVolumes: []
+extraVolumeMounts: []
+
+# -- ServiceMonitor for Prometheus Operator
+serviceMonitor:
+  enabled: false
+  interval: 30s
+  path: /actuator/prometheus
+  labels: {}
