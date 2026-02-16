@@ -1,0 +1,672 @@
+{
+  "groups": [
+    {
+      "name": "honeycomb",
+      "type": "com.honeycomb.core.config.HoneycombProperties",
+      "description": "Root configuration namespace for the Honeycomb framework."
+    },
+    {
+      "name": "honeycomb.cell",
+      "description": "Per-cell configuration: static discovery addresses and port mappings."
+    },
+    {
+      "name": "honeycomb.webclient",
+      "description": "WebClient timeout configuration for inter-cell HTTP calls."
+    },
+    {
+      "name": "honeycomb.validation",
+      "type": "com.honeycomb.core.config.HoneycombValidationProperties",
+      "description": "JSON Schema validation settings for cell payloads."
+    },
+    {
+      "name": "honeycomb.audit",
+      "type": "com.honeycomb.core.config.HoneycombAuditProperties",
+      "description": "Audit log configuration."
+    },
+    {
+      "name": "honeycomb.security",
+      "type": "com.honeycomb.core.config.HoneycombSecurityProperties",
+      "description": "Security settings for Honeycomb endpoints."
+    },
+    {
+      "name": "honeycomb.security.api-keys",
+      "type": "com.honeycomb.core.config.HoneycombSecurityProperties$ApiKeys",
+      "description": "API key authentication settings."
+    },
+    {
+      "name": "honeycomb.security.jwt",
+      "type": "com.honeycomb.core.config.HoneycombSecurityProperties$Jwt",
+      "description": "JWT / OAuth2 resource server settings."
+    },
+    {
+      "name": "honeycomb.security.mtls",
+      "type": "com.honeycomb.core.config.HoneycombSecurityProperties$Mtls",
+      "description": "Mutual TLS authentication settings."
+    },
+    {
+      "name": "honeycomb.rate-limiter",
+      "type": "com.honeycomb.core.config.HoneycombRateLimiterProperties",
+      "description": "Per-IP rate limiter with global defaults and per-cell overrides."
+    },
+    {
+      "name": "honeycomb.rate-limiter.defaults",
+      "type": "com.honeycomb.core.config.HoneycombRateLimiterProperties$RateLimitConfig",
+      "description": "Default rate limiter configuration."
+    },
+    {
+      "name": "honeycomb.routing",
+      "type": "com.honeycomb.core.config.HoneycombRoutingProperties",
+      "description": "Routing policy for inter-cell communication."
+    },
+    {
+      "name": "honeycomb.events",
+      "type": "com.honeycomb.core.config.HoneycombEventProperties",
+      "description": "Event bus configuration for inter-cell communication."
+    },
+    {
+      "name": "honeycomb.shared",
+      "description": "Shared method runtime configuration namespace."
+    },
+    {
+      "name": "honeycomb.shared.cache",
+      "type": "com.honeycomb.core.config.HoneycombCacheProperties",
+      "description": "Shared method cache configuration."
+    },
+    {
+      "name": "honeycomb.shared.methods",
+      "type": "com.honeycomb.core.config.HoneycombSharedMethodProperties",
+      "description": "Shared method resilience policies."
+    },
+    {
+      "name": "honeycomb.autoscale",
+      "type": "com.honeycomb.core.config.HoneycombAutoscaleProperties",
+      "description": "Automatic cell server scaling configuration."
+    },
+    {
+      "name": "honeycomb.storage",
+      "type": "com.honeycomb.core.config.HoneycombStorageProperties",
+      "description": "Cell data storage backend configuration."
+    },
+    {
+      "name": "honeycomb.idempotency",
+      "type": "com.honeycomb.core.config.HoneycombIdempotencyProperties",
+      "description": "Idempotency configuration for safe retries."
+    }
+  ],
+  "properties": [
+    {
+      "name": "service.discovery.base-url",
+      "type": "java.lang.String",
+      "description": "Base URL for service discovery lookups."
+    },
+    {
+      "name": "app.test-caller",
+      "type": "java.lang.String",
+      "description": "Caller identity used in shared-method invocation tests."
+    },
+    {
+      "name": "shared.caller-header",
+      "type": "java.lang.String",
+      "description": "HTTP header name identifying the calling cell.",
+      "defaultValue": "X-From-Cell"
+    },
+    {
+      "name": "honeycomb.cell.addresses",
+      "type": "java.util.Map<java.lang.String,java.lang.String>",
+      "description": "Static discovery addresses per cell (comma-separated host:port pairs)."
+    },
+    {
+      "name": "honeycomb.cell.ports",
+      "type": "java.util.Map<java.lang.String,java.lang.String>",
+      "description": "Static port mappings per cell."
+    },
+    {
+      "name": "honeycomb.disabled-operations",
+      "type": "java.util.Map<java.lang.String,java.util.List<java.lang.String>>",
+      "description": "Per-cell disabled CRUD operations. Key '__all__' applies globally.",
+      "sourceType": "com.honeycomb.core.config.HoneycombProperties"
+    },
+    {
+      "name": "honeycomb.webclient.connect-timeout-ms",
+      "type": "java.lang.Integer",
+      "description": "WebClient connection timeout in milliseconds.",
+      "defaultValue": 5000
+    },
+    {
+      "name": "honeycomb.webclient.response-timeout-ms",
+      "type": "java.lang.Integer",
+      "description": "WebClient response timeout in milliseconds.",
+      "defaultValue": 30000
+    },
+    {
+      "name": "honeycomb.validation.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Enable JSON Schema validation for cell CRUD payloads.",
+      "defaultValue": false,
+      "sourceType": "com.honeycomb.core.config.HoneycombValidationProperties"
+    },
+    {
+      "name": "honeycomb.validation.schema-dir",
+      "type": "java.lang.String",
+      "description": "Classpath directory containing JSON Schema files.",
+      "defaultValue": "schemas",
+      "sourceType": "com.honeycomb.core.config.HoneycombValidationProperties"
+    },
+    {
+      "name": "honeycomb.validation.fail-on-missing-schema",
+      "type": "java.lang.Boolean",
+      "description": "Fail validation when no schema is found for a cell.",
+      "defaultValue": false,
+      "sourceType": "com.honeycomb.core.config.HoneycombValidationProperties"
+    },
+    {
+      "name": "honeycomb.validation.per-cell",
+      "type": "java.util.Map<java.lang.String,java.lang.String>",
+      "description": "Per-cell JSON Schema filename overrides.",
+      "sourceType": "com.honeycomb.core.config.HoneycombValidationProperties"
+    },
+    {
+      "name": "honeycomb.audit.max-entries",
+      "type": "java.lang.Integer",
+      "description": "Maximum number of in-memory audit entries.",
+      "defaultValue": 500,
+      "sourceType": "com.honeycomb.core.config.HoneycombAuditProperties"
+    },
+    {
+      "name": "honeycomb.security.require-auth",
+      "type": "java.lang.Boolean",
+      "description": "Require authentication for all honeycomb endpoints.",
+      "defaultValue": false,
+      "sourceType": "com.honeycomb.core.config.HoneycombSecurityProperties"
+    },
+    {
+      "name": "honeycomb.security.api-keys.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Enable API key authentication.",
+      "defaultValue": false,
+      "sourceType": "com.honeycomb.core.config.HoneycombSecurityProperties$ApiKeys"
+    },
+    {
+      "name": "honeycomb.security.api-keys.header",
+      "type": "java.lang.String",
+      "description": "HTTP header name for the API key.",
+      "defaultValue": "X-API-Key",
+      "sourceType": "com.honeycomb.core.config.HoneycombSecurityProperties$ApiKeys"
+    },
+    {
+      "name": "honeycomb.security.api-keys.keys",
+      "type": "java.util.Map<java.lang.String,java.lang.String>",
+      "description": "Named API keys (label -> key value).",
+      "sourceType": "com.honeycomb.core.config.HoneycombSecurityProperties$ApiKeys"
+    },
+    {
+      "name": "honeycomb.security.api-keys.per-cell",
+      "type": "java.util.Map<java.lang.String,java.util.List<java.lang.String>>",
+      "description": "Per-cell API key allowlists. Use '*' for all cells.",
+      "sourceType": "com.honeycomb.core.config.HoneycombSecurityProperties$ApiKeys"
+    },
+    {
+      "name": "honeycomb.security.jwt.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Enable JWT / OAuth2 authentication.",
+      "defaultValue": false,
+      "sourceType": "com.honeycomb.core.config.HoneycombSecurityProperties$Jwt"
+    },
+    {
+      "name": "honeycomb.security.jwt.issuer-uri",
+      "type": "java.lang.String",
+      "description": "OAuth2 issuer URI.",
+      "sourceType": "com.honeycomb.core.config.HoneycombSecurityProperties$Jwt"
+    },
+    {
+      "name": "honeycomb.security.jwt.jwk-set-uri",
+      "type": "java.lang.String",
+      "description": "JWK Set URI for token verification.",
+      "sourceType": "com.honeycomb.core.config.HoneycombSecurityProperties$Jwt"
+    },
+    {
+      "name": "honeycomb.security.jwt.audience",
+      "type": "java.lang.String",
+      "description": "Expected JWT audience claim.",
+      "sourceType": "com.honeycomb.core.config.HoneycombSecurityProperties$Jwt"
+    },
+    {
+      "name": "honeycomb.security.jwt.roles-claim",
+      "type": "java.lang.String",
+      "description": "JWT claim containing user roles.",
+      "sourceType": "com.honeycomb.core.config.HoneycombSecurityProperties$Jwt"
+    },
+    {
+      "name": "honeycomb.security.jwt.role-prefix",
+      "type": "java.lang.String",
+      "description": "Prefix for role authorities.",
+      "defaultValue": "ROLE_",
+      "sourceType": "com.honeycomb.core.config.HoneycombSecurityProperties$Jwt"
+    },
+    {
+      "name": "honeycomb.security.jwt.scopes-claim",
+      "type": "java.lang.String",
+      "description": "JWT claim containing scopes.",
+      "sourceType": "com.honeycomb.core.config.HoneycombSecurityProperties$Jwt"
+    },
+    {
+      "name": "honeycomb.security.jwt.scope-prefix",
+      "type": "java.lang.String",
+      "description": "Prefix for scope authorities.",
+      "defaultValue": "SCOPE_",
+      "sourceType": "com.honeycomb.core.config.HoneycombSecurityProperties$Jwt"
+    },
+    {
+      "name": "honeycomb.security.jwt.shared-roles-claim",
+      "type": "java.lang.String",
+      "description": "JWT claim for shared-method roles.",
+      "sourceType": "com.honeycomb.core.config.HoneycombSecurityProperties$Jwt"
+    },
+    {
+      "name": "honeycomb.security.jwt.shared-role-prefix",
+      "type": "java.lang.String",
+      "description": "Prefix for shared-method role authorities.",
+      "defaultValue": "ROLE_",
+      "sourceType": "com.honeycomb.core.config.HoneycombSecurityProperties$Jwt"
+    },
+    {
+      "name": "honeycomb.security.jwt.default-roles",
+      "type": "java.util.List<java.lang.String>",
+      "description": "Default roles assigned when no per-cell roles match.",
+      "sourceType": "com.honeycomb.core.config.HoneycombSecurityProperties$Jwt"
+    },
+    {
+      "name": "honeycomb.security.jwt.per-cell-roles",
+      "type": "java.util.Map<java.lang.String,java.util.List<java.lang.String>>",
+      "description": "Per-cell required roles map.",
+      "sourceType": "com.honeycomb.core.config.HoneycombSecurityProperties$Jwt"
+    },
+    {
+      "name": "honeycomb.security.jwt.per-cell-operation-roles",
+      "type": "java.util.Map<java.lang.String,java.util.Map<java.lang.String,java.util.List<java.lang.String>>>",
+      "description": "Per-cell per-operation required roles.",
+      "sourceType": "com.honeycomb.core.config.HoneycombSecurityProperties$Jwt"
+    },
+    {
+      "name": "honeycomb.security.jwt.shared-method-roles",
+      "type": "java.util.Map<java.lang.String,java.util.List<java.lang.String>>",
+      "description": "Per-shared-method required roles.",
+      "sourceType": "com.honeycomb.core.config.HoneycombSecurityProperties$Jwt"
+    },
+    {
+      "name": "honeycomb.security.mtls.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Enable mutual TLS authentication.",
+      "defaultValue": false,
+      "sourceType": "com.honeycomb.core.config.HoneycombSecurityProperties$Mtls"
+    },
+    {
+      "name": "honeycomb.security.mtls.require-client-cert",
+      "type": "java.lang.Boolean",
+      "description": "Require a client certificate for mTLS.",
+      "defaultValue": false,
+      "sourceType": "com.honeycomb.core.config.HoneycombSecurityProperties$Mtls"
+    },
+    {
+      "name": "honeycomb.security.mtls.allowed-subjects",
+      "type": "java.util.List<java.lang.String>",
+      "description": "Allowed X.509 certificate subject DNs.",
+      "sourceType": "com.honeycomb.core.config.HoneycombSecurityProperties$Mtls"
+    },
+    {
+      "name": "honeycomb.rate-limiter.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Enable per-IP rate limiting.",
+      "defaultValue": false,
+      "sourceType": "com.honeycomb.core.config.HoneycombRateLimiterProperties"
+    },
+    {
+      "name": "honeycomb.rate-limiter.defaults.limit-for-period",
+      "type": "java.lang.Integer",
+      "description": "Maximum requests allowed per refresh period.",
+      "defaultValue": 50,
+      "sourceType": "com.honeycomb.core.config.HoneycombRateLimiterProperties$RateLimitConfig"
+    },
+    {
+      "name": "honeycomb.rate-limiter.defaults.refresh-period",
+      "type": "java.time.Duration",
+      "description": "Duration after which the rate limit counter resets.",
+      "sourceType": "com.honeycomb.core.config.HoneycombRateLimiterProperties$RateLimitConfig"
+    },
+    {
+      "name": "honeycomb.rate-limiter.defaults.timeout",
+      "type": "java.time.Duration",
+      "description": "Maximum wait time for a permit before rejecting.",
+      "sourceType": "com.honeycomb.core.config.HoneycombRateLimiterProperties$RateLimitConfig"
+    },
+    {
+      "name": "honeycomb.rate-limiter.per-cell",
+      "type": "java.util.Map<java.lang.String,com.honeycomb.core.config.HoneycombRateLimiterProperties$RateLimitConfig>",
+      "description": "Per-cell rate limiter overrides.",
+      "sourceType": "com.honeycomb.core.config.HoneycombRateLimiterProperties"
+    },
+    {
+      "name": "honeycomb.routing.default-policy",
+      "type": "java.lang.String",
+      "description": "Default routing policy (random, round-robin, weighted, least-latency, circuit-aware).",
+      "defaultValue": "round-robin",
+      "sourceType": "com.honeycomb.core.config.HoneycombRoutingProperties"
+    },
+    {
+      "name": "honeycomb.routing.per-cell-policy",
+      "type": "java.util.Map<java.lang.String,java.lang.String>",
+      "description": "Per-cell routing policy overrides.",
+      "sourceType": "com.honeycomb.core.config.HoneycombRoutingProperties"
+    },
+    {
+      "name": "honeycomb.routing.weights",
+      "type": "java.util.Map<java.lang.String,java.util.Map<java.lang.String,java.lang.Integer>>",
+      "description": "Per-cell address weight maps for weighted routing.",
+      "sourceType": "com.honeycomb.core.config.HoneycombRoutingProperties"
+    },
+    {
+      "name": "honeycomb.events.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Enable the Honeycomb event bus.",
+      "defaultValue": false,
+      "sourceType": "com.honeycomb.core.config.HoneycombEventProperties"
+    },
+    {
+      "name": "honeycomb.events.transport",
+      "type": "java.lang.String",
+      "description": "Event transport type: memory or redis.",
+      "defaultValue": "memory",
+      "sourceType": "com.honeycomb.core.config.HoneycombEventProperties"
+    },
+    {
+      "name": "honeycomb.events.default-topic",
+      "type": "java.lang.String",
+      "description": "Default event topic name.",
+      "defaultValue": "honeycomb-events",
+      "sourceType": "com.honeycomb.core.config.HoneycombEventProperties"
+    },
+    {
+      "name": "honeycomb.events.buffer-size",
+      "type": "java.lang.Integer",
+      "description": "In-memory event buffer size.",
+      "defaultValue": 256,
+      "sourceType": "com.honeycomb.core.config.HoneycombEventProperties"
+    },
+    {
+      "name": "honeycomb.shared.cache.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Enable the shared method cache.",
+      "defaultValue": false,
+      "sourceType": "com.honeycomb.core.config.HoneycombCacheProperties"
+    },
+    {
+      "name": "honeycomb.shared.cache.warmup-enabled",
+      "type": "java.lang.Boolean",
+      "description": "Warm up the cache on startup.",
+      "defaultValue": false,
+      "sourceType": "com.honeycomb.core.config.HoneycombCacheProperties"
+    },
+    {
+      "name": "honeycomb.shared.cache.cache-refresh-ms",
+      "type": "java.lang.Long",
+      "description": "Cache refresh interval in milliseconds.",
+      "defaultValue": 60000,
+      "sourceType": "com.honeycomb.core.config.HoneycombCacheProperties"
+    },
+    {
+      "name": "honeycomb.shared.cache.type",
+      "type": "java.lang.String",
+      "description": "Cache type: local or redis.",
+      "defaultValue": "local",
+      "sourceType": "com.honeycomb.core.config.HoneycombCacheProperties"
+    },
+    {
+      "name": "honeycomb.shared.cache.redis-key-prefix",
+      "type": "java.lang.String",
+      "description": "Redis key prefix for cache entries.",
+      "defaultValue": "honeycomb:cache:",
+      "sourceType": "com.honeycomb.core.config.HoneycombCacheProperties"
+    },
+    {
+      "name": "honeycomb.shared.cache.redis-invalidate-channel",
+      "type": "java.lang.String",
+      "description": "Redis pub/sub channel for cache invalidation.",
+      "defaultValue": "honeycomb:cache:invalidate",
+      "sourceType": "com.honeycomb.core.config.HoneycombCacheProperties"
+    },
+    {
+      "name": "honeycomb.shared.cache.redis-ttl-seconds",
+      "type": "java.lang.Long",
+      "description": "Redis cache entry TTL in seconds.",
+      "defaultValue": 300,
+      "sourceType": "com.honeycomb.core.config.HoneycombCacheProperties"
+    },
+    {
+      "name": "honeycomb.shared.cache.sync-enabled",
+      "type": "java.lang.Boolean",
+      "description": "Enable cross-instance cache synchronization.",
+      "defaultValue": false,
+      "sourceType": "com.honeycomb.core.config.HoneycombCacheProperties"
+    },
+    {
+      "name": "honeycomb.shared.methods.schema-validation-enabled",
+      "type": "java.lang.Boolean",
+      "description": "Enable JSON Schema validation for shared method payloads.",
+      "defaultValue": false,
+      "sourceType": "com.honeycomb.core.config.HoneycombSharedMethodProperties"
+    },
+    {
+      "name": "honeycomb.shared.methods.policies",
+      "type": "java.util.Map<java.lang.String,com.honeycomb.core.config.HoneycombSharedMethodProperties$MethodPolicy>",
+      "description": "Per-method resilience policies.",
+      "sourceType": "com.honeycomb.core.config.HoneycombSharedMethodProperties"
+    },
+    {
+      "name": "honeycomb.autoscale.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Enable autoscale evaluations.",
+      "defaultValue": false,
+      "sourceType": "com.honeycomb.core.config.HoneycombAutoscaleProperties"
+    },
+    {
+      "name": "honeycomb.autoscale.evaluation-interval",
+      "type": "java.time.Duration",
+      "description": "Interval between autoscale evaluations.",
+      "defaultValue": "30s",
+      "sourceType": "com.honeycomb.core.config.HoneycombAutoscaleProperties"
+    },
+    {
+      "name": "honeycomb.autoscale.scale-up-rps",
+      "type": "java.lang.Double",
+      "description": "RPS threshold above which to scale up.",
+      "defaultValue": 5.0,
+      "sourceType": "com.honeycomb.core.config.HoneycombAutoscaleProperties"
+    },
+    {
+      "name": "honeycomb.autoscale.scale-down-rps",
+      "type": "java.lang.Double",
+      "description": "RPS threshold below which to scale down.",
+      "defaultValue": 0.5,
+      "sourceType": "com.honeycomb.core.config.HoneycombAutoscaleProperties"
+    },
+    {
+      "name": "honeycomb.autoscale.per-cell-enabled",
+      "type": "java.util.Map<java.lang.String,java.lang.Boolean>",
+      "description": "Per-cell autoscale enable/disable overrides.",
+      "sourceType": "com.honeycomb.core.config.HoneycombAutoscaleProperties"
+    },
+    {
+      "name": "honeycomb.autoscale.per-cell-scale-up-rps",
+      "type": "java.util.Map<java.lang.String,java.lang.Double>",
+      "description": "Per-cell scale-up RPS threshold overrides.",
+      "sourceType": "com.honeycomb.core.config.HoneycombAutoscaleProperties"
+    },
+    {
+      "name": "honeycomb.autoscale.per-cell-scale-down-rps",
+      "type": "java.util.Map<java.lang.String,java.lang.Double>",
+      "description": "Per-cell scale-down RPS threshold overrides.",
+      "sourceType": "com.honeycomb.core.config.HoneycombAutoscaleProperties"
+    },
+    {
+      "name": "honeycomb.storage.type",
+      "type": "java.lang.String",
+      "description": "Storage backend type: memory, redis, or hibernate.",
+      "defaultValue": "memory",
+      "sourceType": "com.honeycomb.core.config.HoneycombStorageProperties"
+    },
+    {
+      "name": "honeycomb.storage.key-prefix",
+      "type": "java.lang.String",
+      "description": "Key prefix for Redis/store namespacing.",
+      "sourceType": "com.honeycomb.core.config.HoneycombStorageProperties"
+    },
+    {
+      "name": "honeycomb.storage.hibernate.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Enable Hibernate storage backend.",
+      "defaultValue": false,
+      "sourceType": "com.honeycomb.core.config.HoneycombStorageProperties$Hibernate"
+    },
+    {
+      "name": "honeycomb.storage.hibernate.url",
+      "type": "java.lang.String",
+      "description": "JDBC URL for Hibernate.",
+      "sourceType": "com.honeycomb.core.config.HoneycombStorageProperties$Hibernate"
+    },
+    {
+      "name": "honeycomb.storage.hibernate.username",
+      "type": "java.lang.String",
+      "description": "Database username.",
+      "sourceType": "com.honeycomb.core.config.HoneycombStorageProperties$Hibernate"
+    },
+    {
+      "name": "honeycomb.storage.hibernate.password",
+      "type": "java.lang.String",
+      "description": "Database password.",
+      "sourceType": "com.honeycomb.core.config.HoneycombStorageProperties$Hibernate"
+    },
+    {
+      "name": "honeycomb.storage.hibernate.dialect",
+      "type": "java.lang.String",
+      "description": "Hibernate SQL dialect class name.",
+      "sourceType": "com.honeycomb.core.config.HoneycombStorageProperties$Hibernate"
+    },
+    {
+      "name": "honeycomb.storage.hibernate.hbm2ddl-auto",
+      "type": "java.lang.String",
+      "description": "Hibernate DDL auto strategy (none, validate, update, create, create-drop).",
+      "defaultValue": "update",
+      "sourceType": "com.honeycomb.core.config.HoneycombStorageProperties$Hibernate"
+    },
+    {
+      "name": "honeycomb.storage.hibernate.show-sql",
+      "type": "java.lang.Boolean",
+      "description": "Log generated SQL statements.",
+      "defaultValue": false,
+      "sourceType": "com.honeycomb.core.config.HoneycombStorageProperties$Hibernate"
+    },
+    {
+      "name": "honeycomb.storage.hibernate.pool-size",
+      "type": "java.lang.Integer",
+      "description": "Connection pool size.",
+      "defaultValue": 10,
+      "sourceType": "com.honeycomb.core.config.HoneycombStorageProperties$Hibernate"
+    },
+    {
+      "name": "honeycomb.storage.hibernate.annotation-free",
+      "type": "java.lang.Boolean",
+      "description": "Enable annotation-free entity mapping.",
+      "defaultValue": true,
+      "sourceType": "com.honeycomb.core.config.HoneycombStorageProperties$Hibernate"
+    },
+    {
+      "name": "honeycomb.storage.routing.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Enable per-cell storage routing.",
+      "defaultValue": false,
+      "sourceType": "com.honeycomb.core.config.HoneycombStorageProperties$Routing"
+    },
+    {
+      "name": "honeycomb.storage.routing.per-cell",
+      "type": "java.util.Map<java.lang.String,java.lang.String>",
+      "description": "Per-cell storage type overrides.",
+      "sourceType": "com.honeycomb.core.config.HoneycombStorageProperties$Routing"
+    },
+    {
+      "name": "honeycomb.idempotency.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Enable idempotency key support.",
+      "defaultValue": false,
+      "sourceType": "com.honeycomb.core.config.HoneycombIdempotencyProperties"
+    },
+    {
+      "name": "honeycomb.idempotency.header",
+      "type": "java.lang.String",
+      "description": "HTTP header for the idempotency key.",
+      "defaultValue": "Idempotency-Key",
+      "sourceType": "com.honeycomb.core.config.HoneycombIdempotencyProperties"
+    },
+    {
+      "name": "honeycomb.idempotency.ttl-seconds",
+      "type": "java.lang.Long",
+      "description": "Idempotency key TTL in seconds.",
+      "defaultValue": 300,
+      "sourceType": "com.honeycomb.core.config.HoneycombIdempotencyProperties"
+    },
+    {
+      "name": "honeycomb.idempotency.store",
+      "type": "java.lang.String",
+      "description": "Idempotency store type: memory or redis.",
+      "defaultValue": "memory",
+      "sourceType": "com.honeycomb.core.config.HoneycombIdempotencyProperties"
+    },
+    {
+      "name": "honeycomb.idempotency.key-prefix",
+      "type": "java.lang.String",
+      "description": "Key prefix for idempotency entries.",
+      "defaultValue": "honeycomb:idempotency",
+      "sourceType": "com.honeycomb.core.config.HoneycombIdempotencyProperties"
+    }
+  ],
+  "hints": [
+    {
+      "name": "honeycomb.storage.type",
+      "values": [
+        { "value": "memory", "description": "In-memory ConcurrentHashMap storage." },
+        { "value": "redis", "description": "Redis-backed cell storage." },
+        { "value": "hibernate", "description": "JPA/Hibernate relational storage." }
+      ]
+    },
+    {
+      "name": "honeycomb.events.transport",
+      "values": [
+        { "value": "memory", "description": "In-process Reactor Sinks event bus." },
+        { "value": "redis", "description": "Redis pub/sub event transport." }
+      ]
+    },
+    {
+      "name": "honeycomb.shared.cache.type",
+      "values": [
+        { "value": "local", "description": "In-process Caffeine/ConcurrentMap cache." },
+        { "value": "redis", "description": "Distributed Redis cache." }
+      ]
+    },
+    {
+      "name": "honeycomb.routing.default-policy",
+      "values": [
+        { "value": "random" },
+        { "value": "round-robin" },
+        { "value": "weighted" },
+        { "value": "least-latency" },
+        { "value": "circuit-aware" }
+      ]
+    },
+    {
+      "name": "honeycomb.idempotency.store",
+      "values": [
+        { "value": "memory" },
+        { "value": "redis" }
+      ]
+    }
+  ]
+}

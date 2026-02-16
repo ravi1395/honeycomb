@@ -1,0 +1,182 @@
+syntax = "proto3";
+
+package honeycomb.grpc;
+
+option java_multiple_files = true;
+option java_package = "com.honeycomb.grpc.proto";
+option java_outer_classname = "HoneycombGrpcProto";
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/empty.proto";
+
+// ─────────────────────────────────────────────────────────────
+// HoneycombSharedwallService — mirrors the HTTP SharedwallDispatcherController.
+// Provides gRPC-based inter-cell shared method invocation, discovery,
+// and CRUD cell operations.
+// ─────────────────────────────────────────────────────────────
+service HoneycombSharedwallService {
+
+    // Invoke a @Sharedwall method by name with a JSON payload.
+    // Equivalent to POST /honeycomb/shared/{methodName}
+    rpc Invoke (SharedwallInvokeRequest) returns (SharedwallInvokeResponse);
+
+    // List all invokable @Sharedwall methods registered on this cell.
+    // Equivalent to GET /honeycomb/shared/methods
+    rpc ListMethods (ListMethodsRequest) returns (ListMethodsResponse);
+
+    // Server-streaming variant for invoking a shared method that returns
+    // results incrementally (e.g., Flux-based methods).
+    rpc InvokeStream (SharedwallInvokeRequest) returns (stream SharedwallInvokeResponse);
+}
+
+// ─────────────────────────────────────────────────────────────
+// HoneycombCellService — CRUD operations on cell items.
+// Mirrors the HTTP /honeycomb/cells/{cellName}/items endpoints.
+// ─────────────────────────────────────────────────────────────
+service HoneycombCellService {
+
+    // List all items in a cell.
+    rpc ListItems (CellItemRequest) returns (CellItemListResponse);
+
+    // Get a single item by ID.
+    rpc GetItem (CellItemByIdRequest) returns (CellItemResponse);
+
+    // Create a new item in a cell.
+    rpc CreateItem (CellItemCreateRequest) returns (CellItemResponse);
+
+    // Update an existing item.
+    rpc UpdateItem (CellItemUpdateRequest) returns (CellItemResponse);
+
+    // Delete an item by ID.
+    rpc DeleteItem (CellItemByIdRequest) returns (google.protobuf.Empty);
+}
+
+// ─────────────────────────────────────────────────────────────
+// HoneycombHealthService — Health & status endpoints for gRPC.
+// ─────────────────────────────────────────────────────────────
+service HoneycombHealthService {
+
+    // Check the overall health of this Honeycomb node.
+    rpc Check (HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+// ===== Sharedwall Messages =====
+
+message SharedwallInvokeRequest {
+    // The shared method name (e.g. "discount", "echo")
+    string method_name = 1;
+
+    // JSON payload as a Protobuf Struct (arbitrary key-value).
+    // For simple string/byte payloads, use the raw_payload field.
+    google.protobuf.Struct payload = 2;
+
+    // Caller cell identity (equivalent to X-From-Cell header)
+    string from_cell = 3;
+
+    // Contract version (equivalent to X-Shared-Version header)
+    string version = 4;
+
+    // Request ID for tracing (equivalent to X-Request-Id header)
+    string request_id = 5;
+
+    // Idempotency key (equivalent to Idempotency-Key header)
+    string idempotency_key = 6;
+
+    // Raw JSON string payload (alternative to Struct for complex payloads)
+    string raw_json_payload = 7;
+}
+
+message SharedwallInvokeResponse {
+    // Per-cell results as a Struct: { "CellName": { "result": ... } }
+    google.protobuf.Struct results = 1;
+
+    // Request ID echoed back for correlation
+    string request_id = 2;
+
+    // Whether this response was served from idempotency cache
+    bool from_cache = 3;
+
+    // Error message if invocation failed
+    string error = 4;
+
+    // gRPC-level status code for the invocation (0 = OK)
+    int32 status_code = 5;
+}
+
+message ListMethodsRequest {
+    // Optional version filter
+    string version = 1;
+}
+
+message ListMethodsResponse {
+    repeated SharedMethodInfo methods = 1;
+}
+
+message SharedMethodInfo {
+    string cell_name = 1;
+    string method_name = 2;
+    string path = 3;
+    string return_type = 4;
+    repeated ParameterInfo parameters = 5;
+    repeated string allowed_from = 6;
+    string version = 7;
+    bool deprecated = 8;
+    string resilience_policy = 9;
+}
+
+message ParameterInfo {
+    string name = 1;
+    string type = 2;
+    int32 index = 3;
+}
+
+// ===== Cell CRUD Messages =====
+
+message CellItemRequest {
+    string cell_name = 1;
+}
+
+message CellItemByIdRequest {
+    string cell_name = 1;
+    string item_id = 2;
+}
+
+message CellItemCreateRequest {
+    string cell_name = 1;
+    google.protobuf.Struct payload = 2;
+    string raw_json_payload = 3;
+}
+
+message CellItemUpdateRequest {
+    string cell_name = 1;
+    string item_id = 2;
+    google.protobuf.Struct payload = 3;
+    string raw_json_payload = 4;
+}
+
+message CellItemResponse {
+    string item_id = 1;
+    string cell_name = 2;
+    google.protobuf.Struct data = 3;
+}
+
+message CellItemListResponse {
+    repeated CellItemResponse items = 1;
+}
+
+// ===== Health Messages =====
+
+message HealthCheckRequest {
+    // Optional service name to check
+    string service = 1;
+}
+
+message HealthCheckResponse {
+    enum ServingStatus {
+        UNKNOWN = 0;
+        SERVING = 1;
+        NOT_SERVING = 2;
+    }
+    ServingStatus status = 1;
+    string details = 2;
+}
