@@ -30,6 +30,12 @@ public class HoneycombSecurityProperties {
      */
     private boolean requireAuth = false;
 
+    /**
+     * Allowed CORS origins (e.g. {@code ["http://localhost:3000", "https://admin.example.com"]}).
+     * Empty = no origins allowed (restrictive default).
+     */
+    private List<String> corsAllowedOrigins = new ArrayList<>();
+
     public ApiKeys getApiKeys() {
         return apiKeys;
     }
@@ -60,6 +66,14 @@ public class HoneycombSecurityProperties {
 
     public void setRequireAuth(boolean requireAuth) {
         this.requireAuth = requireAuth;
+    }
+
+    public List<String> getCorsAllowedOrigins() {
+        return corsAllowedOrigins;
+    }
+
+    public void setCorsAllowedOrigins(List<String> corsAllowedOrigins) {
+        this.corsAllowedOrigins = corsAllowedOrigins;
     }
 
     public static class ApiKeys {

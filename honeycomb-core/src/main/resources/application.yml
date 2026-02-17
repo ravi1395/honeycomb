@@ -1,6 +1,4 @@
 spring:
-  main:
-    allow-bean-definition-overriding: true
   # Graceful shutdown: wait for in-flight requests to complete
   lifecycle:
     timeout-per-shutdown-phase: 30s
@@ -12,6 +10,11 @@ spring:
 
 server:
   shutdown: graceful
+  # Limit in-memory buffer for request bodies to prevent OOM
+  max-http-request-header-size: 16KB
+
+spring.codec:
+  max-in-memory-size: 1MB
 
 service:
   discovery:

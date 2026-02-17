@@ -2,8 +2,8 @@ apiVersion: v2
 name: honeycomb
 description: Helm chart for the Honeycomb cell-based microservice framework
 type: application
-version: 1.4.2
-appVersion: "1.4.2"
+version: 1.4.3
+appVersion: "1.4.3"
 keywords:
   - honeycomb
   - microservices

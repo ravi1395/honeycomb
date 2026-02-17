@@ -13,6 +13,12 @@ import com.honeycomb.core.config.HoneycombAuditProperties;
 import com.honeycomb.core.config.HoneycombIdempotencyProperties;
 import com.honeycomb.core.config.HoneycombValidationProperties;
 import com.honeycomb.core.config.HoneycombSharedMethodProperties;
+import com.honeycomb.core.config.HoneycombEventProperties;
+import com.honeycomb.core.config.HoneycombCacheProperties;
+import com.honeycomb.core.config.HoneycombVersioningProperties;
+import com.honeycomb.core.config.HoneycombLockingProperties;
+import com.honeycomb.core.config.HoneycombContractProperties;
+import com.honeycomb.core.config.HoneycombTenantProperties;
 
 @SpringBootApplication
 @EnableScheduling
@@ -25,7 +31,13 @@ import com.honeycomb.core.config.HoneycombSharedMethodProperties;
     HoneycombAuditProperties.class,
     HoneycombValidationProperties.class,
     HoneycombIdempotencyProperties.class,
-    HoneycombSharedMethodProperties.class
+    HoneycombSharedMethodProperties.class,
+    HoneycombEventProperties.class,
+    HoneycombCacheProperties.class,
+    HoneycombVersioningProperties.class,
+    HoneycombLockingProperties.class,
+    HoneycombContractProperties.class,
+    HoneycombTenantProperties.class
 })
 public class HoneycombApplication {
     public static void main(String[] args) {

@@ -21,13 +21,15 @@ import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 /**
- * Global {@link org.springframework.web.bind.annotation.RestControllerAdvice}
- * that maps common exceptions to structured {@link com.honeycomb.core.dto.ErrorResponse} payloads.
+ * @deprecated Replaced by {@link ProblemDetailAdvice} which produces RFC 7807
+ *             {@code application/problem+json} responses. Retained for backward
+ *             compatibility reference. The {@code @RestControllerAdvice} annotation
+ *             is removed to avoid conflict with {@link ProblemDetailAdvice}.
  *
- * <p>Handles validation errors, missing cells/methods, JSON parse failures,
- * circuit-breaker open states, and generic {@code Exception}s.</p>
+ * @see ProblemDetailAdvice
  */
-@RestControllerAdvice
+@Deprecated(since = "1.4.3", forRemoval = true)
+// @RestControllerAdvice — disabled in favour of ProblemDetailAdvice
 public class ErrorHandlerAdvice {
     private static final Logger log = LoggerFactory.getLogger(ErrorHandlerAdvice.class);
 
