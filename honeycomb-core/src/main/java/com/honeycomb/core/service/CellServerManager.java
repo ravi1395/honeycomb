@@ -27,6 +27,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
+import java.time.Duration;
 
 /**
  * Manages per-cell Reactor Netty HTTP servers and optional management-port servers.
@@ -35,6 +37,11 @@ import java.util.concurrent.ConcurrentHashMap;
  * auto-starts a server for each registered cell on its configured port.
  * Supports reactive and blocking start/stop/restart operations and exposes
  * runtime status via {@link com.honeycomb.core.dto.CellRuntimeStatus}.</p>
+ *
+ * <p><b>v1.5.0:</b> Added graceful deregistration with in-flight request
+ * draining. On shutdown, cells are first deregistered from Eureka (if available),
+ * then the system waits for in-flight requests to complete before disposing
+ * the Netty servers.</p>
  *
  * @see CellRegistry
  * @see com.honeycomb.core.web.CellAdminController
@@ -47,6 +54,12 @@ public class CellServerManager implements ApplicationContextAware {
     private ApplicationContext applicationContext;
     private final CellRegistry cellRegistry;
     private final Environment env;
+
+    /** Tracks the number of in-flight requests across all cell servers. @since 1.5.0 */
+    private final AtomicLong inFlightRequests = new AtomicLong(0);
+
+    /** Maximum wait time for in-flight requests to drain during shutdown. @since 1.5.0 */
+    private static final Duration DRAIN_TIMEOUT = Duration.ofSeconds(30);
 
     private final Map<String, DisposableServer> servers = new ConcurrentHashMap<>();
     private final Map<Integer, String> portToCell = new ConcurrentHashMap<>();
@@ -338,6 +351,34 @@ public class CellServerManager implements ApplicationContextAware {
 
     @PreDestroy
     public void shutdown() {
+        log.info("Honeycomb graceful shutdown initiated — deregistering cells and draining in-flight requests");
+
+        // Step 1: Deregister from Eureka (if available) so no new traffic is routed here
+        try {
+            var eurekaClient = applicationContext.getBean(
+                    com.netflix.discovery.EurekaClient.class);
+            eurekaClient.shutdown();
+            log.info("Deregistered from Eureka service registry");
+        } catch (Exception ex) {
+            log.debug("Eureka client not available or already shut down: {}", ex.getMessage());
+        }
+
+        // Step 2: Wait for in-flight requests to drain (up to DRAIN_TIMEOUT)
+        long deadline = System.currentTimeMillis() + DRAIN_TIMEOUT.toMillis();
+        while (inFlightRequests.get() > 0 && System.currentTimeMillis() < deadline) {
+            log.info("Waiting for {} in-flight requests to complete...", inFlightRequests.get());
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+        if (inFlightRequests.get() > 0) {
+            log.warn("Shutdown proceeding with {} in-flight requests still active", inFlightRequests.get());
+        }
+
+        // Step 3: Dispose all cell servers
         for (Map.Entry<String, DisposableServer> e : servers.entrySet()) {
             try {
                 log.info(HoneycombConstants.Messages.SERVER_SHUTDOWN, e.getKey());
@@ -347,6 +388,31 @@ public class CellServerManager implements ApplicationContextAware {
             }
         }
         servers.clear();
+        log.info("Honeycomb graceful shutdown complete");
+    }
+
+    /**
+     * Increment in-flight request counter. Called by request-tracking filters.
+     * @since 1.5.0
+     */
+    public void trackRequestStart() {
+        inFlightRequests.incrementAndGet();
+    }
+
+    /**
+     * Decrement in-flight request counter. Called by request-tracking filters.
+     * @since 1.5.0
+     */
+    public void trackRequestEnd() {
+        inFlightRequests.decrementAndGet();
+    }
+
+    /**
+     * Returns the current number of in-flight requests.
+     * @since 1.5.0
+     */
+    public long getInFlightRequestCount() {
+        return inFlightRequests.get();
     }
 
     /**

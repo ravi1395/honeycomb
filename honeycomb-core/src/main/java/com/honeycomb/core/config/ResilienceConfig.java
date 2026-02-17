@@ -68,7 +68,10 @@ public class ResilienceConfig {
 
     /**
      * Fallback ObservationRegistry (NOOP) when Spring Boot observation auto-config
-     * is not active (e.g. in tests).
+     * is not active (e.g. in tests). When OpenTelemetry tracing is enabled,
+     * the real ObservationRegistry from auto-config takes precedence.
+     *
+     * @since 1.5.0 — updated with ConditionalOnMissingBean to avoid conflict with OTel tracing
      */
     @Bean
     @ConditionalOnMissingBean

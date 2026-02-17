@@ -138,6 +138,15 @@ honeycomb:
       SampleModel:
         limit-for-period: 100
         refresh-period: 1s
+    # v1.5.0: Per-tenant rate limiting
+    tenant-aware: false
+    # per-tenant:
+    #   tenant-a:
+    #     limit-for-period: 200
+    #     refresh-period: 1s
+    #   tenant-b:
+    #     limit-for-period: 50
+    #     refresh-period: 1s
   routing:
     default-policy: "round-robin"
     per-cell-policy:
@@ -182,6 +191,45 @@ honeycomb:
     per-cell-enabled:
       "*": true
 
+  # v1.5.0: API versioning — prefix all endpoints with /v1/
+  api:
+    versioning-enabled: true
+    current-version: v1
+    legacy-paths-enabled: true
+    version-header: X-API-Version
+
+  # v1.5.0: OpenTelemetry distributed tracing
+  tracing:
+    enabled: true
+    otlp-endpoint: "http://localhost:4318/v1/traces"
+    sampling-probability: 1.0
+    propagate-w3c: true
+    enrich-spans: true
+    service-name: honeycomb
+
+  # v1.5.0: Secrets management (HashiCorp Vault)
+  secrets:
+    enabled: false
+    provider: vault
+    vault-path: "secret/honeycomb"
+    fail-on-missing: false
+    # refresh-interval: 5m
+    # vault-role: honeycomb
+
+  # v1.5.0: Adaptive circuit breaker
+  circuit-breaker:
+    adaptive-enabled: false
+    initial-failure-rate-threshold: 50
+    min-failure-rate-threshold: 20
+    max-failure-rate-threshold: 80
+    evaluation-window-size: 10
+    adjustment-interval-seconds: 60
+    wait-duration-in-open-state-seconds: 30
+    sliding-window-size: 10
+    permitted-calls-in-half-open: 5
+    slow-call-duration-threshold-ms: 5000
+    slow-call-rate-threshold: 80
+
 # Shared invocation: caller header name to set by clients when invoking shared methods
 shared:
   caller-header: "X-From-Cell"
@@ -201,6 +249,13 @@ management:
   metrics:
     tags:
       application: honeycomb
+  # v1.5.0: Distributed tracing via OpenTelemetry
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: "http://localhost:4318/v1/traces"
 
 # OpenAPI / Swagger configuration
 springdoc:

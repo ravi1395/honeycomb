@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.honeycomb</groupId>
     <artifactId>honeycomb-parent</artifactId>
-    <version>1.4.3</version>
+    <version>1.5.0</version>
     <packaging>pom</packaging>
 
     <parent>
@@ -33,6 +33,7 @@
         <grpc-spring-boot.version>3.1.0.RELEASE</grpc-spring-boot.version>
         <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
         <protobuf-maven-plugin.version>0.6.1</protobuf-maven-plugin.version>
+        <opentelemetry.version>1.44.1</opentelemetry.version>
     </properties>
 
     <dependencyManagement>
@@ -41,6 +42,14 @@
                 <groupId>org.springframework.cloud</groupId>
                 <artifactId>spring-cloud-dependencies</artifactId>
                 <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!-- v1.5.0: OpenTelemetry BOM for consistent versions -->
+            <dependency>
+                <groupId>io.opentelemetry</groupId>
+                <artifactId>opentelemetry-bom</artifactId>
+                <version>${opentelemetry.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
