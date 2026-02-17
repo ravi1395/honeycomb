@@ -37,7 +37,9 @@ public class InMemoryCellDataStore implements CellDataStore {
 
     @Override
     public Mono<Map<String,Object>> create(String cell, Map<String,Object> payload) {
-        String id = Optional.ofNullable(payload).map(p -> (String) p.get(HoneycombConstants.JsonKeys.ID))
+        String id = Optional.ofNullable(payload)
+                .map(p -> p.get(HoneycombConstants.JsonKeys.ID))
+                .map(Object::toString)
                 .orElse(UUID.randomUUID().toString());
         Map<String,Object> copy = normalizedPayload(id, payload);
         mapFor(cell).put(id, copy);

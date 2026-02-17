@@ -106,7 +106,9 @@ public class RedisCellDataStore implements CellDataStore {
 
     private Mono<String> serializePayload(String id, Map<String,Object> payload) {
         return Mono.fromCallable(() -> {
-            Map<String,Object> copy = payload == null ? Map.of(HoneycombConstants.JsonKeys.ID, id) : new java.util.HashMap<>(payload);
+            Map<String,Object> copy = payload == null
+                    ? new java.util.HashMap<>(Map.of(HoneycombConstants.JsonKeys.ID, id))
+                    : new java.util.HashMap<>(payload);
             copy.put(HoneycombConstants.JsonKeys.ID, id);
             return objectMapper.writeValueAsString(copy);
         }).subscribeOn(Schedulers.boundedElastic());

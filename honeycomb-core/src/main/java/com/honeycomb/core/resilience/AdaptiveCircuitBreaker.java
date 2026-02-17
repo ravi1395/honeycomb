@@ -66,6 +66,9 @@ public class AdaptiveCircuitBreaker {
             String name = cb.getName();
             float currentFailureRate = cb.getMetrics().getFailureRate();
 
+            // Skip if no calls have been recorded yet (returns -1)
+            if (currentFailureRate < 0) continue;
+
             // Track history
             ConcurrentLinkedDeque<Float> history = failureRateHistory.computeIfAbsent(
                     name, k -> new ConcurrentLinkedDeque<>());
@@ -79,7 +82,7 @@ public class AdaptiveCircuitBreaker {
 
             // Calculate statistics
             float avgRate = 0;
-            float maxRate = Float.MIN_VALUE;
+            float maxRate = -Float.MAX_VALUE;
             float minRate = Float.MAX_VALUE;
             for (float rate : history) {
                 avgRate += rate;
@@ -137,8 +140,9 @@ public class AdaptiveCircuitBreaker {
                     .slidingWindowType(CircuitBreakerConfig.SlidingWindowType.COUNT_BASED)
                     .build();
 
-            // Replace the circuit breaker with updated config
-            registry.replace(name, registry.circuitBreaker(name, newConfig));
+            // Remove existing CB so new config actually takes effect
+            registry.remove(name);
+            CircuitBreaker newCb = registry.circuitBreaker(name, newConfig);
         } catch (Exception ex) {
             log.warn("Failed to update circuit breaker '{}' config: {}", name, ex.getMessage());
         }

@@ -40,7 +40,9 @@ public class IdempotencyService {
             return action;
         }
         return store.get(key)
-                .switchIfEmpty(action.doOnNext(response -> store.put(key, response, properties.getTtlSeconds()).subscribe()));
+                .switchIfEmpty(action.flatMap(response ->
+                    store.put(key, response, properties.getTtlSeconds())
+                         .thenReturn(response)));
     }
 
     private IdempotencyStore resolveStore() {

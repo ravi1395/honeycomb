@@ -122,7 +122,9 @@ public class RedisDistributedLock implements DistributedLock {
                                 "Failed to acquire lock: " + key));
                     }
                     return action
-                            .doFinally(signal -> release(key, owner).subscribe());
+                            .flatMap(result -> release(key, owner).thenReturn(result))
+                            .onErrorResume(err -> release(key, owner).then(Mono.error(err)))
+                            .switchIfEmpty(Mono.defer(() -> release(key, owner).then(Mono.empty())));
                 });
     }
 }

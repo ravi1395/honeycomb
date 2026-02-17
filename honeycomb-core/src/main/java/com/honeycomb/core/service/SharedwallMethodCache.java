@@ -261,11 +261,13 @@ public class SharedwallMethodCache {
     }
 
     public boolean invalidateMethod(String methodName) {
-        Map<String, List<MethodCandidate>> current = cacheRef.get();
-        if (!current.containsKey(methodName)) return false;
-        Map<String, List<MethodCandidate>> next = new HashMap<>(current);
-        next.remove(methodName);
-        cacheRef.set(Collections.unmodifiableMap(next));
+        Map<String, List<MethodCandidate>> current, next;
+        do {
+            current = cacheRef.get();
+            if (!current.containsKey(methodName)) return false;
+            next = new HashMap<>(current);
+            next.remove(methodName);
+        } while (!cacheRef.compareAndSet(current, Collections.unmodifiableMap(next)));
         log.info("Sharedwall cache invalidated for method={}", methodName);
         return true;
     }

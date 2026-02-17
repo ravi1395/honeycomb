@@ -91,17 +91,23 @@ public class RedisCellEventPublisher implements CellEventPublisher {
     }
 
     private Flux<CellEvent> subscribeToChannel(String channel) {
-        ReactiveRedisMessageListenerContainer container =
-                new ReactiveRedisMessageListenerContainer(connectionFactory);
-        return container.receive(ChannelTopic.of(channel))
-                .map(message -> {
-                    try {
-                        return objectMapper.readValue(message.getMessage(), CellEvent.class);
-                    } catch (Exception ex) {
-                        log.error("Failed to deserialize event from Redis: {}", ex.getMessage());
-                        return null;
+        return Flux.using(
+                () -> new ReactiveRedisMessageListenerContainer(connectionFactory),
+                container -> container.receive(ChannelTopic.of(channel))
+                        .map(message -> {
+                            try {
+                                return objectMapper.readValue(message.getMessage(), CellEvent.class);
+                            } catch (Exception ex) {
+                                log.error("Failed to deserialize event from Redis: {}", ex.getMessage());
+                                return null;
+                            }
+                        })
+                        .filter(e -> e != null),
+                container -> {
+                    try { container.destroy(); } catch (Exception ex) {
+                        log.warn("Error destroying Redis listener container: {}", ex.getMessage());
                     }
-                })
-                .filter(e -> e != null);
+                }
+        );
     }
 }

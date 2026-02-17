@@ -27,36 +27,41 @@ public class TenantAwareCellDataStore implements CellDataStore {
     @Override
     public Flux<Map<String, Object>> list(String cell) {
         return TenantContext.current()
-                .flatMapMany(tenant -> delegate.list(scopedCell(tenant, cell)))
-                .switchIfEmpty(Flux.defer(() -> delegate.list(cell)));
+                .map(tenant -> scopedCell(tenant, cell))
+                .defaultIfEmpty(cell)
+                .flatMapMany(delegate::list);
     }
 
     @Override
     public Mono<Map<String, Object>> get(String cell, String id) {
         return TenantContext.current()
-                .flatMap(tenant -> delegate.get(scopedCell(tenant, cell), id))
-                .switchIfEmpty(Mono.defer(() -> delegate.get(cell, id)));
+                .map(tenant -> scopedCell(tenant, cell))
+                .defaultIfEmpty(cell)
+                .flatMap(resolved -> delegate.get(resolved, id));
     }
 
     @Override
     public Mono<Map<String, Object>> create(String cell, Map<String, Object> payload) {
         return TenantContext.current()
-                .flatMap(tenant -> delegate.create(scopedCell(tenant, cell), payload))
-                .switchIfEmpty(Mono.defer(() -> delegate.create(cell, payload)));
+                .map(tenant -> scopedCell(tenant, cell))
+                .defaultIfEmpty(cell)
+                .flatMap(resolved -> delegate.create(resolved, payload));
     }
 
     @Override
     public Mono<Map<String, Object>> update(String cell, String id, Map<String, Object> payload) {
         return TenantContext.current()
-                .flatMap(tenant -> delegate.update(scopedCell(tenant, cell), id, payload))
-                .switchIfEmpty(Mono.defer(() -> delegate.update(cell, id, payload)));
+                .map(tenant -> scopedCell(tenant, cell))
+                .defaultIfEmpty(cell)
+                .flatMap(resolved -> delegate.update(resolved, id, payload));
     }
 
     @Override
     public Mono<Boolean> delete(String cell, String id) {
         return TenantContext.current()
-                .flatMap(tenant -> delegate.delete(scopedCell(tenant, cell), id))
-                .switchIfEmpty(Mono.defer(() -> delegate.delete(cell, id)));
+                .map(tenant -> scopedCell(tenant, cell))
+                .defaultIfEmpty(cell)
+                .flatMap(resolved -> delegate.delete(resolved, id));
     }
 
     /** Scope cell name: {@code tenantId::cellName} */

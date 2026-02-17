@@ -62,10 +62,12 @@ public class PluginManager {
             log.info("Discovered SPI plugin: {} v{}", plugin.getName(), plugin.getVersion());
         }
 
-        // Discover plugins registered as Spring beans
+        // Discover plugins registered as Spring beans (deduplicate by class)
         Map<String, HoneycombPlugin> beanPlugins = applicationContext.getBeansOfType(HoneycombPlugin.class);
+        java.util.Set<Class<?>> seen = plugins.stream()
+                .map(Object::getClass).collect(java.util.stream.Collectors.toSet());
         for (HoneycombPlugin plugin : beanPlugins.values()) {
-            if (!plugins.contains(plugin)) {
+            if (seen.add(plugin.getClass())) {
                 plugins.add(plugin);
                 log.info("Discovered Spring bean plugin: {} v{}", plugin.getName(), plugin.getVersion());
             }
@@ -148,7 +150,9 @@ public class PluginManager {
 
     @PreDestroy
     public void shutdownPlugins() {
-        for (HoneycombPlugin plugin : plugins) {
+        List<HoneycombPlugin> reversed = new ArrayList<>(plugins);
+        Collections.reverse(reversed);
+        for (HoneycombPlugin plugin : reversed) {
             try {
                 plugin.onShutdown();
                 log.info("Shut down plugin: {}", plugin.getName());

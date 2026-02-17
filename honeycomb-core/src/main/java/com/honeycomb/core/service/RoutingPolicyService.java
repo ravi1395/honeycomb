@@ -140,16 +140,18 @@ public class RoutingPolicyService {
 
     private static class LatencyStats {
         private static final double ALPHA = 0.2;
+        private static final long FAILURE_PENALTY_MS = 5000;
         private double avgMs;
 
         static LatencyStats from(long durationMs, boolean success) {
             LatencyStats s = new LatencyStats();
-            s.avgMs = durationMs;
+            s.avgMs = success ? durationMs : Math.max(durationMs, FAILURE_PENALTY_MS);
             return s;
         }
 
         void update(long durationMs, boolean success) {
-            avgMs = (ALPHA * durationMs) + ((1 - ALPHA) * avgMs);
+            double effective = success ? durationMs : Math.max(durationMs, FAILURE_PENALTY_MS);
+            avgMs = (ALPHA * effective) + ((1 - ALPHA) * avgMs);
         }
     }
 }

@@ -42,11 +42,14 @@ public class SharedwallBatchController {
 
     private final SharedwallDispatcherController dispatcher;
     private final MeterRegistry meterRegistry;
+    private final ObjectMapper objectMapper;
 
     public SharedwallBatchController(SharedwallDispatcherController dispatcher,
-                                     MeterRegistry meterRegistry) {
+                                     MeterRegistry meterRegistry,
+                                     ObjectMapper objectMapper) {
         this.dispatcher = dispatcher;
         this.meterRegistry = meterRegistry;
+        this.objectMapper = objectMapper;
     }
 
     // ────────────────────────── Batch invoke ──────────────────────────
@@ -88,7 +91,7 @@ public class SharedwallBatchController {
         byte[] bodyBytes;
         try {
             bodyBytes = req.body() == null ? new byte[0]
-                    : new ObjectMapper().writeValueAsBytes(req.body());
+                    : objectMapper.writeValueAsBytes(req.body());
         } catch (Exception ex) {
             return Mono.just(new BatchInvokeResponse(
                     req.methodName(), req.version(), "error", null,
@@ -138,28 +141,30 @@ public class SharedwallBatchController {
         meterRegistry.counter("honeycomb.shared.async.accepted",
                 "method", methodName, "version", version == null ? "v1" : version).increment();
 
-        // Fire-and-forget: subscribe on a background scheduler
-        dispatcher.dispatch(methodName, headers, bodyMono)
-                .subscribeOn(Schedulers.boundedElastic())
-                .subscribe(
-                        result -> {
-                            meterRegistry.counter("honeycomb.shared.async.completed",
-                                    "method", methodName, "outcome", "success").increment();
-                            log.debug("Async invocation {} completed for {}: {}", trackingId, methodName, result.getStatusCode());
-                        },
-                        error -> {
-                            meterRegistry.counter("honeycomb.shared.async.completed",
-                                    "method", methodName, "outcome", "error").increment();
-                            log.warn("Async invocation {} failed for {}: {}", trackingId, methodName, error.getMessage());
-                        }
-                );
+        // Fire-and-forget: materialize body first, then subscribe on background scheduler
+        return bodyMono.defaultIfEmpty(new byte[0]).flatMap(body -> {
+            dispatcher.dispatch(methodName, headers, Mono.just(body))
+                    .subscribeOn(Schedulers.boundedElastic())
+                    .subscribe(
+                            result -> {
+                                meterRegistry.counter("honeycomb.shared.async.completed",
+                                        "method", methodName, "outcome", "success").increment();
+                                log.debug("Async invocation {} completed for {}: {}", trackingId, methodName, result.getStatusCode());
+                            },
+                            error -> {
+                                meterRegistry.counter("honeycomb.shared.async.completed",
+                                        "method", methodName, "outcome", "error").increment();
+                                log.warn("Async invocation {} failed for {}: {}", trackingId, methodName, error.getMessage());
+                            }
+                    );
 
-        return Mono.just(ResponseEntity.accepted()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(Map.of(
-                        "trackingId", trackingId,
-                        HoneycombConstants.JsonKeys.STATUS, "accepted",
-                        HoneycombConstants.JsonKeys.METHOD, methodName
-                )));
+            return Mono.just(ResponseEntity.accepted()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of(
+                            "trackingId", trackingId,
+                            HoneycombConstants.JsonKeys.STATUS, "accepted",
+                            HoneycombConstants.JsonKeys.METHOD, methodName
+                    )));
+        });
     }
 }

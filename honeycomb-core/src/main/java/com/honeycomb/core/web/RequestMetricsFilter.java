@@ -44,9 +44,9 @@ public class RequestMetricsFilter implements WebFilter {
         String cell = CellPathResolver.resolveCell(path);
         String route = simplifyRoute(path);
         return chain.filter(exchange)
-                .doOnTerminate(() -> {
+                .doFinally(signal -> {
                     HttpStatusCode status = exchange.getResponse().getStatusCode();
-                    int code = status == null ? 200 : status.value();
+                    int code = status == null ? 0 : status.value();
                     metricsService.record(cell, route, code, Duration.between(start, Instant.now()));
                 });
     }

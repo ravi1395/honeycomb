@@ -191,7 +191,7 @@ public class SharedwallDispatcherController {
                                                 .collect(Collectors.toList());
 
                                         return Flux.mergeSequential(calls).collectList().flatMap(list -> {
-                                            Map<String,Object> aggregated = list.stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                                            Map<String,Object> aggregated = list.stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (v1, v2) -> v2, java.util.LinkedHashMap::new));
                                             logSampledDebug("Shared dispatch aggregated result for {}: {}", methodName, aggregated);
                                             return Mono.fromCallable(() -> objectMapper.writeValueAsString(aggregated))
                                                 .subscribeOn(sharedScheduler)
@@ -218,6 +218,7 @@ public class SharedwallDispatcherController {
         }).doOnSubscribe(s -> observation.start())
           .doOnSuccess(r -> observation.stop())
           .doOnError(e -> { observation.error(e); observation.stop(); })
+          .doOnCancel(() -> observation.stop())
           .<ResponseEntity<Map<String,Object>>>transform(mono -> {
               @SuppressWarnings("unchecked")
               Mono<ResponseEntity<Map<String,Object>>> typed = (Mono<ResponseEntity<Map<String,Object>>>) (Mono<?>) mono;
@@ -516,8 +517,9 @@ public class SharedwallDispatcherController {
 
     private Mono<AbstractMap.SimpleEntry<String, Object>> adaptResult(String cellName, Object res) {
         if (res instanceof Mono<?> mono) {
-                return mono.defaultIfEmpty(null)
-                    .map(val -> new AbstractMap.SimpleEntry<String, Object>(cellName, (Object) Map.of(HoneycombConstants.JsonKeys.RESULT, val)));
+                return mono
+                    .map(val -> new AbstractMap.SimpleEntry<String, Object>(cellName, (Object) Map.of(HoneycombConstants.JsonKeys.RESULT, val)))
+                    .defaultIfEmpty(new AbstractMap.SimpleEntry<>(cellName, (Object) Map.of(HoneycombConstants.JsonKeys.RESULT, Map.of())));
         }
         if (res instanceof Flux<?> flux) {
                 return flux.collectList()

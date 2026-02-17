@@ -4,6 +4,7 @@ import com.honeycomb.core.config.HoneycombRateLimiterProperties;
 import com.honeycomb.core.util.HoneycombConstants;
 import io.github.resilience4j.ratelimiter.RateLimiter;
 import io.github.resilience4j.ratelimiter.RateLimiterConfig;
+import io.github.resilience4j.ratelimiter.RequestNotPermitted;
 import io.github.resilience4j.reactor.ratelimiter.operator.RateLimiterOperator;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
@@ -68,7 +69,7 @@ public class RateLimitFilter implements WebFilter {
         RateLimiter limiter = limiters.computeIfAbsent(limiterKey, k -> buildLimiter(cell, tenantId));
         return chain.filter(exchange)
                 .transformDeferred(RateLimiterOperator.of(limiter))
-                .onErrorResume(ex -> {
+                .onErrorResume(RequestNotPermitted.class, ex -> {
                     exchange.getResponse().setStatusCode(HttpStatus.TOO_MANY_REQUESTS);
                     return exchange.getResponse().setComplete();
                 });

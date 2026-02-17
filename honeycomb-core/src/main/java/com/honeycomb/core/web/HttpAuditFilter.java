@@ -8,7 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
@@ -79,7 +79,7 @@ public class HttpAuditFilter implements WebFilter {
                     cellServerManager.trackRequestEnd();
 
                     long latencyMs = System.currentTimeMillis() - startTime;
-                    HttpStatus status = (HttpStatus) exchange.getResponse().getStatusCode();
+                    HttpStatusCode status = exchange.getResponse().getStatusCode();
                     int statusCode = status != null ? status.value() : 0;
 
                     if (auditProperties != null && auditProperties.getMaxEntries() > 0) {

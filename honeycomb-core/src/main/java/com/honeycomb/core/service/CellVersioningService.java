@@ -9,7 +9,9 @@ import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.aop.support.AopUtils;
 import org.springframework.context.ApplicationContext;
+import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -74,9 +76,9 @@ public class CellVersioningService {
         }
         Map<String, Object> cellBeans = context.getBeansWithAnnotation(Cell.class);
         for (Object bean : cellBeans.values()) {
-            Class<?> cls = bean.getClass();
-            Cell cellAnn = cls.getAnnotation(Cell.class);
-            CellVersion verAnn = cls.getAnnotation(CellVersion.class);
+            Class<?> cls = AopUtils.getTargetClass(bean);
+            Cell cellAnn = AnnotationUtils.findAnnotation(cls, Cell.class);
+            CellVersion verAnn = AnnotationUtils.findAnnotation(cls, CellVersion.class);
             if (cellAnn == null) continue;
 
             String cellName = resolveCellName(cls, cellAnn);

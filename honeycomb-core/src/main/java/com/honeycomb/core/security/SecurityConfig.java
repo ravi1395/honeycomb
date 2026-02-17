@@ -113,11 +113,16 @@ public class SecurityConfig {
     private CorsConfigurationSource corsConfigurationSource(HoneycombSecurityProperties securityProperties) {
         CorsConfiguration config = new CorsConfiguration();
         List<String> origins = securityProperties.getCorsAllowedOrigins();
-        config.setAllowedOrigins(origins != null && !origins.isEmpty() ? origins : List.of());
+        if (origins != null && origins.contains("*")) {
+            config.setAllowedOriginPatterns(List.of("*"));
+            config.setAllowCredentials(true);
+        } else {
+            config.setAllowedOrigins(origins != null && !origins.isEmpty() ? origins : List.of());
+            config.setAllowCredentials(true);
+        }
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-API-Key", "X-Request-Id", "X-Tenant-Id", "X-From-Cell", "traceparent", "tracestate"));
         config.setExposedHeaders(List.of("X-Request-Id", "X-Tenant-Id", "traceparent"));
-        config.setAllowCredentials(true);
         config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
