@@ -27,18 +27,18 @@ Last updated: 2026-02-14
 | # | Feature | Status | Target |
 |---|---------|--------|--------|
 | 9 | **CLI scaffolding tool** — `honeycomb init`, `honeycomb add-cell`, `honeycomb add-shared` generators | 📋 Planned | v1.5.0 |
-| 10 | **Contract testing (Pact / Spring Cloud Contract)** — Auto-generate consumer-driven contracts from shared methods | 📋 Planned | v1.5.0 |
-| 11 | **Multi-tenancy support** — `X-Tenant-Id` routing, scoped storage + metrics | 📋 Planned | v1.5.0 |
+| 10 | **Contract testing (Pact / Spring Cloud Contract)** — Auto-generate consumer-driven contracts from shared methods | ✅ Complete | v1.4.3 |
+| 11 | **Multi-tenancy support** — `X-Tenant-Id` routing, scoped storage + metrics | ✅ Complete | v1.4.3 |
 | 12 | **Cell dependency graph visualization** — Introspect `allowedFrom` + routing config → live Mermaid/D3 graph in admin UI | 📋 Planned | v1.5.0 |
 
 ### Tier 4 — Polish & Hardening (ongoing)
 
 | # | Feature | Status | Target |
 |---|---------|--------|--------|
-| 13 | **RFC 7807 Problem+JSON errors** — `application/problem+json` for all error paths | 📋 Planned | v1.5+ |
-| 14 | **Request correlation IDs** — Propagate `X-Request-Id` / `traceparent` through full dispatch chain | 📋 Planned | v1.5+ |
-| 15 | **JMH benchmark suite** — CI-integrated benchmarks for shared dispatch, cache refresh, routing | 📋 Planned | v1.5+ |
-| 16 | **`@HoneycombTest` test slice** — Boots only Honeycomb wiring + in-memory storage for fast integration tests | 📋 Planned | v1.5+ |
+| 13 | **RFC 7807 Problem+JSON errors** — `application/problem+json` for all error paths | ✅ Complete | v1.4.3 |
+| 14 | **Request correlation IDs** — Propagate `X-Request-Id` / `traceparent` through full dispatch chain | ✅ Complete | v1.4.3 |
+| 15 | **JMH benchmark suite** — CI-integrated benchmarks for shared dispatch, cache refresh, routing | ✅ Complete | v1.4.3 |
+| 16 | **`@HoneycombTest` test slice** — Boots only Honeycomb wiring + in-memory storage for fast integration tests | ✅ Complete | v1.4.3 |
 
 ---
 

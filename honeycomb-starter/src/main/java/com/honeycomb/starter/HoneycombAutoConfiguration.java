@@ -14,6 +14,8 @@ import com.honeycomb.core.config.HoneycombValidationProperties;
 import com.honeycomb.core.config.HoneycombSharedMethodProperties;
 import com.honeycomb.core.config.HoneycombVersioningProperties;
 import com.honeycomb.core.config.HoneycombLockingProperties;
+import com.honeycomb.core.config.HoneycombContractProperties;
+import com.honeycomb.core.config.HoneycombTenantProperties;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.ComponentScan;
@@ -33,6 +35,11 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  * <p><b>v1.4.2 additions:</b> {@link HoneycombVersioningProperties} (cell versioning &amp;
  * blue-green dispatch) and {@link HoneycombLockingProperties} (distributed locking &amp;
  * leader election) are now included.</p>
+ *
+ * <p><b>v1.4.3 additions:</b> {@link HoneycombContractProperties} (contract testing) and
+ * {@link HoneycombTenantProperties} (multi-tenancy) are now included. RFC 7807 error
+ * responses, W3C traceparent correlation, JMH benchmarks, and {@code @HoneycombTest}
+ * test slice are also part of this release.</p>
  */
 @AutoConfiguration
 @EnableScheduling
@@ -49,7 +56,9 @@ import org.springframework.scheduling.annotation.EnableScheduling;
         HoneycombEventProperties.class,        // v1.3: event-driven cell communication
         HoneycombCacheProperties.class,         // v1.3: distributed Redis cache sync
         HoneycombVersioningProperties.class,    // v1.4: cell versioning & blue-green dispatch
-        HoneycombLockingProperties.class         // v1.4: distributed locking & leader election
+        HoneycombLockingProperties.class,        // v1.4: distributed locking & leader election
+        HoneycombContractProperties.class,       // v1.4.3: contract testing
+        HoneycombTenantProperties.class          // v1.4.3: multi-tenancy support
 })
 @ComponentScan(
         basePackages = "com.honeycomb.core",

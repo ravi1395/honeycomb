@@ -15,8 +15,13 @@ import org.springframework.security.web.server.header.XFrameOptionsServerHttpHea
 import com.honeycomb.core.config.HoneycombSecurityProperties;
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.reactive.CorsConfigurationSource;
+import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 import com.honeycomb.core.util.HoneycombConstants;
 import com.honeycomb.core.util.HoneycombUtil;
+
+import java.util.List;
 
 /**
  * Central Spring Security configuration for Honeycomb.
@@ -56,6 +61,7 @@ public class SecurityConfig {
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http, HoneycombSecurityProperties securityProperties) {
         http.csrf(csrf -> csrf.disable());
+        http.cors(cors -> cors.configurationSource(corsConfigurationSource(securityProperties)));
 
         http.headers(headers -> headers
             .contentTypeOptions(Customizer.withDefaults())
@@ -91,12 +97,31 @@ public class SecurityConfig {
     @Bean
     public MapReactiveUserDetailsService users(PasswordEncoder encoder) {
         var actuator = User.withUsername(actuatorUser).password(encoder.encode(actuatorPassword)).roles("ACTUATOR").build();
-        var shared = User.withUsername(sharedUser).password(encoder.encode(sharedPassword)).roles("SHARED_INVOCER").build();
+        var shared = User.withUsername(sharedUser).password(encoder.encode(sharedPassword)).roles("SHARED_INVOKER").build();
         return new MapReactiveUserDetailsService(actuator, shared);
     }
 
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    /**
+     * CORS configuration for Honeycomb endpoints.
+     * Defaults to restrictive settings; override via {@code honeycomb.security.cors.*} properties.
+     */
+    private CorsConfigurationSource corsConfigurationSource(HoneycombSecurityProperties securityProperties) {
+        CorsConfiguration config = new CorsConfiguration();
+        List<String> origins = securityProperties.getCorsAllowedOrigins();
+        config.setAllowedOrigins(origins != null && !origins.isEmpty() ? origins : List.of());
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-API-Key", "X-Request-Id", "X-Tenant-Id", "X-From-Cell", "traceparent", "tracestate"));
+        config.setExposedHeaders(List.of("X-Request-Id", "X-Tenant-Id", "traceparent"));
+        config.setAllowCredentials(true);
+        config.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
     }
 }
