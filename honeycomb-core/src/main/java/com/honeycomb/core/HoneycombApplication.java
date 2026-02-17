@@ -19,6 +19,10 @@ import com.honeycomb.core.config.HoneycombVersioningProperties;
 import com.honeycomb.core.config.HoneycombLockingProperties;
 import com.honeycomb.core.config.HoneycombContractProperties;
 import com.honeycomb.core.config.HoneycombTenantProperties;
+import com.honeycomb.core.config.HoneycombApiVersionProperties;
+import com.honeycomb.core.config.HoneycombTracingProperties;
+import com.honeycomb.core.config.HoneycombSecretsProperties;
+import com.honeycomb.core.config.HoneycombCircuitBreakerProperties;
 
 @SpringBootApplication
 @EnableScheduling
@@ -37,7 +41,11 @@ import com.honeycomb.core.config.HoneycombTenantProperties;
     HoneycombVersioningProperties.class,
     HoneycombLockingProperties.class,
     HoneycombContractProperties.class,
-    HoneycombTenantProperties.class
+    HoneycombTenantProperties.class,
+    HoneycombApiVersionProperties.class,        // v1.5.0: API versioning
+    HoneycombTracingProperties.class,           // v1.5.0: OpenTelemetry tracing
+    HoneycombSecretsProperties.class,           // v1.5.0: Vault secrets management
+    HoneycombCircuitBreakerProperties.class     // v1.5.0: adaptive circuit breaker
 })
 public class HoneycombApplication {
     public static void main(String[] args) {

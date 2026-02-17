@@ -16,6 +16,10 @@ import com.honeycomb.core.config.HoneycombVersioningProperties;
 import com.honeycomb.core.config.HoneycombLockingProperties;
 import com.honeycomb.core.config.HoneycombContractProperties;
 import com.honeycomb.core.config.HoneycombTenantProperties;
+import com.honeycomb.core.config.HoneycombApiVersionProperties;
+import com.honeycomb.core.config.HoneycombTracingProperties;
+import com.honeycomb.core.config.HoneycombSecretsProperties;
+import com.honeycomb.core.config.HoneycombCircuitBreakerProperties;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.ComponentScan;
@@ -40,6 +44,13 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  * {@link HoneycombTenantProperties} (multi-tenancy) are now included. RFC 7807 error
  * responses, W3C traceparent correlation, JMH benchmarks, and {@code @HoneycombTest}
  * test slice are also part of this release.</p>
+ *
+ * <p><b>v1.5.0 additions:</b> {@link HoneycombApiVersionProperties} (API versioning),
+ * {@link HoneycombTracingProperties} (OpenTelemetry tracing),
+ * {@link HoneycombSecretsProperties} (Vault secrets management),
+ * {@link HoneycombCircuitBreakerProperties} (adaptive circuit breaker),
+ * per-tenant rate limiting, graceful cell deregistration, {@code @DependsOnCell}
+ * cell dependency declaration, plugin system (SPI), and HTTP audit logging filter.</p>
  */
 @AutoConfiguration
 @EnableScheduling
@@ -53,12 +64,16 @@ import org.springframework.scheduling.annotation.EnableScheduling;
         HoneycombValidationProperties.class,
         HoneycombIdempotencyProperties.class,
         HoneycombSharedMethodProperties.class,
-        HoneycombEventProperties.class,        // v1.3: event-driven cell communication
-        HoneycombCacheProperties.class,         // v1.3: distributed Redis cache sync
-        HoneycombVersioningProperties.class,    // v1.4: cell versioning & blue-green dispatch
-        HoneycombLockingProperties.class,        // v1.4: distributed locking & leader election
-        HoneycombContractProperties.class,       // v1.4.3: contract testing
-        HoneycombTenantProperties.class          // v1.4.3: multi-tenancy support
+        HoneycombEventProperties.class,            // v1.3: event-driven cell communication
+        HoneycombCacheProperties.class,             // v1.3: distributed Redis cache sync
+        HoneycombVersioningProperties.class,        // v1.4: cell versioning & blue-green dispatch
+        HoneycombLockingProperties.class,           // v1.4: distributed locking & leader election
+        HoneycombContractProperties.class,          // v1.4.3: contract testing
+        HoneycombTenantProperties.class,            // v1.4.3: multi-tenancy support
+        HoneycombApiVersionProperties.class,        // v1.5.0: API versioning with /v1/ prefix
+        HoneycombTracingProperties.class,           // v1.5.0: OpenTelemetry distributed tracing
+        HoneycombSecretsProperties.class,           // v1.5.0: Vault secrets management
+        HoneycombCircuitBreakerProperties.class     // v1.5.0: adaptive circuit breaker
 })
 @ComponentScan(
         basePackages = "com.honeycomb.core",

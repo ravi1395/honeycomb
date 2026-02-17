@@ -1,6 +1,44 @@
 # Honeycomb Roadmap
 
-Last updated: 2026-02-14
+Last updated: 2025-06-15
+
+## Version 1.5.0 — Production Hardening, Observability & Extensibility
+
+### Phase 1 — Core Production Features (v1.5.0)
+
+| # | Feature | Status | Description |
+|---|---------|--------|-------------|
+| 1 | **API versioning** | ✅ Complete | `/v1/` prefix for all endpoints via `ApiVersionFilter`; legacy paths preserved |
+| 2 | **Per-tenant rate limiting** | ✅ Complete | `RateLimitFilter` enhanced with tenant-aware keying via `X-Tenant-Id` header |
+| 3 | **OpenTelemetry distributed tracing** | ✅ Complete | Micrometer OTel bridge, OTLP export, `@Observed` span support, W3C propagation |
+| 4 | **Vault secrets management** | ✅ Complete | Spring Cloud Vault integration via `HoneycombSecretsProperties` |
+| 5 | **Graceful cell deregistration** | ✅ Complete | Eureka deregister → drain in-flight requests → dispose servers on shutdown |
+| 6 | **Audit logging WebFilter** | ✅ Complete | `HttpAuditFilter` logs method, path, status, latency, tenant, PII redacted |
+
+### Phase 2 — Architecture & Extensibility (v1.5.0)
+
+| # | Feature | Status | Description |
+|---|---------|--------|-------------|
+| 7 | **Cell dependency declaration** | ✅ Complete | `@DependsOnCell` annotation with startup validation via `CellDependencyValidator` |
+| 8 | **Plugin system (SPI)** | ✅ Complete | `HoneycombPlugin` interface + `PluginManager` with ServiceLoader & Spring bean discovery |
+| 9 | **Adaptive circuit breaker** | ✅ Complete | `AdaptiveCircuitBreaker` auto-tunes failure-rate thresholds based on error trends |
+
+### Future — Advanced Features (v2.0+)
+
+| # | Feature | Status | Target |
+|---|---------|--------|--------|
+| 10 | **Sidecar mode** | 📋 Planned | v2.0 |
+| 11 | **TypeScript / Python SDKs** | 📋 Planned | v2.0 |
+| 12 | **Event schema registry** | 📋 Planned | v2.0 |
+| 13 | **Traffic-aware autoscaling** | 📋 Planned | v2.0 |
+| 14 | **Hot-path detection** | 📋 Planned | v2.0 |
+| 15 | **Cell placement advisor** | 📋 Planned | v2.0 |
+| 16 | **Admin dashboard** | 📋 Planned | v2.x |
+| 17 | **CLI scaffolding tool** | 📋 Planned | v2.x |
+| 18 | **Honeycomb Cloud (SaaS)** | 📋 Planned | v3.0 |
+| 19 | **Certification test suite** | 📋 Planned | v2.x |
+
+---
 
 ## Version 1.3 — Scaling, Ecosystem & Developer Experience
 

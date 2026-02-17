@@ -20,6 +20,10 @@ public final class HoneycombConstants {
         public static final String API_KEY = "X-API-Key";
         public static final String AUTHORIZATION = "Authorization";
         public static final String IDEMPOTENCY_KEY = "Idempotency-Key";
+        /** Tenant identifier header for multi-tenancy support. @since 1.5.0 */
+        public static final String TENANT_ID = "X-Tenant-Id";
+        /** API version response header. @since 1.5.0 */
+        public static final String API_VERSION = "X-API-Version";
     }
 
     public static final class Paths {
@@ -534,7 +538,7 @@ public final class HoneycombConstants {
         private OpenApi() {}
         public static final String TITLE = "Honeycomb API";
         public static final String DESCRIPTION = "Per-cell microservice runtime with shared method invocation, CRUD operations, and cell registry";
-        public static final String VERSION = "1.4.3";
+        public static final String VERSION = "1.5.0";
         public static final String CONTACT_NAME = "Honeycomb Team";
         public static final String CONTACT_EMAIL = "team@honeycomb.example.com";
         public static final String LICENSE_NAME = "MIT License";

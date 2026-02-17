@@ -1,5 +1,7 @@
 spring:
   cloud:
+    vault:
+      enabled: false
     compatibility-verifier:
       enabled: false
     discovery:
