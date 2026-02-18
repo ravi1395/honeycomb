@@ -17,6 +17,10 @@
     <modules>
         <module>honeycomb-core</module>
         <module>honeycomb-grpc</module>
+        <!-- Security & production hardening (filters, JWT, mTLS, API-key auth) -->
+        <module>honeycomb-security</module>
+        <!-- Tomcat WAR deployment support (multi-cell via context paths) -->
+        <module>honeycomb-tomcat</module>
         <module>honeycomb-starter</module>
         <module>examples/honeycomb-example</module>
     </modules>

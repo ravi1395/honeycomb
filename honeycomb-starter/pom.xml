@@ -22,6 +22,33 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!--
+            Optional security module — provides API-key, JWT/OAuth2, mTLS filters and
+            production-hardening defaults.  Consumers can either add this dependency
+            themselves or rely on it being pulled in transitively via honeycomb-starter
+            by setting the property below to activate it.
+
+            To pull security in via this starter, add honeycomb-security explicitly:
+              <dependency>
+                <groupId>com.honeycomb</groupId>
+                <artifactId>honeycomb-security</artifactId>
+              </dependency>
+        -->
+        <dependency>
+            <groupId>com.honeycomb</groupId>
+            <artifactId>honeycomb-security</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Optional Tomcat WAR deployment support -->
+        <dependency>
+            <groupId>com.honeycomb</groupId>
+            <artifactId>honeycomb-tomcat</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+
         <!-- Optional gRPC transport module — pulled in when honeycomb.grpc.enabled=true -->
         <dependency>
             <groupId>com.honeycomb</groupId>

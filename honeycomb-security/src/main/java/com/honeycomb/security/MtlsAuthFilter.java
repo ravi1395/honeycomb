@@ -1,4 +1,4 @@
-package com.honeycomb.core.security;
+package com.honeycomb.security;
 
 import com.honeycomb.core.config.HoneycombSecurityProperties;
 import org.springframework.core.Ordered;
@@ -20,15 +20,18 @@ import java.util.Arrays;
  * Highest-priority {@link WebFilter} that validates mutual TLS (mTLS)
  * client certificates when enabled.
  *
- * @deprecated Moved to {@code honeycomb-security} module ({@code com.honeycomb.security.MtlsAuthFilter}).
- *             This class is kept for source compatibility only and is no longer registered as a bean.
- *             Add the {@code honeycomb-security} dependency to activate this filter.
+ * <p>Activates when {@code honeycomb.security.mtls.enabled=true}.
+ * Checks the presented X.509 certificate chain against the configured
+ * subject DN allowlist. If {@code require-client-cert} is {@code true}
+ * and no certificate is provided, the request is rejected with 401.</p>
+ *
+ * <p>Part of the {@code honeycomb-security} module.</p>
  *
  * @see HoneycombSecurityProperties.MtlsProperties
  */
-@Deprecated(since = "1.5.0", forRemoval = true)
+@Component
 @SuppressWarnings("null")
-// NOT registered as a bean — use the honeycomb-security module for bean registration.
+@Order(Ordered.HIGHEST_PRECEDENCE + 5)
 public class MtlsAuthFilter implements WebFilter {
     private final HoneycombSecurityProperties securityProperties;
 
@@ -44,7 +47,8 @@ public class MtlsAuthFilter implements WebFilter {
             return chain.filter(exchange);
         }
         var sslInfo = exchange.getRequest().getSslInfo();
-        if (sslInfo == null || sslInfo.getPeerCertificates() == null || sslInfo.getPeerCertificates().length == 0) {
+        if (sslInfo == null || sslInfo.getPeerCertificates() == null
+                || sslInfo.getPeerCertificates().length == 0) {
             if (mtls.isRequireClientCert()) {
                 return unauthorized(exchange, HoneycombConstants.ErrorKeys.MISSING_CLIENT_CERT);
             }
@@ -66,6 +70,7 @@ public class MtlsAuthFilter implements WebFilter {
         exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
         exchange.getResponse().getHeaders().setContentType(MediaType.APPLICATION_JSON);
         byte[] body = ("{\"" + HoneycombConstants.JsonKeys.ERROR + "\":\"" + message + "\"}").getBytes();
-        return exchange.getResponse().writeWith(Mono.just(exchange.getResponse().bufferFactory().wrap(body)));
+        return exchange.getResponse().writeWith(
+                Mono.just(exchange.getResponse().bufferFactory().wrap(body)));
     }
 }

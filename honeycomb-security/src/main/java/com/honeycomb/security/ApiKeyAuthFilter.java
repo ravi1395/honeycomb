@@ -1,4 +1,4 @@
-package com.honeycomb.core.security;
+package com.honeycomb.security;
 
 import com.honeycomb.core.config.HoneycombSecurityProperties;
 import com.honeycomb.core.web.CellPathResolver;
@@ -24,16 +24,23 @@ import java.util.Objects;
  * High-priority {@link WebFilter} that authenticates incoming requests using an
  * API key header (default {@code X-API-Key}).
  *
- * @deprecated Moved to {@code honeycomb-security} module ({@code com.honeycomb.security.ApiKeyAuthFilter}).
- *             This class is kept for source compatibility only and is no longer registered as a bean.
- *             Add the {@code honeycomb-security} dependency to activate this filter.
+ * <p>When enabled via {@code honeycomb.security.api-keys.enabled=true}, the filter:
+ * <ol>
+ *   <li>Bypasses OpenAPI / Swagger paths to keep docs publicly accessible.</li>
+ *   <li>Skips non-Honeycomb paths and requests carrying a Bearer / Basic {@code Authorization} header.</li>
+ *   <li>Validates the key against the global allow-list and optional per-cell key sets.</li>
+ *   <li>On success, publishes a {@link UsernamePasswordAuthenticationToken} to the
+ *       reactive security context so downstream filters see an authenticated principal.</li>
+ * </ol>
+ *
+ * <p>Part of the {@code honeycomb-security} module.</p>
  *
  * @see HoneycombSecurityProperties
  * @see CellPathResolver#resolveCell(String)
  */
-@Deprecated(since = "1.5.0", forRemoval = true)
+@Component
 @SuppressWarnings("null")
-// NOT registered as a bean — use the honeycomb-security module for bean registration.
+@Order(Ordered.HIGHEST_PRECEDENCE + 10)
 public class ApiKeyAuthFilter implements WebFilter {
     private final HoneycombSecurityProperties securityProperties;
 
@@ -75,9 +82,11 @@ public class ApiKeyAuthFilter implements WebFilter {
         if (!allowed.isEmpty() && allowed.stream().noneMatch(k -> k.equals(key))) {
             return unauthorized(exchange, HoneycombConstants.ErrorKeys.CELL_ACCESS_DENIED);
         }
-        var auth = new UsernamePasswordAuthenticationToken("api-key", key, java.util.List.of(new SimpleGrantedAuthority(HoneycombConstants.Roles.API_KEY)));
+        var auth = new UsernamePasswordAuthenticationToken("api-key", key,
+                java.util.List.of(new SimpleGrantedAuthority(HoneycombConstants.Roles.API_KEY)));
         return chain.filter(exchange)
-                .contextWrite(ReactiveSecurityContextHolder.withSecurityContext(Mono.just(new SecurityContextImpl(auth))));
+                .contextWrite(ReactiveSecurityContextHolder.withSecurityContext(
+                        Mono.just(new SecurityContextImpl(auth))));
     }
 
     private boolean isOpenApiPath(String path) {
@@ -91,6 +100,7 @@ public class ApiKeyAuthFilter implements WebFilter {
         exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
         exchange.getResponse().getHeaders().setContentType(MediaType.APPLICATION_JSON);
         byte[] body = ("{\"" + HoneycombConstants.JsonKeys.ERROR + "\":\"" + message + "\"}").getBytes();
-        return exchange.getResponse().writeWith(Mono.just(exchange.getResponse().bufferFactory().wrap(body)));
+        return exchange.getResponse().writeWith(
+                Mono.just(exchange.getResponse().bufferFactory().wrap(body)));
     }
 }

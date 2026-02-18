@@ -60,7 +60,15 @@ public class CellAddressService {
 
     public Flux<CellAddress> findByCell(String name) {
         return discoveryClient.getInstances(name)
-                .map(instance -> new CellAddress(null, name, instance.getHost(), instance.getPort()))
+                .map(instance -> {
+                    // Extract context-path from Eureka instance metadata if present.
+                    // Cells deployed as WARs register their context path as metadata
+                    // key "contextPath" (e.g. /SampleModel).
+                    String ctx = instance.getMetadata() != null
+                            ? instance.getMetadata().getOrDefault("contextPath", "")
+                            : "";
+                    return new CellAddress(null, name, instance.getHost(), instance.getPort(), ctx);
+                })
                 .switchIfEmpty(Flux.defer(() -> Flux.fromIterable(addressesForCell(name))));
     }
 
@@ -120,18 +128,27 @@ public class CellAddressService {
             if (entry.isBlank()) continue;
             String host = null;
             int port = -1;
+            String contextPath = "";
             try {
                 URI uri = entry.contains(HoneycombConstants.Regex.PROTOCOL_SEPARATOR)
                     ? URI.create(entry)
                     : URI.create(HoneycombConstants.Schemes.HTTP + entry);
                 host = uri.getHost();
                 port = uri.getPort();
+                // Preserve the path component as the context path for Tomcat deployments
+                // e.g. "localhost:8080/SampleModel" → contextPath = "/SampleModel"
+                if (uri.getPath() != null && !uri.getPath().isEmpty() && !"/".equals(uri.getPath())) {
+                    contextPath = uri.getPath();
+                }
             } catch (IllegalArgumentException ignored) {
             }
             if (host == null || host.isBlank()) {
                 String raw = entry.replaceFirst(HoneycombConstants.Regex.HTTP_PREFIX, "");
                 int slash = raw.indexOf('/');
-                if (slash > 0) raw = raw.substring(0, slash);
+                if (slash > 0) {
+                    contextPath = raw.substring(slash); // e.g. "/SampleModel"
+                    raw = raw.substring(0, slash);
+                }
                 int colon = raw.indexOf(':');
                 if (colon > 0) {
                     host = raw.substring(0, colon);
@@ -144,7 +161,7 @@ public class CellAddressService {
                 }
             }
             if (host != null && !host.isBlank() && port > 0) {
-                addresses.add(new CellAddress(null, name, host, port));
+                addresses.add(new CellAddress(null, name, host, port, contextPath));
             }
         }
         return addresses;

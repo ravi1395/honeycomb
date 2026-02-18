@@ -1,0 +1,138 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.honeycomb</groupId>
+        <artifactId>honeycomb-parent</artifactId>
+        <version>1.5.0</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>honeycomb-tomcat</artifactId>
+    <!--
+        Default packaging is JAR so the module is usable as a library.
+        Consumer applications that want a WAR set <packaging>war</packaging>
+        in their own pom.xml and extend HoneycombServletInitializer.
+
+        A ready-made WAR profile is provided below:
+          mvn package -P war
+    -->
+    <packaging>jar</packaging>
+    <name>honeycomb-tomcat</name>
+    <description>
+        Tomcat WAR deployment support for Honeycomb cells.
+        Instead of running one JVM per cell (run-multi-cells.sh), package
+        each cell as a WAR and deploy all WARs to a single Tomcat server.
+        Each WAR receives its own context path (e.g. /SampleModel, /InventoryCell)
+        which is automatically mapped to the cell name at startup.
+    </description>
+
+    <dependencies>
+        <!-- Honeycomb core (properties, controllers, services) -->
+        <dependency>
+            <groupId>com.honeycomb</groupId>
+            <artifactId>honeycomb-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Optional: security filters from honeycomb-security -->
+        <dependency>
+            <groupId>com.honeycomb</groupId>
+            <artifactId>honeycomb-security</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!--
+            Spring WebFlux on Tomcat: exclude embedded Netty and use Tomcat instead.
+            The WebFlux reactive stack works on Tomcat via the Servlet 3.1 async adapter.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webflux</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-reactor-netty</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <!--
+            Embedded Tomcat (provided scope when used in an external Tomcat container;
+            compile scope for the embedded scenario where Tomcat manages lifecycle).
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-tomcat</artifactId>
+        </dependency>
+
+        <!-- Servlet API — required for SpringBootServletInitializer -->
+        <dependency>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-configuration-processor</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>${lombok.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <profiles>
+        <!--
+            WAR profile — build an external-Tomcat-ready WAR:
+              mvn package -P war
+            The resulting WAR can be dropped into $CATALINA_HOME/webapps/.
+            Rename it to the desired cell name, e.g. SampleModel.war, so that
+            Tomcat serves the cell at http://host:8080/SampleModel.
+
+            Note: set <packaging>war</packaging> in your consuming pom.xml and
+            mark spring-boot-starter-tomcat as <scope>provided</scope>.
+        -->
+        <profile>
+            <id>war</id>
+            <dependencies>
+                <!-- Mark Tomcat as provided when deploying to an external server -->
+                <dependency>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-tomcat</artifactId>
+                    <scope>provided</scope>
+                </dependency>
+            </dependencies>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-war-plugin</artifactId>
+                        <configuration>
+                            <failOnMissingWebXml>false</failOnMissingWebXml>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+</project>

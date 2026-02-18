@@ -91,7 +91,7 @@ public class RoutingPolicyService {
         int[] ws = new int[n];
         for (int i = 0; i < n; i++) {
             CellAddress addr = addresses.get(i);
-            String key = addr.getHost() + HoneycombConstants.Names.SEPARATOR_COLON + addr.getPort();
+            String key = addr.displayKey();
             int w = Math.max(1, weights.getOrDefault(key, 1));
             ws[i] = w;
             total += w;
@@ -131,7 +131,7 @@ public class RoutingPolicyService {
 
     private String addressKey(String cell, CellAddress address) {
         String c = (cell == null || cell.isBlank()) ? "__all__" : cell;
-        return c + "@" + address.getHost() + ":" + address.getPort();
+        return c + "@" + address.displayKey();
     }
 
     public String circuitName(String cell, CellAddress address) {

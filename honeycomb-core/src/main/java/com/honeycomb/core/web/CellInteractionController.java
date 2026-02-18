@@ -86,10 +86,7 @@ public class CellInteractionController {
             return Flux.fromIterable(selected);
         }).flatMap(addr -> {
             long startNs = System.nanoTime();
-            String base = HoneycombConstants.Schemes.HTTP
-                + addr.getHost()
-                + HoneycombConstants.Names.SEPARATOR_COLON
-                + addr.getPort();
+            String base = addr.getBaseUrl();
             URI uri = Objects.requireNonNull(URI.create(base + pathFinal));
 
             WebClient.RequestBodySpec reqSpec = webClient.method(HttpMethod.POST).uri(uri)
@@ -113,9 +110,7 @@ public class CellInteractionController {
             return respMono.timeout(Duration.ofSeconds(10))
                 .transformDeferred(CircuitBreakerOperator.of(cb))
                 .flatMap(cr -> cr.bodyToMono(String.class).defaultIfEmpty(HoneycombConstants.Messages.EMPTY)
-                    .map(bodyStr -> new AbstractMap.SimpleEntry<>(addr.getHost()
-                        + HoneycombConstants.Names.SEPARATOR_COLON
-                        + addr.getPort(), Map.of(
+                    .map(bodyStr -> new AbstractMap.SimpleEntry<>(addr.displayKey(), Map.of(
                             HoneycombConstants.JsonKeys.STATUS, cr.statusCode().value(),
                             HoneycombConstants.JsonKeys.CONTENT_TYPE,
                             cr.headers().contentType().map(MediaType::toString).orElse(HoneycombConstants.Messages.EMPTY),
@@ -124,9 +119,8 @@ public class CellInteractionController {
                 .doOnSuccess(v -> routingPolicyService.recordLatency(to, addr, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNs), true))
                 .onErrorResume(e -> {
                     routingPolicyService.recordLatency(to, addr, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNs), false);
-                    return Mono.just(new AbstractMap.SimpleEntry<>(addr.getHost()
-                        + HoneycombConstants.Names.SEPARATOR_COLON
-                        + addr.getPort(), Map.of(HoneycombConstants.JsonKeys.ERROR, e.getMessage())));
+                    return Mono.just(new AbstractMap.SimpleEntry<>(addr.displayKey(),
+                        Map.of(HoneycombConstants.JsonKeys.ERROR, e.getMessage())));
                 });
         }).collectList().map(list -> {
             Map<String,Object> aggregated = list.stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
@@ -170,10 +164,7 @@ public class CellInteractionController {
             return Flux.fromIterable(selected);
         }).flatMap(addr -> {
             long startNs = System.nanoTime();
-            String base = HoneycombConstants.Schemes.HTTP
-                + addr.getHost()
-                + HoneycombConstants.Names.SEPARATOR_COLON
-                + addr.getPort();
+            String base = addr.getBaseUrl();
             URI uri = Objects.requireNonNull(URI.create(base + pathFinal));
 
             WebClient.RequestBodySpec reqSpec = webClient.method(HttpMethod.valueOf(methodFinal)).uri(uri)
@@ -201,9 +192,7 @@ public class CellInteractionController {
             return respMono.timeout(Duration.ofSeconds(10))
                 .transformDeferred(CircuitBreakerOperator.of(cb))
                 .flatMap(cr -> cr.bodyToMono(String.class).defaultIfEmpty(HoneycombConstants.Messages.EMPTY)
-                    .map(bodyStr -> new AbstractMap.SimpleEntry<>(addr.getHost()
-                        + HoneycombConstants.Names.SEPARATOR_COLON
-                        + addr.getPort(), Map.of(
+                    .map(bodyStr -> new AbstractMap.SimpleEntry<>(addr.displayKey(), Map.of(
                             HoneycombConstants.JsonKeys.STATUS, cr.statusCode().value(),
                             HoneycombConstants.JsonKeys.CONTENT_TYPE,
                             cr.headers().contentType().map(MediaType::toString).orElse(HoneycombConstants.Messages.EMPTY),
@@ -212,9 +201,8 @@ public class CellInteractionController {
                 .doOnSuccess(v -> routingPolicyService.recordLatency(to, addr, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNs), true))
                 .onErrorResume(e -> {
                     routingPolicyService.recordLatency(to, addr, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNs), false);
-                    return Mono.just(new AbstractMap.SimpleEntry<>(addr.getHost()
-                        + HoneycombConstants.Names.SEPARATOR_COLON
-                        + addr.getPort(), Map.of(HoneycombConstants.JsonKeys.ERROR, e.getMessage())));
+                    return Mono.just(new AbstractMap.SimpleEntry<>(addr.displayKey(),
+                        Map.of(HoneycombConstants.JsonKeys.ERROR, e.getMessage())));
                 });
         }).collectList().map(list -> {
             Map<String,Object> aggregated = list.stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));

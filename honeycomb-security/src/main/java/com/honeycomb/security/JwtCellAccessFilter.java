@@ -1,4 +1,4 @@
-package com.honeycomb.core.security;
+package com.honeycomb.security;
 
 import com.honeycomb.core.config.HoneycombSecurityProperties;
 import com.honeycomb.core.web.CellPathResolver;
@@ -24,15 +24,25 @@ import java.util.stream.Collectors;
  * Low-priority {@link WebFilter} that enforces per-cell and per-shared-method
  * role requirements when JWT authentication is active.
  *
- * @deprecated Moved to {@code honeycomb-security} module ({@code com.honeycomb.security.JwtCellAccessFilter}).
- *             This class is kept for source compatibility only and is no longer registered as a bean.
- *             Add the {@code honeycomb-security} dependency to activate this filter.
+ * <p>Evaluates after Spring Security's built-in filters so the
+ * {@code ReactiveSecurityContextHolder} already contains the decoded JWT.
+ * The filter:
+ * <ol>
+ *   <li>Skips actuator paths.</li>
+ *   <li>For shared-method paths, resolves required roles from
+ *       {@code honeycomb.security.jwt.shared-method-roles}.</li>
+ *   <li>For cell paths, maps the HTTP method to a CRUD operation and
+ *       resolves required roles from {@code honeycomb.security.jwt.cell-roles}.</li>
+ *   <li>Returns 403 if the principal lacks any of the required authorities.</li>
+ * </ol>
+ *
+ * <p>Part of the {@code honeycomb-security} module.</p>
  *
  * @see HoneycombSecurityProperties.JwtProperties
  */
-@Deprecated(since = "1.5.0", forRemoval = true)
+@Component
 @SuppressWarnings("null")
-// NOT registered as a bean — use the honeycomb-security module for bean registration.
+@Order(Ordered.LOWEST_PRECEDENCE - 10)
 public class JwtCellAccessFilter implements WebFilter {
     private final HoneycombSecurityProperties securityProperties;
 
@@ -77,7 +87,8 @@ public class JwtCellAccessFilter implements WebFilter {
                 .flatMap(auth -> authorize(auth, required, exchange, chain));
     }
 
-    private Mono<Void> authorize(Authentication auth, List<String> required, ServerWebExchange exchange, WebFilterChain chain) {
+    private Mono<Void> authorize(Authentication auth, List<String> required,
+            ServerWebExchange exchange, WebFilterChain chain) {
         if (auth == null || !auth.isAuthenticated()) {
             return chain.filter(exchange);
         }
@@ -121,6 +132,7 @@ public class JwtCellAccessFilter implements WebFilter {
         exchange.getResponse().setStatusCode(HttpStatus.FORBIDDEN);
         exchange.getResponse().getHeaders().setContentType(MediaType.APPLICATION_JSON);
         byte[] body = ("{\"" + HoneycombConstants.JsonKeys.ERROR + "\":\"" + message + "\"}").getBytes();
-        return exchange.getResponse().writeWith(Mono.just(exchange.getResponse().bufferFactory().wrap(body)));
+        return exchange.getResponse().writeWith(
+                Mono.just(exchange.getResponse().bufferFactory().wrap(body)));
     }
 }

@@ -1,4 +1,4 @@
-package com.honeycomb.core.security;
+package com.honeycomb.security;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -26,17 +26,25 @@ import java.util.List;
 /**
  * Central Spring Security configuration for Honeycomb.
  *
- * @deprecated Moved to {@code honeycomb-security} module ({@code com.honeycomb.security.SecurityConfig}).
- *             Add the {@code honeycomb-security} dependency to your project and remove any direct
- *             reference to this class. This class is kept for source compatibility only and will
- *             be removed in a future release.
+ * <p>Defines the reactive {@link SecurityWebFilterChain} with:
+ * <ul>
+ *   <li>CSRF disabled (API-only service).</li>
+ *   <li>Hardened HTTP headers (HSTS, X-Frame-Options DENY, Referrer-Policy, Permissions-Policy).</li>
+ *   <li>Path-based authorisation: actuator behind ACTUATOR role, shared methods behind SHARED_INVOKER.</li>
+ *   <li>HTTP Basic + optional OAuth2 resource server (JWT) support.</li>
+ * </ul>
  *
- * @see com.honeycomb.core.security.ApiKeyAuthFilter
- * @see com.honeycomb.core.security.JwtCellAccessFilter
- * @see com.honeycomb.core.security.MtlsAuthFilter
+ * <p>Also registers a {@link MapReactiveUserDetailsService} with built-in
+ * actuator and shared-method users, and exposes a {@link BCryptPasswordEncoder}.</p>
+ *
+ * <p>This bean is part of the {@code honeycomb-security} module and is auto-configured
+ * when that module is present on the classpath.</p>
+ *
+ * @see ApiKeyAuthFilter
+ * @see JwtCellAccessFilter
+ * @see MtlsAuthFilter
  */
-@Deprecated(since = "1.5.0", forRemoval = true)
-// NOT registered as a bean — use the honeycomb-security module for bean registration.
+@Configuration
 public class SecurityConfig {
     @Value(HoneycombConstants.PropertyValues.ACTUATOR_USER)
     private String actuatorUser;
@@ -83,7 +91,7 @@ public class SecurityConfig {
     }
 
     @Bean
-        @ConditionalOnProperty(name = HoneycombConstants.ConfigKeys.JWT_ENABLED,
+    @ConditionalOnProperty(name = HoneycombConstants.ConfigKeys.JWT_ENABLED,
             havingValue = HoneycombConstants.Values.TRUE)
     public ReactiveJwtDecoder jwtDecoder(HoneycombSecurityProperties securityProperties) {
         return HoneycombUtil.jwtDecoder(securityProperties);
@@ -116,7 +124,8 @@ public class SecurityConfig {
             config.setAllowCredentials(true);
         }
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-API-Key", "X-Request-Id", "X-Tenant-Id", "X-From-Cell", "traceparent", "tracestate"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-API-Key", "X-Request-Id",
+                "X-Tenant-Id", "X-From-Cell", "traceparent", "tracestate"));
         config.setExposedHeaders(List.of("X-Request-Id", "X-Tenant-Id", "traceparent"));
         config.setMaxAge(3600L);
 

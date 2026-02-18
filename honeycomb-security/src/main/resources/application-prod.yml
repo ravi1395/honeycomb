@@ -1,9 +1,8 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# Production defaults for honeycomb-core (infrastructure & performance).
-#
-# Security and production-hardening settings have moved to the
-# honeycomb-security module (application-prod.yml bundled there).
-# Add honeycomb-security to your project dependencies to activate them.
+# Production-hardening defaults supplied by honeycomb-security.
+# Active when the "prod" Spring profile is loaded.
+# All values can be overridden by the consuming application's own
+# application-prod.yml / environment variables.
 # ─────────────────────────────────────────────────────────────────────────────
 
 spring:
@@ -16,6 +15,25 @@ server:
   shutdown: graceful
 
 honeycomb:
+  security:
+    # Require authentication on all /honeycomb/** endpoints in production.
+    require-auth: true
+
+    api-keys:
+      enabled: true
+      header: "X-API-Key"
+      keys:
+        admin: "${HONEYCOMB_ADMIN_KEY:}"
+        cell: "${HONEYCOMB_CELL_KEY:}"
+      per-cell:
+        "*": ["${HONEYCOMB_ADMIN_KEY:}", "${HONEYCOMB_CELL_KEY:}"]
+
+    jwt:
+      enabled: ${HONEYCOMB_JWT_ENABLED:false}
+      issuer-uri: "${HONEYCOMB_JWT_ISSUER_URI:}"
+      jwk-set-uri: "${HONEYCOMB_JWT_JWK_SET_URI:}"
+      audience: "${HONEYCOMB_JWT_AUDIENCE:honeycomb-api}"
+
   webclient:
     connect-timeout-ms: 3000
     response-timeout-ms: 10000
@@ -24,17 +42,23 @@ honeycomb:
       max-attempts: 3
       backoff-ms: 200
       max-backoff-ms: 2000
+
   rate-limiter:
     enabled: true
     defaults:
       limit-for-period: 50
       refresh-period: 1s
       timeout: 0ms
+
   autoscale:
     enabled: true
     evaluation-interval: 10s
     scale-up-rps: 2.0
     scale-down-rps: 0.2
+
+shared:
+  user: "${HONEYCOMB_SHARED_USER:shared}"
+  password: "${HONEYCOMB_SHARED_PASSWORD:changeit}"
 
 management:
   endpoints:
